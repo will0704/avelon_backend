@@ -42,7 +42,7 @@ app.use('*', secureHeaders());
 
 // CORS
 app.use('*', cors({
-    origin: ['http://localhost:3000', 'http://localhost:19006'], // Web & Mobile
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:19006'], // Web Admin & Mobile
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['X-Request-Id'],

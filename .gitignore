@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+*.js.map
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Prisma
+prisma/migrations/.snapshot
+prisma/*.db
+prisma/*.db-journal
+
+# Uploads
+uploads/
+temp/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Hardhat
+contracts/cache/
+contracts/artifacts/
+contracts/typechain-types/
+
+# Generated
+*.tsbuildinfo
+
+# Misc
+.turbo/
+
+# Bruno API Collection
+bruno/
+
+docs

@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: avelon_postgres
+    environment:
+      POSTGRES_USER: avelon
+      POSTGRES_PASSWORD: avelon_password
+      POSTGRES_DB: avelon_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U avelon -d avelon_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: avelon_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ganache:
+    image: trufflesuite/ganache:latest
+    container_name: avelon_ganache
+    ports:
+      - "8545:8545"
+    command: >
+      --chain.chainId 1337 --wallet.totalAccounts 10 --wallet.defaultBalance 1000 --miner.blockGasLimit 30000000 --database.dbPath /ganache_data
+    volumes:
+      - ganache_data:/ganache_data
+
+volumes:
+  postgres_data:
+  redis_data:
+  ganache_data:

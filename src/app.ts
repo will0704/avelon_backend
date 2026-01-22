@@ -42,7 +42,21 @@ app.use('*', secureHeaders());
 
 // CORS
 app.use('*', cors({
-    origin: ['http://localhost:3000', 'http://localhost:19006'], // Web & Mobile
+    origin: (origin) => {
+        // Allow all origins in development for mobile testing
+        if (process.env.NODE_ENV === 'development') {
+            return origin || '*';
+        }
+        // In production, use whitelist
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://localhost:3002',
+            'http://localhost:19006',
+            'https://avelon.io',
+        ];
+        return allowedOrigins.includes(origin || '') ? origin : null;
+    },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['X-Request-Id'],

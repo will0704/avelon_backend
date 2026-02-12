@@ -1,10 +1,16 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
+import { loanService } from '../services/loan.service.js';
+import { blockchainService } from '../services/blockchain.service.js';
 
 const loanRoutes = new Hono();
 
-// Validation schemas
+// ============================================
+// VALIDATION SCHEMAS
+// ============================================
+
 const createLoanSchema = z.object({
     planId: z.string().min(1, 'Plan ID is required'),
     amount: z.string().regex(/^\d+\.?\d*$/, 'Invalid amount format'),
@@ -21,21 +27,25 @@ const recordRepaymentSchema = z.object({
     txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash'),
 });
 
+// ============================================
+// ROUTES
+// ============================================
+
 /**
  * GET /loans
  * List user's loans
  */
-loanRoutes.get('/', async (c) => {
+loanRoutes.get('/', authMiddleware, async (c) => {
+    const userId = c.get('userId');
     const status = c.req.query('status');
 
-    // TODO: Implement with auth middleware and filtering
+    const loans = await loanService.getUserLoans(userId, status);
+
     return c.json({
         success: true,
-        data: [],
+        data: loans,
         meta: {
-            total: 0,
-            page: 1,
-            limit: 20,
+            total: loans.length,
         },
     });
 });
@@ -44,42 +54,68 @@ loanRoutes.get('/', async (c) => {
  * POST /loans
  * Create a new loan application
  */
-loanRoutes.post('/', zValidator('json', createLoanSchema), async (c) => {
-    const body = c.req.valid('json');
+loanRoutes.post(
+    '/',
+    authMiddleware,
+    approvedMiddleware,
+    zValidator('json', createLoanSchema),
+    async (c) => {
+        const userId = c.get('userId');
+        const body = c.req.valid('json');
 
-    // TODO: Implement loan creation with eligibility check
-    return c.json({
-        success: true,
-        message: 'Loan application created',
-        data: {
-            id: 'loan_id',
-            status: 'PENDING_COLLATERAL',
-            principal: body.amount,
-            collateralRequired: (parseFloat(body.amount) * 1.5).toFixed(4),
+        const loan = await loanService.createLoan({
+            userId,
+            walletId: body.walletId,
+            planId: body.planId,
+            amount: body.amount,
             duration: body.duration,
-            dueDate: new Date(Date.now() + body.duration * 24 * 60 * 60 * 1000).toISOString(),
-        },
-    }, 201);
-});
+        });
+
+        // Get CollateralManager address for frontend
+        const collateralManagerAddress = process.env.COLLATERAL_MANAGER_ADDRESS;
+
+        return c.json({
+            success: true,
+            message: 'Loan application created',
+            data: {
+                ...loan,
+                depositAddress: collateralManagerAddress,
+                instruction: `Send ${loan.collateralRequired} ETH to ${collateralManagerAddress} to activate your loan`,
+            },
+        }, 201);
+    }
+);
 
 /**
  * GET /loans/:id
  * Get loan details
  */
-loanRoutes.get('/:id', async (c) => {
-    const id = c.req.param('id');
+loanRoutes.get('/:id', authMiddleware, async (c) => {
+    const userId = c.get('userId');
+    const loanId = c.req.param('id');
 
-    // TODO: Implement loan lookup
+    const loan = await loanService.getLoanById(loanId, userId);
+
+    // Calculate total owed
+    const totalOwed = loan.principalOwed
+        .add(loan.interestOwed)
+        .add(loan.feesOwed);
+
+    // Get current collateral ratio if loan has collateral
+    let collateralRatio = null;
+    if (loan.collateralDeposited.gt(0) && totalOwed.gt(0)) {
+        collateralRatio = loan.collateralDeposited
+            .div(totalOwed)
+            .mul(100)
+            .toNumber();
+    }
+
     return c.json({
         success: true,
         data: {
-            id,
-            status: 'ACTIVE',
-            principal: '0.5',
-            collateralDeposited: '0.75',
-            principalOwed: '0.5',
-            interestOwed: '0.025',
-            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            ...loan,
+            totalOwed: totalOwed.toString(),
+            collateralRatio,
         },
     });
 });
@@ -88,88 +124,100 @@ loanRoutes.get('/:id', async (c) => {
  * POST /loans/:id/collateral
  * Record collateral deposit
  */
-loanRoutes.post('/:id/collateral', zValidator('json', recordCollateralSchema), async (c) => {
-    const id = c.req.param('id');
-    const { txHash } = c.req.valid('json');
+loanRoutes.post(
+    '/:id/collateral',
+    authMiddleware,
+    zValidator('json', recordCollateralSchema),
+    async (c) => {
+        const userId = c.get('userId');
+        const loanId = c.req.param('id');
+        const { txHash } = c.req.valid('json');
 
-    // TODO: Implement collateral verification
-    return c.json({
-        success: true,
-        message: 'Collateral deposit recorded',
-        data: {
-            loanId: id,
-            txHash,
-            status: 'COLLATERAL_DEPOSITED',
-        },
-    });
-});
+        const result = await loanService.recordCollateralDeposit(loanId, userId, txHash);
+
+        return c.json({
+            success: true,
+            message: 'Collateral deposit recorded',
+            data: {
+                loanId: result.loan.id,
+                status: result.loan.status,
+                collateralDeposited: result.loan.collateralDeposited.toString(),
+                collateralRequired: result.loan.collateralRequired.toString(),
+                txHash,
+            },
+        });
+    }
+);
 
 /**
  * POST /loans/:id/repay
  * Record repayment
  */
-loanRoutes.post('/:id/repay', zValidator('json', recordRepaymentSchema), async (c) => {
-    const id = c.req.param('id');
-    const body = c.req.valid('json');
+loanRoutes.post(
+    '/:id/repay',
+    authMiddleware,
+    zValidator('json', recordRepaymentSchema),
+    async (c) => {
+        const userId = c.get('userId');
+        const loanId = c.req.param('id');
+        const { amount, txHash } = c.req.valid('json');
 
-    // TODO: Implement repayment logic
-    return c.json({
-        success: true,
-        message: 'Repayment recorded',
-        data: {
-            loanId: id,
-            amount: body.amount,
-            txHash: body.txHash,
-            remaining: '0.0',
-        },
-    });
-});
+        const result = await loanService.recordRepayment(loanId, userId, amount, txHash);
+
+        return c.json({
+            success: true,
+            message: result.remainingOwed === '0'
+                ? 'Loan fully repaid!'
+                : 'Repayment recorded',
+            data: {
+                loanId,
+                amount,
+                txHash,
+                remainingOwed: result.remainingOwed,
+                isFullyRepaid: result.remainingOwed === '0',
+            },
+        });
+    }
+);
 
 /**
  * POST /loans/:id/add-collateral
  * Add more collateral
  */
-loanRoutes.post('/:id/add-collateral', zValidator('json', recordCollateralSchema), async (c) => {
-    const id = c.req.param('id');
-    const { txHash } = c.req.valid('json');
+loanRoutes.post(
+    '/:id/add-collateral',
+    authMiddleware,
+    zValidator('json', recordCollateralSchema),
+    async (c) => {
+        const userId = c.get('userId');
+        const loanId = c.req.param('id');
+        const { txHash } = c.req.valid('json');
 
-    // TODO: Implement collateral top-up
-    return c.json({
-        success: true,
-        message: 'Additional collateral recorded',
-        data: {
-            loanId: id,
-            txHash,
-        },
-    });
-});
+        // Use same flow as initial collateral deposit
+        const result = await loanService.recordCollateralDeposit(loanId, userId, txHash);
 
-/**
- * POST /loans/:id/extend
- * Request loan extension (VIP only)
- */
-loanRoutes.post('/:id/extend', async (c) => {
-    const id = c.req.param('id');
-
-    // TODO: Implement extension logic with VIP check
-    return c.json({
-        success: true,
-        message: 'Loan extended successfully',
-        data: {
-            loanId: id,
-            newDueDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-        },
-    });
-});
+        return c.json({
+            success: true,
+            message: 'Additional collateral recorded',
+            data: {
+                loanId: result.loan.id,
+                collateralDeposited: result.loan.collateralDeposited.toString(),
+                txHash,
+            },
+        });
+    }
+);
 
 /**
  * DELETE /loans/:id
  * Cancel loan (before collateral deposit)
  */
-loanRoutes.delete('/:id', async (c) => {
-    const id = c.req.param('id');
+loanRoutes.delete('/:id', authMiddleware, async (c) => {
+    const userId = c.get('userId');
+    const loanId = c.req.param('id');
 
-    // TODO: Implement loan cancellation
+    await loanService.cancelLoan(loanId, userId);
+
     return c.json({
         success: true,
         message: 'Loan cancelled',
@@ -180,14 +228,50 @@ loanRoutes.delete('/:id', async (c) => {
  * GET /loans/:id/transactions
  * Get loan transactions
  */
-loanRoutes.get('/:id/transactions', async (c) => {
-    const id = c.req.param('id');
+loanRoutes.get('/:id/transactions', authMiddleware, async (c) => {
+    const userId = c.get('userId');
+    const loanId = c.req.param('id');
 
-    // TODO: Implement transaction listing
+    const transactions = await loanService.getLoanTransactions(loanId, userId);
+
     return c.json({
         success: true,
-        data: [],
+        data: transactions,
     });
+});
+
+/**
+ * GET /loans/blockchain/status
+ * Get blockchain connection status
+ */
+loanRoutes.get('/blockchain/status', authMiddleware, async (c) => {
+    try {
+        const networkInfo = await blockchainService.getNetworkInfo();
+        const blockNumber = await blockchainService.getBlockNumber();
+
+        return c.json({
+            success: true,
+            data: {
+                connected: true,
+                network: networkInfo.name,
+                chainId: networkInfo.chainId,
+                blockNumber,
+                contracts: {
+                    avelonLending: process.env.AVELON_LENDING_ADDRESS || null,
+                    collateralManager: process.env.COLLATERAL_MANAGER_ADDRESS || null,
+                    repaymentSchedule: process.env.REPAYMENT_SCHEDULE_ADDRESS || null,
+                },
+            },
+        });
+    } catch (error) {
+        return c.json({
+            success: true,
+            data: {
+                connected: false,
+                error: error instanceof Error ? error.message : 'Connection failed',
+            },
+        });
+    }
 });
 
 export { loanRoutes };

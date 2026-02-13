@@ -100,4 +100,88 @@ walletRoutes.delete('/:id', authMiddleware, async (c) => {
     });
 });
 
+/**
+ * GET /wallets/:id/balance
+ * Get wallet ETH balance from blockchain
+ */
+walletRoutes.get('/:id/balance', authMiddleware, async (c) => {
+    const userId = c.get('userId');
+    const walletId = c.req.param('id');
+
+    // Import dynamically to avoid circular deps
+    const { blockchainService } = await import('../services/blockchain.service.js');
+
+    // Get wallet
+    const wallets = await walletService.getUserWallets(userId);
+    const wallet = wallets.find(w => w.id === walletId);
+
+    if (!wallet) {
+        return c.json({
+            success: false,
+            message: 'Wallet not found',
+        }, 404);
+    }
+
+    try {
+        const balance = await blockchainService.getBalance(wallet.address);
+
+        return c.json({
+            success: true,
+            data: {
+                address: wallet.address,
+                balance,
+                unit: 'ETH',
+            },
+        });
+    } catch (error) {
+        return c.json({
+            success: true,
+            data: {
+                address: wallet.address,
+                balance: null,
+                error: 'Could not fetch balance from blockchain',
+            },
+        });
+    }
+});
+
+/**
+ * GET /wallets/balances
+ * Get all wallet balances for user
+ */
+walletRoutes.get('/balances/all', authMiddleware, async (c) => {
+    const userId = c.get('userId');
+
+    const { blockchainService } = await import('../services/blockchain.service.js');
+
+    const wallets = await walletService.getUserWallets(userId);
+
+    const balances = await Promise.all(
+        wallets.map(async (wallet) => {
+            try {
+                const balance = await blockchainService.getBalance(wallet.address);
+                return {
+                    id: wallet.id,
+                    address: wallet.address,
+                    balance,
+                    isPrimary: wallet.isPrimary,
+                };
+            } catch {
+                return {
+                    id: wallet.id,
+                    address: wallet.address,
+                    balance: null,
+                    isPrimary: wallet.isPrimary,
+                };
+            }
+        })
+    );
+
+    return c.json({
+        success: true,
+        data: balances,
+    });
+});
+
 export { walletRoutes };
+

@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const notificationRoutes = new Hono();
+
+// Protect ALL notification routes with authentication (OWASP A01)
+notificationRoutes.use('*', authMiddleware);
 
 /**
  * GET /notifications
@@ -9,7 +13,7 @@ const notificationRoutes = new Hono();
 notificationRoutes.get('/', async (c) => {
     const _unreadOnly = c.req.query('unread') === 'true';
 
-    // TODO: Implement with auth middleware
+    // TODO: Implement notification listing
     return c.json({
         success: true,
         data: [],

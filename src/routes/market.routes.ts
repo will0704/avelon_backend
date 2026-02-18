@@ -24,7 +24,8 @@ marketRoutes.get('/price', async (c) => {
  * Get price history
  */
 marketRoutes.get('/price/history', async (c) => {
-    const days = parseInt(c.req.query('days') || '7');
+    const rawDays = parseInt(c.req.query('days') || '7', 10);
+    const days = Math.min(365, Math.max(1, isNaN(rawDays) ? 7 : rawDays));
 
     // TODO: Implement price history
     return c.json({

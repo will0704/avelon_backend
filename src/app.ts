@@ -20,6 +20,8 @@ import { adminRoutes } from './routes/admin/index.js';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware.js';
+import { globalRateLimiter, authRateLimiter } from './middleware/rate-limit.middleware.js';
+import { bodySizeLimiter, requestId, enforceContentType } from './middleware/security.middleware.js';
 
 // Create Hono app
 const app = new Hono();
@@ -28,17 +30,41 @@ const app = new Hono();
 // GLOBAL MIDDLEWARE
 // =====================================================
 
+// Request ID for tracing (OWASP A09)
+app.use('*', requestId);
+
 // Logging
 app.use('*', logger());
 
 // Timing headers
 app.use('*', timing());
 
-// Pretty JSON in development
-app.use('*', prettyJSON());
+// Pretty JSON in development only (OWASP A05 — don't expose in production)
+if (process.env.NODE_ENV === 'development') {
+    app.use('*', prettyJSON());
+}
 
-// Security headers
-app.use('*', secureHeaders());
+// Security headers (OWASP A05 — tightened configuration)
+app.use('*', secureHeaders({
+    strictTransportSecurity: 'max-age=63072000; includeSubDomains; preload',
+    xFrameOptions: 'DENY',
+    xContentTypeOptions: 'nosniff',
+    referrerPolicy: 'strict-origin-when-cross-origin',
+}));
+
+// Request body size limit (OWASP A04 — prevent DoS)
+app.use('*', bodySizeLimiter);
+
+// Content-Type enforcement (OWASP A08)
+app.use('*', enforceContentType);
+
+// Global rate limiter (OWASP A04 — 100 req/15min per IP)
+app.use('*', globalRateLimiter);
+
+// Auth-specific rate limiter (OWASP A07 — 5 req/15min per IP)
+app.use('/api/v1/auth/login', authRateLimiter);
+app.use('/api/v1/auth/register', authRateLimiter);
+app.use('/api/v1/auth/forgot-password', authRateLimiter);
 
 // CORS
 app.use('*', cors({
@@ -59,7 +85,7 @@ app.use('*', cors({
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
-    exposeHeaders: ['X-Request-Id'],
+    exposeHeaders: ['X-Request-Id', 'X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
     credentials: true,
     maxAge: 86400,
 }));

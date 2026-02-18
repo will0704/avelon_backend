@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 
 // Import admin sub-routes
 import { adminUsersRoutes } from './users.routes.js';
@@ -7,10 +9,14 @@ import { adminPlansRoutes } from './plans.routes.js';
 import { adminKycRoutes } from './kyc.routes.js';
 import { adminAnalyticsRoutes } from './analytics.routes.js';
 
+// Import middleware
+import { authMiddleware, adminMiddleware } from '../../middleware/auth.middleware.js';
+
 const adminRoutes = new Hono();
 
-// TODO: Add admin auth middleware here
-// adminRoutes.use('*', adminAuthMiddleware);
+// Protect ALL admin routes with auth + admin role check (OWASP A01)
+adminRoutes.use('*', authMiddleware);
+adminRoutes.use('*', adminMiddleware);
 
 // Mount admin sub-routes
 adminRoutes.route('/users', adminUsersRoutes);
@@ -35,12 +41,17 @@ adminRoutes.get('/treasury', async (c) => {
     });
 });
 
+// Validation schema for price update (OWASP A03)
+const updatePriceSchema = z.object({
+    price: z.number().positive('Price must be a positive number').max(100_000_000, 'Price exceeds maximum'),
+});
+
 /**
  * POST /admin/price
  * Update ETH/PHP price (demo mode)
  */
-adminRoutes.post('/price', async (c) => {
-    const { price } = await c.req.json();
+adminRoutes.post('/price', zValidator('json', updatePriceSchema), async (c) => {
+    const { price } = c.req.valid('json');
 
     // TODO: Implement price update
     return c.json({

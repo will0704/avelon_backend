@@ -68,13 +68,14 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
 
     // TODO: Send verification email here
 
+    // TODO: Send verification email with result.verificationToken
+    // SECURITY: Never expose tokens in API responses (OWASP A02)
+
     return c.json({
         success: true,
         message: 'Registration successful. Please check your email to verify your account.',
         data: {
             email: result.user.email,
-            // Include token in dev mode for testing
-            verificationToken: result.verificationToken,
         },
     }, 201);
 });
@@ -135,13 +136,12 @@ authRoutes.post('/forgot-password', zValidator('json', forgotPasswordSchema), as
 
     const result = await authService.forgotPassword(email);
 
-    // TODO: Send email with reset link
+    // TODO: Send email with reset link using result.token
+    // SECURITY: Never expose tokens in API responses (OWASP A02)
 
     return c.json({
         success: true,
         message: 'If an account exists with this email, you will receive a password reset link.',
-        // Include token in dev mode for testing
-        data: { resetToken: result.token },
     });
 });
 

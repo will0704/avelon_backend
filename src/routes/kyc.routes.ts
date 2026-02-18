@@ -1,13 +1,17 @@
 import { Hono } from 'hono';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const kycRoutes = new Hono();
+
+// Protect ALL KYC routes with authentication (OWASP A01)
+kycRoutes.use('*', authMiddleware);
 
 /**
  * GET /kyc/status
  * Get KYC status
  */
 kycRoutes.get('/status', async (c) => {
-    // TODO: Implement with auth middleware
+    // TODO: Implement KYC status retrieval
     return c.json({
         success: true,
         data: {

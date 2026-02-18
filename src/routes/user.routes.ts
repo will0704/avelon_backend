@@ -11,7 +11,35 @@ const userRoutes = new Hono();
 const updateProfileSchema = z.object({
     name: z.string().min(2).optional(),
     phone: z.string().optional(),
-    avatar: z.string().url().optional(),
+    avatar: z.string().url()
+        .refine(
+            (url) => {
+                try {
+                    const parsed = new URL(url);
+                    // OWASP A10 — Only allow HTTPS, block internal IPs
+                    if (parsed.protocol !== 'https:') return false;
+                    const host = parsed.hostname;
+                    // Block private/internal IPs
+                    if (
+                        host === 'localhost' ||
+                        host.startsWith('127.') ||
+                        host.startsWith('10.') ||
+                        host.startsWith('192.168.') ||
+                        host.startsWith('172.') ||
+                        host === '0.0.0.0' ||
+                        host.startsWith('169.254.') ||
+                        host.endsWith('.local')
+                    ) {
+                        return false;
+                    }
+                    return true;
+                } catch {
+                    return false;
+                }
+            },
+            'Avatar URL must be a valid HTTPS URL pointing to a public host'
+        )
+        .optional(),
 });
 
 /**

@@ -4,6 +4,8 @@ import { randomBytes } from 'crypto';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, UnauthorizedError, ValidationError } from '../middleware/error.middleware.js';
+import { isAccountLocked, recordFailedLogin, resetLoginAttempts } from '../middleware/rate-limit.middleware.js';
+import { securityLogger } from '../lib/security.logger.js';
 import { UserRole, UserStatus, type RegisterData, type LoginCredentials, type AuthTokens } from '@avelon_capstone/types';
 
 const { sign, verify } = jwt;
@@ -84,18 +86,31 @@ export class AuthService {
     async login(input: LoginInput, ipAddress?: string, userAgent?: string) {
         const { email, password } = input;
 
+        // Check account lockout (OWASP A07 — brute-force protection)
+        const lockStatus = isAccountLocked(email);
+        if (lockStatus.locked) {
+            securityLogger.authFailure(ipAddress || 'unknown', email, 'Account locked');
+            throw new UnauthorizedError(
+                `Account temporarily locked. Try again in ${lockStatus.retryAfterSeconds} seconds.`
+            );
+        }
+
         // Find user
         const user = await prisma.user.findUnique({
             where: { email: email.toLowerCase() },
         });
 
         if (!user || !user.passwordHash) {
+            recordFailedLogin(email, ipAddress);
+            securityLogger.authFailure(ipAddress || 'unknown', email, 'Invalid credentials');
             throw new UnauthorizedError('Invalid email or password');
         }
 
         // Check password
         const isValid = await compare(password, user.passwordHash);
         if (!isValid) {
+            recordFailedLogin(email, ipAddress);
+            securityLogger.authFailure(ipAddress || 'unknown', email, 'Invalid password');
             throw new UnauthorizedError('Invalid email or password');
         }
 
@@ -106,6 +121,9 @@ export class AuthService {
 
         // Generate tokens
         const tokens = this.generateTokens(user.id, user.email, user.role);
+
+        // Reset failed login attempts on successful login (OWASP A07)
+        resetLoginAttempts(email);
 
         // Create session with unique token
         const sessionToken = randomBytes(32).toString('hex');

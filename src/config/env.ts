@@ -23,7 +23,7 @@ const envSchema = z.object({
 
     // Email
     RESEND_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().email().optional(),
+    EMAIL_FROM: z.string().email().default('noreply@avelon.finance'),
 
     // Blockchain
     GANACHE_URL: z.string().url().default('http://127.0.0.1:8545'),
@@ -44,6 +44,9 @@ const envSchema = z.object({
     // Storage
     STORAGE_PATH: z.string().default('./uploads'),
     ENCRYPTION_KEY: z.string().min(32).optional(),
+
+    // Database Encryption
+    PRISMA_FIELD_ENCRYPTION_KEY: z.string().min(32),
 
     // App Config
     ETH_PHP_RATE: z.coerce.number().default(150000),

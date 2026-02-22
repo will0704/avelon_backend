@@ -6,6 +6,7 @@ import { authService } from '../services/auth.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
+import { emailService } from '../services/email.service.js';
 import type { TokenPayload } from '@avelon_capstone/types';
 
 const { verify } = jwt;
@@ -66,10 +67,8 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
 
     const result = await authService.register(body);
 
-    // TODO: Send verification email here
-
-    // TODO: Send verification email with result.verificationToken
-    // SECURITY: Never expose tokens in API responses (OWASP A02)
+    // Send verification email using the OTP generated in the service
+    await emailService.sendVerificationEmail(result.user.email, result.verificationToken);
 
     return c.json({
         success: true,
@@ -136,8 +135,9 @@ authRoutes.post('/forgot-password', zValidator('json', forgotPasswordSchema), as
 
     const result = await authService.forgotPassword(email);
 
-    // TODO: Send email with reset link using result.token
-    // SECURITY: Never expose tokens in API responses (OWASP A02)
+    if (result.token) {
+        await emailService.sendPasswordResetEmail(email, result.token);
+    }
 
     return c.json({
         success: true,

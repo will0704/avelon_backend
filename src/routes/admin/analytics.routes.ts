@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 
+import { prisma } from '../../lib/prisma.js';
+
 const adminAnalyticsRoutes = new Hono();
 
 /**
@@ -7,32 +9,85 @@ const adminAnalyticsRoutes = new Hono();
  * Get platform analytics
  */
 adminAnalyticsRoutes.get('/', async (c) => {
-    // TODO: Implement analytics
-    return c.json({
-        success: true,
-        data: {
-            users: {
-                total: 0,
-                verified: 0,
-                approved: 0,
-                pending: 0,
+    try {
+        // Users Metrics
+        const [totalUsers, verifiedUsers, approvedUsers, pendingUsers] = await Promise.all([
+            prisma.user.count(),
+            prisma.user.count({ where: { status: 'VERIFIED' } }),
+            prisma.user.count({ where: { status: 'APPROVED' } }),
+            prisma.user.count({ where: { status: 'PENDING_KYC' } }),
+        ]);
+
+        // Loans Metrics
+        const [totalLoans, activeLoans, repaidLoans, liquidatedLoans] = await Promise.all([
+            prisma.loan.count(),
+            prisma.loan.count({ where: { status: 'ACTIVE' } }),
+            prisma.loan.count({ where: { status: 'REPAID' } }),
+            prisma.loan.count({ where: { status: 'LIQUIDATED' } }),
+        ]);
+
+        // Aggregate volume (Sum of all principal)
+        const loanAggregates = await prisma.loan.aggregate({
+            _sum: {
+                principal: true,
+                originationFee: true,
+                interestOwed: true,
+            }
+        });
+
+        // Sum of disbursed loans (could conditionally filter by status if preferred)
+        const totalVolume = loanAggregates._sum.principal?.toString() || '0';
+        const totalFees = loanAggregates._sum.originationFee?.toString() || '0';
+        const totalInterestEarned = loanAggregates._sum.interestOwed?.toString() || '0';
+
+        // Get 5 most recent audit logs for recent activity
+        const recentActivity = await prisma.auditLog.findMany({
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                action: true,
+                entity: true,
+                entityId: true,
+                createdAt: true,
+                user: { select: { email: true, name: true } }
+            }
+        });
+
+        return c.json({
+            success: true,
+            data: {
+                users: {
+                    total: totalUsers,
+                    verified: verifiedUsers,
+                    approved: approvedUsers,
+                    pending: pendingUsers,
+                },
+                loans: {
+                    total: totalLoans,
+                    active: activeLoans,
+                    repaid: repaidLoans,
+                    liquidated: liquidatedLoans,
+                    totalVolume,
+                },
+                treasury: {
+                    balance: '10.0', // TODO: implement accurate treasury pool balance tracker
+                    totalLent: totalVolume,
+                    totalInterestEarned,
+                    totalFees,
+                },
+                recentActivity,
             },
-            loans: {
-                total: 0,
-                active: 0,
-                repaid: 0,
-                liquidated: 0,
-                totalVolume: '0',
-            },
-            treasury: {
-                balance: '10.0',
-                totalLent: '0',
-                totalInterestEarned: '0',
-                totalFees: '0',
-            },
-            recentActivity: [],
-        },
-    });
+        });
+    } catch (error) {
+        console.error('Error fetching analytics:', error);
+        return c.json({
+            success: false,
+            error: {
+                message: 'Failed to fetch analytics data'
+            }
+        }, 500);
+    }
 });
 
 /**

@@ -11,6 +11,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // =====================================================
@@ -119,11 +120,11 @@ model User {
   creditScore         Int?       // 0-100
   creditTier          String?    // BASIC, STANDARD, PREMIUM, VIP
 
-  // Extracted KYC Data (from AI)
-  legalName           String?
-  birthDate           DateTime?
-  address             String?
-  monthlyIncome       Decimal?
+  // Extracted KYC Data (from AI) - Encrypted at Rest
+  legalName           String?    /// @encrypted
+  birthDate           String?    /// @encrypted
+  address             String?    /// @encrypted
+  monthlyIncome       String?    /// @encrypted
   employmentType      String?
 
   // Statistics

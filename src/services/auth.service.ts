@@ -48,14 +48,14 @@ export class AuthService {
             },
         });
 
-        // Create verification token
-        const token = randomBytes(32).toString('hex');
+        // Create verification token (6-digit OTP)
+        const token = Math.floor(100000 + Math.random() * 900000).toString();
         await prisma.verificationToken.create({
             data: {
                 identifier: user.email,
                 token,
                 type: 'EMAIL_VERIFICATION',
-                expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+                expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
             },
         });
 
@@ -234,8 +234,8 @@ export class AuthService {
             },
         });
 
-        // Create new reset token
-        const token = randomBytes(32).toString('hex');
+        // Create new reset token (6-digit OTP)
+        const token = Math.floor(100000 + Math.random() * 900000).toString();
         await prisma.verificationToken.create({
             data: {
                 identifier: email,

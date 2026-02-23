@@ -1,72 +1,79 @@
 import { Hono } from 'hono';
+import { prisma } from '../lib/prisma.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
+import { NotFoundError } from '../middleware/error.middleware.js';
 
 const planRoutes = new Hono();
 
+// Plan select fields (reusable)
+const planSelect = {
+    id: true,
+    name: true,
+    description: true,
+    minCreditScore: true,
+    minAmount: true,
+    maxAmount: true,
+    durationOptions: true,
+    interestRate: true,
+    interestType: true,
+    collateralRatio: true,
+    originationFee: true,
+    latePenaltyRate: true,
+    gracePeriodDays: true,
+    extensionAllowed: true,
+    maxExtensionDays: true,
+    extensionFee: true,
+    isActive: true,
+} as const;
+
 /**
  * GET /plans
- * List available loan plans (filtered by user's tier)
+ * List available loan plans
+ * Optionally filtered by user's credit score when authenticated
  */
 planRoutes.get('/', async (c) => {
-    // TODO: Implement with auth middleware to filter by user's tier
+    // Try to get user context for filtering (auth is optional here)
+    let userCreditScore: number | null = null;
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+        try {
+            // Attempt to resolve user — non-blocking
+            const jwt = await import('jsonwebtoken');
+            const { env } = await import('../config/env.js');
+            const token = authHeader.substring(7);
+            const payload = jwt.default.verify(token, env.JWT_SECRET) as { userId: string };
+            const user = await prisma.user.findUnique({
+                where: { id: payload.userId },
+                select: { creditScore: true },
+            });
+            userCreditScore = user?.creditScore ?? null;
+        } catch {
+            // Ignore auth errors — just return all active plans
+        }
+    }
+
+    const plans = await prisma.loanPlan.findMany({
+        where: { isActive: true },
+        select: planSelect,
+        orderBy: { minCreditScore: 'asc' },
+    });
+
+    // If we know the user's credit score, annotate eligibility
+    const data = plans.map((plan: typeof plans[number]) => ({
+        ...plan,
+        minAmount: Number(plan.minAmount),
+        maxAmount: Number(plan.maxAmount),
+        eligible: userCreditScore !== null ? userCreditScore >= plan.minCreditScore : null,
+    }));
+
     return c.json({
         success: true,
-        data: [
-            {
-                id: 'plan_starter',
-                name: 'Starter',
-                description: 'Entry-level loan for new borrowers',
-                minCreditScore: 40,
-                minAmount: '0.01',
-                maxAmount: '0.1',
-                durationOptions: [7, 14, 30],
-                interestRate: 8,
-                collateralRatio: 200,
-                originationFee: 2,
-                isActive: true,
-            },
-            {
-                id: 'plan_standard',
-                name: 'Standard',
-                description: 'Standard loan terms for verified borrowers',
-                minCreditScore: 60,
-                minAmount: '0.05',
-                maxAmount: '0.5',
-                durationOptions: [14, 30, 60, 90],
-                interestRate: 5,
-                collateralRatio: 150,
-                originationFee: 1.5,
-                isActive: true,
-            },
-            {
-                id: 'plan_premium',
-                name: 'Premium',
-                description: 'Better terms for established borrowers',
-                minCreditScore: 80,
-                minAmount: '0.1',
-                maxAmount: '1.0',
-                durationOptions: [30, 60, 90, 180],
-                interestRate: 3,
-                collateralRatio: 130,
-                originationFee: 1,
-                isActive: true,
-            },
-            {
-                id: 'plan_vip',
-                name: 'VIP',
-                description: 'Best terms for VIP borrowers with extension privileges',
-                minCreditScore: 90,
-                minAmount: '0.2',
-                maxAmount: '2.0',
-                durationOptions: [30, 60, 90, 180, 365],
-                interestRate: 2,
-                collateralRatio: 120,
-                originationFee: 0.5,
-                extensionAllowed: true,
-                maxExtensionDays: 30,
-                extensionFee: 1,
-                isActive: true,
-            },
-        ],
+        data,
+        meta: {
+            total: data.length,
+            userCreditScore,
+        },
     });
 });
 
@@ -77,21 +84,27 @@ planRoutes.get('/', async (c) => {
 planRoutes.get('/:id', async (c) => {
     const id = c.req.param('id');
 
-    // TODO: Implement plan lookup
+    const plan = await prisma.loanPlan.findUnique({
+        where: { id },
+        select: {
+            ...planSelect,
+            createdAt: true,
+            updatedAt: true,
+            _count: { select: { loans: true } },
+        },
+    });
+
+    if (!plan) {
+        throw new NotFoundError('Loan plan not found');
+    }
+
     return c.json({
         success: true,
         data: {
-            id,
-            name: 'Standard',
-            description: 'Standard loan terms for verified borrowers',
-            minCreditScore: 60,
-            minAmount: '0.05',
-            maxAmount: '0.5',
-            durationOptions: [14, 30, 60, 90],
-            interestRate: 5,
-            collateralRatio: 150,
-            originationFee: 1.5,
-            isActive: true,
+            ...plan,
+            minAmount: Number(plan.minAmount),
+            maxAmount: Number(plan.maxAmount),
+            totalLoans: plan._count.loans,
         },
     });
 });

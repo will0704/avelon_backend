@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { blockchainService } from './blockchain.service.js';
 import { contractService } from './contract.service.js';

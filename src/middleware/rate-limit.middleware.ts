@@ -91,6 +91,16 @@ export const globalRateLimiter = createRateLimiter({
 });
 
 /**
+ * Admin rate limiter — 500 requests per 15 minutes per IP
+ * Admin dashboards make many API calls across tabs
+ */
+export const adminRateLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    maxRequests: 500,
+    keyPrefix: 'admin',
+});
+
+/**
  * Auth rate limiter — 5 requests per 15 minutes per IP
  * Applied to login, register, forgot-password
  */

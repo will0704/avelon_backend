@@ -222,7 +222,7 @@ model Wallet {
   id         String    @id @default(cuid())
   userId     String
   address    String    @unique
-  chainId    Int       @default(1337) // 1337 = Ganache, 1 = Mainnet
+  chainId    Int       @default(11155111) // 11155111 = Sepolia, 1 = Mainnet
   isPrimary  Boolean   @default(false)
   isVerified Boolean   @default(false)
   verifiedAt DateTime?

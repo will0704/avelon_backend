@@ -29,17 +29,6 @@ services:
       timeout: 5s
       retries: 5
 
-  ganache:
-    image: trufflesuite/ganache:latest
-    container_name: avelon_ganache
-    ports:
-      - "8545:8545"
-    command: >
-      --chain.chainId 1337 --wallet.totalAccounts 10 --wallet.defaultBalance 1000 --miner.blockGasLimit 30000000 --database.dbPath /ganache_data
-    volumes:
-      - ganache_data:/ganache_data
-
 volumes:
   postgres_data:
   redis_data:
-  ganache_data:

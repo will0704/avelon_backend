@@ -21,11 +21,12 @@ export class BlockchainService {
     private _repaymentSchedule: Contract | null = null;
 
     constructor() {
-        const rpcUrl = process.env.GANACHE_URL || 'http://127.0.0.1:8545';
-        const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
+        // Use Sepolia RPC (production/testnet) with fallback to local
+        const rpcUrl = process.env.SEPOLIA_RPC_URL || process.env.GANACHE_URL || 'http://127.0.0.1:8545';
+        const privateKey = process.env.SEPOLIA_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
 
         if (!privateKey) {
-            console.warn('⚠️ DEPLOYER_PRIVATE_KEY not set - blockchain operations will fail');
+            console.warn('⚠️ No blockchain private key set (SEPOLIA_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY) - blockchain operations will fail');
         }
 
         this.provider = new ethers.JsonRpcProvider(rpcUrl);

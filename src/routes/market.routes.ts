@@ -73,7 +73,9 @@ marketRoutes.get('/price/history', async (c) => {
 
     return c.json({
         success: true,
-        data,
+        data: {
+            history: data,
+        },
         meta: {
             days,
             total: data.length,

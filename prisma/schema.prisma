@@ -26,10 +26,10 @@ enum UserRole {
 
 enum UserStatus {
   REGISTERED    // Email not verified
-  VERIFIED      // Email verified, no wallet
-  CONNECTED     // Wallet connected, no KYC
+  VERIFIED      // Email verified, no KYC
   PENDING_KYC   // KYC submitted, awaiting review
-  APPROVED      // KYC approved, can borrow
+  APPROVED      // KYC approved, can connect wallet
+  CONNECTED     // Wallet connected, can borrow
   REJECTED      // KYC rejected
   SUSPENDED     // Account suspended
 }
@@ -43,6 +43,8 @@ enum KYCLevel {
 
 enum DocumentType {
   GOVERNMENT_ID
+  GOVERNMENT_ID_BACK
+  E_SIGNATURE
   PROOF_OF_INCOME
   PROOF_OF_ADDRESS
   SELFIE
@@ -116,6 +118,19 @@ model User {
   kycSubmittedAt      DateTime?
   kycApprovedAt       DateTime?
   kycRejectionReason  String?
+
+  // User-submitted KYC profile info
+  dateOfBirth         String?
+  gender              String?
+  civilStatus         String?
+  educationLevel      String?
+  country             String?
+  region              String?
+  province            String?
+  cityTown            String?
+  barangay            String?
+  contactNumber       String?
+  secondaryEmail      String?
 
   // Credit Score
   creditScore         Int?       // 0-100

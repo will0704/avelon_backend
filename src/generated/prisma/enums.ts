@@ -20,9 +20,9 @@ export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 export const UserStatus = {
   REGISTERED: 'REGISTERED',
   VERIFIED: 'VERIFIED',
-  CONNECTED: 'CONNECTED',
   PENDING_KYC: 'PENDING_KYC',
   APPROVED: 'APPROVED',
+  CONNECTED: 'CONNECTED',
   REJECTED: 'REJECTED',
   SUSPENDED: 'SUSPENDED'
 } as const
@@ -42,6 +42,8 @@ export type KYCLevel = (typeof KYCLevel)[keyof typeof KYCLevel]
 
 export const DocumentType = {
   GOVERNMENT_ID: 'GOVERNMENT_ID',
+  GOVERNMENT_ID_BACK: 'GOVERNMENT_ID_BACK',
+  E_SIGNATURE: 'E_SIGNATURE',
   PROOF_OF_INCOME: 'PROOF_OF_INCOME',
   PROOF_OF_ADDRESS: 'PROOF_OF_ADDRESS',
   SELFIE: 'SELFIE'

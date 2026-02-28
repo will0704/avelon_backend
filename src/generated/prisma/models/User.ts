@@ -58,6 +58,17 @@ export type UserMinAggregateOutputType = {
   kycSubmittedAt: Date | null
   kycApprovedAt: Date | null
   kycRejectionReason: string | null
+  dateOfBirth: string | null
+  gender: string | null
+  civilStatus: string | null
+  educationLevel: string | null
+  country: string | null
+  region: string | null
+  province: string | null
+  cityTown: string | null
+  barangay: string | null
+  contactNumber: string | null
+  secondaryEmail: string | null
   creditScore: number | null
   creditTier: string | null
   legalName: string | null
@@ -89,6 +100,17 @@ export type UserMaxAggregateOutputType = {
   kycSubmittedAt: Date | null
   kycApprovedAt: Date | null
   kycRejectionReason: string | null
+  dateOfBirth: string | null
+  gender: string | null
+  civilStatus: string | null
+  educationLevel: string | null
+  country: string | null
+  region: string | null
+  province: string | null
+  cityTown: string | null
+  barangay: string | null
+  contactNumber: string | null
+  secondaryEmail: string | null
   creditScore: number | null
   creditTier: string | null
   legalName: string | null
@@ -120,6 +142,17 @@ export type UserCountAggregateOutputType = {
   kycSubmittedAt: number
   kycApprovedAt: number
   kycRejectionReason: number
+  dateOfBirth: number
+  gender: number
+  civilStatus: number
+  educationLevel: number
+  country: number
+  region: number
+  province: number
+  cityTown: number
+  barangay: number
+  contactNumber: number
+  secondaryEmail: number
   creditScore: number
   creditTier: number
   legalName: number
@@ -171,6 +204,17 @@ export type UserMinAggregateInputType = {
   kycSubmittedAt?: true
   kycApprovedAt?: true
   kycRejectionReason?: true
+  dateOfBirth?: true
+  gender?: true
+  civilStatus?: true
+  educationLevel?: true
+  country?: true
+  region?: true
+  province?: true
+  cityTown?: true
+  barangay?: true
+  contactNumber?: true
+  secondaryEmail?: true
   creditScore?: true
   creditTier?: true
   legalName?: true
@@ -202,6 +246,17 @@ export type UserMaxAggregateInputType = {
   kycSubmittedAt?: true
   kycApprovedAt?: true
   kycRejectionReason?: true
+  dateOfBirth?: true
+  gender?: true
+  civilStatus?: true
+  educationLevel?: true
+  country?: true
+  region?: true
+  province?: true
+  cityTown?: true
+  barangay?: true
+  contactNumber?: true
+  secondaryEmail?: true
   creditScore?: true
   creditTier?: true
   legalName?: true
@@ -233,6 +288,17 @@ export type UserCountAggregateInputType = {
   kycSubmittedAt?: true
   kycApprovedAt?: true
   kycRejectionReason?: true
+  dateOfBirth?: true
+  gender?: true
+  civilStatus?: true
+  educationLevel?: true
+  country?: true
+  region?: true
+  province?: true
+  cityTown?: true
+  barangay?: true
+  contactNumber?: true
+  secondaryEmail?: true
   creditScore?: true
   creditTier?: true
   legalName?: true
@@ -351,6 +417,17 @@ export type UserGroupByOutputType = {
   kycSubmittedAt: Date | null
   kycApprovedAt: Date | null
   kycRejectionReason: string | null
+  dateOfBirth: string | null
+  gender: string | null
+  civilStatus: string | null
+  educationLevel: string | null
+  country: string | null
+  region: string | null
+  province: string | null
+  cityTown: string | null
+  barangay: string | null
+  contactNumber: string | null
+  secondaryEmail: string | null
   creditScore: number | null
   creditTier: string | null
   legalName: string | null
@@ -405,6 +482,17 @@ export type UserWhereInput = {
   kycSubmittedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   kycApprovedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   kycRejectionReason?: Prisma.StringNullableFilter<"User"> | string | null
+  dateOfBirth?: Prisma.StringNullableFilter<"User"> | string | null
+  gender?: Prisma.StringNullableFilter<"User"> | string | null
+  civilStatus?: Prisma.StringNullableFilter<"User"> | string | null
+  educationLevel?: Prisma.StringNullableFilter<"User"> | string | null
+  country?: Prisma.StringNullableFilter<"User"> | string | null
+  region?: Prisma.StringNullableFilter<"User"> | string | null
+  province?: Prisma.StringNullableFilter<"User"> | string | null
+  cityTown?: Prisma.StringNullableFilter<"User"> | string | null
+  barangay?: Prisma.StringNullableFilter<"User"> | string | null
+  contactNumber?: Prisma.StringNullableFilter<"User"> | string | null
+  secondaryEmail?: Prisma.StringNullableFilter<"User"> | string | null
   creditScore?: Prisma.IntNullableFilter<"User"> | number | null
   creditTier?: Prisma.StringNullableFilter<"User"> | string | null
   legalName?: Prisma.StringNullableFilter<"User"> | string | null
@@ -445,6 +533,17 @@ export type UserOrderByWithRelationInput = {
   kycSubmittedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   kycApprovedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   kycRejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  dateOfBirth?: Prisma.SortOrderInput | Prisma.SortOrder
+  gender?: Prisma.SortOrderInput | Prisma.SortOrder
+  civilStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  educationLevel?: Prisma.SortOrderInput | Prisma.SortOrder
+  country?: Prisma.SortOrderInput | Prisma.SortOrder
+  region?: Prisma.SortOrderInput | Prisma.SortOrder
+  province?: Prisma.SortOrderInput | Prisma.SortOrder
+  cityTown?: Prisma.SortOrderInput | Prisma.SortOrder
+  barangay?: Prisma.SortOrderInput | Prisma.SortOrder
+  contactNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  secondaryEmail?: Prisma.SortOrderInput | Prisma.SortOrder
   creditScore?: Prisma.SortOrderInput | Prisma.SortOrder
   creditTier?: Prisma.SortOrderInput | Prisma.SortOrder
   legalName?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -488,6 +587,17 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   kycSubmittedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   kycApprovedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   kycRejectionReason?: Prisma.StringNullableFilter<"User"> | string | null
+  dateOfBirth?: Prisma.StringNullableFilter<"User"> | string | null
+  gender?: Prisma.StringNullableFilter<"User"> | string | null
+  civilStatus?: Prisma.StringNullableFilter<"User"> | string | null
+  educationLevel?: Prisma.StringNullableFilter<"User"> | string | null
+  country?: Prisma.StringNullableFilter<"User"> | string | null
+  region?: Prisma.StringNullableFilter<"User"> | string | null
+  province?: Prisma.StringNullableFilter<"User"> | string | null
+  cityTown?: Prisma.StringNullableFilter<"User"> | string | null
+  barangay?: Prisma.StringNullableFilter<"User"> | string | null
+  contactNumber?: Prisma.StringNullableFilter<"User"> | string | null
+  secondaryEmail?: Prisma.StringNullableFilter<"User"> | string | null
   creditScore?: Prisma.IntNullableFilter<"User"> | number | null
   creditTier?: Prisma.StringNullableFilter<"User"> | string | null
   legalName?: Prisma.StringNullableFilter<"User"> | string | null
@@ -528,6 +638,17 @@ export type UserOrderByWithAggregationInput = {
   kycSubmittedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   kycApprovedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   kycRejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  dateOfBirth?: Prisma.SortOrderInput | Prisma.SortOrder
+  gender?: Prisma.SortOrderInput | Prisma.SortOrder
+  civilStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  educationLevel?: Prisma.SortOrderInput | Prisma.SortOrder
+  country?: Prisma.SortOrderInput | Prisma.SortOrder
+  region?: Prisma.SortOrderInput | Prisma.SortOrder
+  province?: Prisma.SortOrderInput | Prisma.SortOrder
+  cityTown?: Prisma.SortOrderInput | Prisma.SortOrder
+  barangay?: Prisma.SortOrderInput | Prisma.SortOrder
+  contactNumber?: Prisma.SortOrderInput | Prisma.SortOrder
+  secondaryEmail?: Prisma.SortOrderInput | Prisma.SortOrder
   creditScore?: Prisma.SortOrderInput | Prisma.SortOrder
   creditTier?: Prisma.SortOrderInput | Prisma.SortOrder
   legalName?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -567,6 +688,17 @@ export type UserScalarWhereWithAggregatesInput = {
   kycSubmittedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   kycApprovedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   kycRejectionReason?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  dateOfBirth?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  gender?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  civilStatus?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  educationLevel?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  country?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  region?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  province?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  cityTown?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  barangay?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  contactNumber?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  secondaryEmail?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   creditScore?: Prisma.IntNullableWithAggregatesFilter<"User"> | number | null
   creditTier?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   legalName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
@@ -598,6 +730,17 @@ export type UserCreateInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -638,6 +781,17 @@ export type UserUncheckedCreateInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -678,6 +832,17 @@ export type UserUpdateInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -718,6 +883,17 @@ export type UserUncheckedUpdateInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -758,6 +934,17 @@ export type UserCreateManyInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -789,6 +976,17 @@ export type UserUpdateManyMutationInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -820,6 +1018,17 @@ export type UserUncheckedUpdateManyInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -851,6 +1060,17 @@ export type UserCountOrderByAggregateInput = {
   kycSubmittedAt?: Prisma.SortOrder
   kycApprovedAt?: Prisma.SortOrder
   kycRejectionReason?: Prisma.SortOrder
+  dateOfBirth?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  civilStatus?: Prisma.SortOrder
+  educationLevel?: Prisma.SortOrder
+  country?: Prisma.SortOrder
+  region?: Prisma.SortOrder
+  province?: Prisma.SortOrder
+  cityTown?: Prisma.SortOrder
+  barangay?: Prisma.SortOrder
+  contactNumber?: Prisma.SortOrder
+  secondaryEmail?: Prisma.SortOrder
   creditScore?: Prisma.SortOrder
   creditTier?: Prisma.SortOrder
   legalName?: Prisma.SortOrder
@@ -891,6 +1111,17 @@ export type UserMaxOrderByAggregateInput = {
   kycSubmittedAt?: Prisma.SortOrder
   kycApprovedAt?: Prisma.SortOrder
   kycRejectionReason?: Prisma.SortOrder
+  dateOfBirth?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  civilStatus?: Prisma.SortOrder
+  educationLevel?: Prisma.SortOrder
+  country?: Prisma.SortOrder
+  region?: Prisma.SortOrder
+  province?: Prisma.SortOrder
+  cityTown?: Prisma.SortOrder
+  barangay?: Prisma.SortOrder
+  contactNumber?: Prisma.SortOrder
+  secondaryEmail?: Prisma.SortOrder
   creditScore?: Prisma.SortOrder
   creditTier?: Prisma.SortOrder
   legalName?: Prisma.SortOrder
@@ -922,6 +1153,17 @@ export type UserMinOrderByAggregateInput = {
   kycSubmittedAt?: Prisma.SortOrder
   kycApprovedAt?: Prisma.SortOrder
   kycRejectionReason?: Prisma.SortOrder
+  dateOfBirth?: Prisma.SortOrder
+  gender?: Prisma.SortOrder
+  civilStatus?: Prisma.SortOrder
+  educationLevel?: Prisma.SortOrder
+  country?: Prisma.SortOrder
+  region?: Prisma.SortOrder
+  province?: Prisma.SortOrder
+  cityTown?: Prisma.SortOrder
+  barangay?: Prisma.SortOrder
+  contactNumber?: Prisma.SortOrder
+  secondaryEmail?: Prisma.SortOrder
   creditScore?: Prisma.SortOrder
   creditTier?: Prisma.SortOrder
   legalName?: Prisma.SortOrder
@@ -1152,6 +1394,17 @@ export type UserCreateWithoutAccountsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1191,6 +1444,17 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1246,6 +1510,17 @@ export type UserUpdateWithoutAccountsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1285,6 +1560,17 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1324,6 +1610,17 @@ export type UserCreateWithoutSessionsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1363,6 +1660,17 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1418,6 +1726,17 @@ export type UserUpdateWithoutSessionsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1457,6 +1776,17 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1496,6 +1826,17 @@ export type UserCreateWithoutWalletsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1535,6 +1876,17 @@ export type UserUncheckedCreateWithoutWalletsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1590,6 +1942,17 @@ export type UserUpdateWithoutWalletsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1629,6 +1992,17 @@ export type UserUncheckedUpdateWithoutWalletsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1668,6 +2042,17 @@ export type UserCreateWithoutDocumentsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1707,6 +2092,17 @@ export type UserUncheckedCreateWithoutDocumentsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1762,6 +2158,17 @@ export type UserUpdateWithoutDocumentsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1801,6 +2208,17 @@ export type UserUncheckedUpdateWithoutDocumentsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1840,6 +2258,17 @@ export type UserCreateWithoutLoansInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1879,6 +2308,17 @@ export type UserUncheckedCreateWithoutLoansInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1934,6 +2374,17 @@ export type UserUpdateWithoutLoansInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1973,6 +2424,17 @@ export type UserUncheckedUpdateWithoutLoansInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2012,6 +2474,17 @@ export type UserCreateWithoutNotificationsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2051,6 +2524,17 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2106,6 +2590,17 @@ export type UserUpdateWithoutNotificationsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2145,6 +2640,17 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2184,6 +2690,17 @@ export type UserCreateWithoutNotificationPrefsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2223,6 +2740,17 @@ export type UserUncheckedCreateWithoutNotificationPrefsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2278,6 +2806,17 @@ export type UserUpdateWithoutNotificationPrefsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2317,6 +2856,17 @@ export type UserUncheckedUpdateWithoutNotificationPrefsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2356,6 +2906,17 @@ export type UserCreateWithoutDeviceTokensInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2395,6 +2956,17 @@ export type UserUncheckedCreateWithoutDeviceTokensInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2450,6 +3022,17 @@ export type UserUpdateWithoutDeviceTokensInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2489,6 +3072,17 @@ export type UserUncheckedUpdateWithoutDeviceTokensInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2528,6 +3122,17 @@ export type UserCreateWithoutAuditLogsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2567,6 +3172,17 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   kycSubmittedAt?: Date | string | null
   kycApprovedAt?: Date | string | null
   kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2622,6 +3238,17 @@ export type UserUpdateWithoutAuditLogsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2661,6 +3288,17 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2794,6 +3432,17 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   kycSubmittedAt?: boolean
   kycApprovedAt?: boolean
   kycRejectionReason?: boolean
+  dateOfBirth?: boolean
+  gender?: boolean
+  civilStatus?: boolean
+  educationLevel?: boolean
+  country?: boolean
+  region?: boolean
+  province?: boolean
+  cityTown?: boolean
+  barangay?: boolean
+  contactNumber?: boolean
+  secondaryEmail?: boolean
   creditScore?: boolean
   creditTier?: boolean
   legalName?: boolean
@@ -2835,6 +3484,17 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   kycSubmittedAt?: boolean
   kycApprovedAt?: boolean
   kycRejectionReason?: boolean
+  dateOfBirth?: boolean
+  gender?: boolean
+  civilStatus?: boolean
+  educationLevel?: boolean
+  country?: boolean
+  region?: boolean
+  province?: boolean
+  cityTown?: boolean
+  barangay?: boolean
+  contactNumber?: boolean
+  secondaryEmail?: boolean
   creditScore?: boolean
   creditTier?: boolean
   legalName?: boolean
@@ -2866,6 +3526,17 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   kycSubmittedAt?: boolean
   kycApprovedAt?: boolean
   kycRejectionReason?: boolean
+  dateOfBirth?: boolean
+  gender?: boolean
+  civilStatus?: boolean
+  educationLevel?: boolean
+  country?: boolean
+  region?: boolean
+  province?: boolean
+  cityTown?: boolean
+  barangay?: boolean
+  contactNumber?: boolean
+  secondaryEmail?: boolean
   creditScore?: boolean
   creditTier?: boolean
   legalName?: boolean
@@ -2897,6 +3568,17 @@ export type UserSelectScalar = {
   kycSubmittedAt?: boolean
   kycApprovedAt?: boolean
   kycRejectionReason?: boolean
+  dateOfBirth?: boolean
+  gender?: boolean
+  civilStatus?: boolean
+  educationLevel?: boolean
+  country?: boolean
+  region?: boolean
+  province?: boolean
+  cityTown?: boolean
+  barangay?: boolean
+  contactNumber?: boolean
+  secondaryEmail?: boolean
   creditScore?: boolean
   creditTier?: boolean
   legalName?: boolean
@@ -2914,7 +3596,7 @@ export type UserSelectScalar = {
   lastLoginAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "emailVerified" | "passwordHash" | "name" | "phone" | "avatar" | "role" | "status" | "kycLevel" | "kycSubmittedAt" | "kycApprovedAt" | "kycRejectionReason" | "creditScore" | "creditTier" | "legalName" | "birthDate" | "address" | "monthlyIncome" | "employmentType" | "totalBorrowed" | "totalRepaid" | "activeLoansCount" | "completedLoansCount" | "defaultCount" | "createdAt" | "updatedAt" | "lastLoginAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "emailVerified" | "passwordHash" | "name" | "phone" | "avatar" | "role" | "status" | "kycLevel" | "kycSubmittedAt" | "kycApprovedAt" | "kycRejectionReason" | "dateOfBirth" | "gender" | "civilStatus" | "educationLevel" | "country" | "region" | "province" | "cityTown" | "barangay" | "contactNumber" | "secondaryEmail" | "creditScore" | "creditTier" | "legalName" | "birthDate" | "address" | "monthlyIncome" | "employmentType" | "totalBorrowed" | "totalRepaid" | "activeLoansCount" | "completedLoansCount" | "defaultCount" | "createdAt" | "updatedAt" | "lastLoginAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
@@ -2957,6 +3639,17 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     kycSubmittedAt: Date | null
     kycApprovedAt: Date | null
     kycRejectionReason: string | null
+    dateOfBirth: string | null
+    gender: string | null
+    civilStatus: string | null
+    educationLevel: string | null
+    country: string | null
+    region: string | null
+    province: string | null
+    cityTown: string | null
+    barangay: string | null
+    contactNumber: string | null
+    secondaryEmail: string | null
     creditScore: number | null
     creditTier: string | null
     /**
@@ -3429,6 +4122,17 @@ export interface UserFieldRefs {
   readonly kycSubmittedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly kycApprovedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly kycRejectionReason: Prisma.FieldRef<"User", 'String'>
+  readonly dateOfBirth: Prisma.FieldRef<"User", 'String'>
+  readonly gender: Prisma.FieldRef<"User", 'String'>
+  readonly civilStatus: Prisma.FieldRef<"User", 'String'>
+  readonly educationLevel: Prisma.FieldRef<"User", 'String'>
+  readonly country: Prisma.FieldRef<"User", 'String'>
+  readonly region: Prisma.FieldRef<"User", 'String'>
+  readonly province: Prisma.FieldRef<"User", 'String'>
+  readonly cityTown: Prisma.FieldRef<"User", 'String'>
+  readonly barangay: Prisma.FieldRef<"User", 'String'>
+  readonly contactNumber: Prisma.FieldRef<"User", 'String'>
+  readonly secondaryEmail: Prisma.FieldRef<"User", 'String'>
   readonly creditScore: Prisma.FieldRef<"User", 'Int'>
   readonly creditTier: Prisma.FieldRef<"User", 'String'>
   readonly legalName: Prisma.FieldRef<"User", 'String'>

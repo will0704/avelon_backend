@@ -17,7 +17,7 @@ kycRoutes.use('*', authMiddleware);
 // Allowed document types and MIME types
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const VALID_DOC_TYPES = ['GOVERNMENT_ID', 'PROOF_OF_INCOME', 'PROOF_OF_ADDRESS', 'SELFIE'] as const;
+const VALID_DOC_TYPES = ['GOVERNMENT_ID', 'GOVERNMENT_ID_BACK', 'E_SIGNATURE', 'PROOF_OF_INCOME', 'PROOF_OF_ADDRESS', 'SELFIE'] as const;
 
 /**
  * Ensure the uploads directory exists
@@ -72,6 +72,8 @@ kycRoutes.get('/status', async (c) => {
     type DocItem = typeof documents[number];
     const docStatus = {
         GOVERNMENT_ID: documents.find((d: DocItem) => d.type === 'GOVERNMENT_ID') ?? null,
+        GOVERNMENT_ID_BACK: documents.find((d: DocItem) => d.type === 'GOVERNMENT_ID_BACK') ?? null,
+        E_SIGNATURE: documents.find((d: DocItem) => d.type === 'E_SIGNATURE') ?? null,
         PROOF_OF_INCOME: documents.find((d: DocItem) => d.type === 'PROOF_OF_INCOME') ?? null,
         PROOF_OF_ADDRESS: documents.find((d: DocItem) => d.type === 'PROOF_OF_ADDRESS') ?? null,
         SELFIE: documents.find((d: DocItem) => d.type === 'SELFIE') ?? null,
@@ -90,6 +92,131 @@ kycRoutes.get('/status', async (c) => {
             documents: docStatus,
             allDocuments: documents,
         },
+    });
+});
+
+// Validation for KYC profile info
+const kycProfileSchema = z.object({
+    dateOfBirth: z.string().min(1, 'Date of birth is required'),
+    gender: z.string().min(1, 'Gender is required'),
+    civilStatus: z.string().min(1, 'Civil status is required'),
+    educationLevel: z.string().min(1, 'Education level is required'),
+    country: z.string().min(1, 'Country is required'),
+    region: z.string().optional(),
+    province: z.string().optional(),
+    cityTown: z.string().optional(),
+    barangay: z.string().optional(),
+    contactNumber: z.string().min(1, 'Contact number is required'),
+    secondaryEmail: z.string().email('Must be a valid email').optional(),
+});
+
+/**
+ * POST /kyc/profile
+ * Submit basic information and contact information for KYC
+ */
+kycRoutes.post('/profile', zValidator('json', kycProfileSchema), async (c) => {
+    const userId = c.get('userId');
+    const body = c.req.valid('json');
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { status: true },
+    });
+
+    if (!user) {
+        throw new NotFoundError('User not found');
+    }
+
+    // Only allow VERIFIED or REJECTED users to submit profile info
+    if (user.status !== UserStatus.VERIFIED && user.status !== UserStatus.REJECTED) {
+        throw new AppError(
+            409,
+            'INVALID_STATUS',
+            `Cannot submit KYC profile info in current status: ${user.status}`
+        );
+    }
+
+    // Update user with KYC profile data
+    const updated = await prisma.user.update({
+        where: { id: userId },
+        data: {
+            dateOfBirth: body.dateOfBirth,
+            gender: body.gender,
+            civilStatus: body.civilStatus,
+            educationLevel: body.educationLevel,
+            country: body.country,
+            region: body.region ?? null,
+            province: body.province ?? null,
+            cityTown: body.cityTown ?? null,
+            barangay: body.barangay ?? null,
+            contactNumber: body.contactNumber,
+            secondaryEmail: body.secondaryEmail ?? null,
+        },
+        select: {
+            id: true,
+            dateOfBirth: true,
+            gender: true,
+            civilStatus: true,
+            educationLevel: true,
+            country: true,
+            region: true,
+            province: true,
+            cityTown: true,
+            barangay: true,
+            contactNumber: true,
+            secondaryEmail: true,
+        },
+    });
+
+    // Log audit
+    await prisma.auditLog.create({
+        data: {
+            userId,
+            action: 'KYC_PROFILE_SUBMITTED',
+            entity: 'User',
+            entityId: userId,
+            metadata: { fields: Object.keys(body) },
+        },
+    });
+
+    return c.json({
+        success: true,
+        message: 'KYC profile information saved',
+        data: updated,
+    });
+});
+
+/**
+ * GET /kyc/profile
+ * Get KYC profile information for the authenticated user
+ */
+kycRoutes.get('/profile', async (c) => {
+    const userId = c.get('userId');
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            dateOfBirth: true,
+            gender: true,
+            civilStatus: true,
+            educationLevel: true,
+            country: true,
+            region: true,
+            province: true,
+            cityTown: true,
+            barangay: true,
+            contactNumber: true,
+            secondaryEmail: true,
+        },
+    });
+
+    if (!user) {
+        throw new NotFoundError('User not found');
+    }
+
+    return c.json({
+        success: true,
+        data: user,
     });
 });
 
@@ -298,12 +425,16 @@ kycRoutes.post('/submit', zValidator('json', submitKycSchema), async (c) => {
         throw new NotFoundError('User not found');
     }
 
-    if (user.status === UserStatus.APPROVED) {
+    if (user.status === UserStatus.APPROVED || user.status === UserStatus.CONNECTED) {
         throw new AppError(409, 'KYC_ALREADY_APPROVED', 'KYC is already approved');
     }
 
     if (user.status === UserStatus.PENDING_KYC) {
         throw new AppError(409, 'KYC_ALREADY_SUBMITTED', 'KYC is already pending review');
+    }
+
+    if (user.status === UserStatus.REGISTERED) {
+        throw new AppError(403, 'EMAIL_NOT_VERIFIED', 'Please verify your email before submitting KYC');
     }
 
     // Get user's pending documents
@@ -410,7 +541,7 @@ async function triggerAIVerification(
                         aiConfidence: result.confidence,
                         aiFraudScore: result.fraud_score,
                         aiFraudFlags: result.fraud_flags ?? [],
-                        aiExtractedData: result.extracted_data ?? undefined,
+                        aiExtractedData: (result.extracted_data as any) ?? undefined,
                     },
                 });
             } else {

@@ -20,7 +20,7 @@ import { adminRoutes } from './routes/admin/index.js';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware.js';
-import { globalRateLimiter, authRateLimiter } from './middleware/rate-limit.middleware.js';
+import { globalRateLimiter, adminRateLimiter, authRateLimiter } from './middleware/rate-limit.middleware.js';
 import { bodySizeLimiter, requestId, enforceContentType } from './middleware/security.middleware.js';
 
 // Create Hono app
@@ -57,6 +57,9 @@ app.use('*', bodySizeLimiter);
 
 // Content-Type enforcement (OWASP A08)
 app.use('*', enforceContentType);
+
+// Admin rate limiter (500 req/15min per IP — admin dashboards are chatty)
+app.use('/api/v1/admin/*', adminRateLimiter);
 
 // Global rate limiter (OWASP A04 — 100 req/15min per IP)
 app.use('*', globalRateLimiter);

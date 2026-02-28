@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { hash } from 'bcrypt';
 import { config } from 'dotenv';
@@ -52,11 +52,33 @@ async function main() {
             creditTier: 'STANDARD',
             legalName: 'Juan Dela Cruz',
             address: 'Manila, Philippines',
-            monthlyIncome: 50000,
+            monthlyIncome: '50000',
             employmentType: 'EMPLOYED',
         },
     });
     console.log('✅ Created test borrower:', borrower.email);
+
+    const borrower2Password = await hash('Test2@123', 12);
+    const borrower2 = await prisma.user.upsert({
+        where: { email: 'borrower2@gmail.com' },
+        update: {},
+        create: {
+            email: 'borrower2@gmail.com',
+            passwordHash: borrower2Password,
+            name: 'Test Borrower 2',
+            role: 'BORROWER',
+            status: 'APPROVED',
+            emailVerified: new Date(),
+            kycLevel: 'STANDARD',
+            creditScore: 75,
+            creditTier: 'STANDARD',
+            legalName: 'Maria Santos',
+            address: 'Cebu, Philippines',
+            monthlyIncome: '60000',
+            employmentType: 'EMPLOYED',
+        },
+    });
+    console.log('✅ Created test borrower 2:', borrower2.email);
 
     // Create loan plans
     const plans = [
@@ -161,6 +183,7 @@ async function main() {
     console.log('\n📝 Test Credentials:');
     console.log('   Admin: admin@avelon.finance / Admin@123');
     console.log('   Borrower: borrower@test.com / Test@123');
+    console.log('   Borrower: borrower2@gmail.com / Test@123');
 }
 
 main()

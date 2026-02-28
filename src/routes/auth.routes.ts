@@ -161,6 +161,31 @@ authRoutes.post('/reset-password', zValidator('json', resetPasswordSchema), asyn
 });
 
 /**
+ * POST /auth/change-password
+ * Change password for authenticated user
+ */
+authRoutes.post('/change-password', authMiddleware, zValidator('json', z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+        .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+        .regex(/[0-9]/, 'Password must contain at least one number')
+        .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+})), async (c) => {
+    const userId = c.get('userId');
+    const { currentPassword, newPassword } = c.req.valid('json');
+
+    const result = await authService.changePassword(userId, currentPassword, newPassword);
+
+    return c.json({
+        success: true,
+        message: result.message,
+    });
+});
+
+/**
  * GET /auth/session
  * Get current session
  */

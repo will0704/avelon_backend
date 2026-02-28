@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: avelon-backend
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: .
+    buildCommand: npm install && npm run build && npx prisma generate && npx prisma migrate deploy
+    startCommand: node dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: avelon-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRY
+        value: 15m
+      - key: JWT_REFRESH_EXPIRY
+        value: 7d
+      # PRISMA_FIELD_ENCRYPTION_KEY — set manually in dashboard
+      # Generate with: npx @47ng/cloak generate
+      # Set these manually in the Render dashboard:
+      # MAILERSEND_API_KEY
+      # EMAIL_FROM
+      # SEPOLIA_RPC_URL
+      # SEPOLIA_PRIVATE_KEY
+      # TREASURY_ADDRESS
+      # AVELON_LENDING_ADDRESS
+      # COLLATERAL_MANAGER_ADDRESS
+      # REPAYMENT_SCHEDULE_ADDRESS
+      # FIREBASE_PROJECT_ID
+      # FIREBASE_PRIVATE_KEY
+      # FIREBASE_CLIENT_EMAIL
+      # ENCRYPTION_KEY
+      # AI_SERVICE_URL
+
+databases:
+  - name: avelon-db
+    databaseName: avelon_db
+    region: singapore
+    plan: free

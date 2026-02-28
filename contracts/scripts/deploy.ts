@@ -16,19 +16,69 @@ interface DeployedContracts {
     repaymentSchedule: string;
     deployer: string;
     network: string;
+    chainId: number;
     timestamp: string;
 }
 
+type NetworkName = "ganache" | "sepolia" | "hardhat";
+
+interface NetworkConfig {
+    rpcUrl: string;
+    privateKey: string;
+    expectedChainId?: number;
+}
+
+function getNetworkConfig(): { network: NetworkName; config: NetworkConfig } {
+    // Detect network from CLI args: --network sepolia
+    const networkArg = process.argv.find((_, i, arr) => arr[i - 1] === "--network");
+    const network = (networkArg || process.env.DEPLOY_NETWORK || "ganache") as NetworkName;
+
+    switch (network) {
+        case "sepolia": {
+            const rpcUrl = process.env.SEPOLIA_RPC_URL;
+            const privateKey = process.env.SEPOLIA_PRIVATE_KEY;
+            if (!rpcUrl) throw new Error("SEPOLIA_RPC_URL is required for Sepolia deployment");
+            if (!privateKey) throw new Error("SEPOLIA_PRIVATE_KEY is required for Sepolia deployment");
+            return {
+                network,
+                config: { rpcUrl, privateKey, expectedChainId: 11155111 },
+            };
+        }
+        case "hardhat":
+            return {
+                network,
+                config: {
+                    rpcUrl: "http://127.0.0.1:8545",
+                    privateKey: process.env.DEPLOYER_PRIVATE_KEY || "",
+                    expectedChainId: 31337,
+                },
+            };
+        case "ganache":
+        default: {
+            const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
+            if (!privateKey) throw new Error("DEPLOYER_PRIVATE_KEY is required");
+            return {
+                network,
+                config: {
+                    rpcUrl: process.env.GANACHE_URL || "http://127.0.0.1:8545",
+                    privateKey,
+                    expectedChainId: 1337,
+                },
+            };
+        }
+    }
+}
+
 async function main() {
-    // Get configuration from environment
-    const rpcUrl = process.env.GANACHE_URL || "http://127.0.0.1:8545";
-    const privateKey = process.env.DEPLOYER_PRIVATE_KEY;
+    // Get network configuration
+    const { network: networkName, config: netConfig } = getNetworkConfig();
+    const { rpcUrl, privateKey } = netConfig;
 
     if (!privateKey) {
-        throw new Error("DEPLOYER_PRIVATE_KEY environment variable is required");
+        throw new Error("Private key is required for deployment");
     }
 
-    console.log("Starting Avelon Smart Contracts Deployment...\n");
+    console.log(`Starting Avelon Smart Contracts Deployment on ${networkName.toUpperCase()}...\n`);
 
     // Connect to network
     const provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -38,7 +88,15 @@ async function main() {
     const deployer = await baseWallet.getAddress();
     const network = await provider.getNetwork();
 
-    console.log(`Network: ${network.name} (Chain ID: ${network.chainId})`);
+    // Validate chain ID if expected
+    if (netConfig.expectedChainId && Number(network.chainId) !== netConfig.expectedChainId) {
+        throw new Error(
+            `Chain ID mismatch! Expected ${netConfig.expectedChainId} for ${networkName}, ` +
+            `got ${network.chainId}. Check your RPC URL.`
+        );
+    }
+
+    console.log(`Network: ${networkName} (Chain ID: ${network.chainId})`);
     console.log(`Deployer: ${deployer}`);
 
     const balance = await provider.getBalance(deployer);
@@ -46,9 +104,16 @@ async function main() {
 
     if (balance === BigInt(0)) {
         throw new Error(
-            "Deployer account has no ETH. Make sure you're using a private key from Ganache.\n" +
-            "Run 'npx ganache --chain.chainId 1337' and copy a private key from the output."
+            `Deployer account has no ETH on ${networkName}.\n` +
+            (networkName === "sepolia"
+                ? "Get free Sepolia ETH from: https://cloud.google.com/application/web3/faucet/ethereum/sepolia"
+                : "Run 'npx ganache --chain.chainId 1337' and copy a private key from the output.")
         );
+    }
+
+    const minBalance = networkName === "sepolia" ? ethers.parseEther("0.01") : BigInt(0);
+    if (balance < minBalance) {
+        console.warn(`⚠ WARNING: Low balance (${ethers.formatEther(balance)} ETH). Deployment may fail due to gas costs.`);
     }
 
     // Load contract artifacts
@@ -149,7 +214,8 @@ async function main() {
         collateralManager: collateralManagerAddress,
         repaymentSchedule: repaymentScheduleAddress,
         deployer,
-        network: network.name,
+        network: networkName,
+        chainId: Number(network.chainId),
         timestamp: new Date().toISOString(),
     };
 

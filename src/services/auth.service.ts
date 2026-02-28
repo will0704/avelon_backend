@@ -393,6 +393,29 @@ export class AuthService {
         }
     }
 
+    /**
+     * Change password for an authenticated user
+     */
+    async changePassword(userId: string, currentPassword: string, newPassword: string) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new UnauthorizedError('User not found');
+        }
+
+        const isValid = await compare(currentPassword, user.passwordHash);
+        if (!isValid) {
+            throw new ValidationError('Current password is incorrect');
+        }
+
+        const passwordHash = await hash(newPassword, SALT_ROUNDS);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { passwordHash },
+        });
+
+        return { message: 'Password changed successfully' };
+    }
+
     private generateAccessToken(userId: string, email: string, role: string): string {
         const expiresIn = this.parseDuration(env.JWT_ACCESS_EXPIRY);
         return sign(

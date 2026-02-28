@@ -40,9 +40,9 @@ adminAnalyticsRoutes.get('/', async (c) => {
         const totalFees = loanAggregates._sum.originationFee?.toString() || '0';
         const totalInterestEarned = loanAggregates._sum.interestOwed?.toString() || '0';
 
-        // Get 5 most recent audit logs for recent activity
-        const recentActivity = await prisma.auditLog.findMany({
-            take: 5,
+        // Get 10 most recent audit logs for recent activity
+        const recentLogs = await prisma.auditLog.findMany({
+            take: 10,
             orderBy: { createdAt: 'desc' },
             select: {
                 id: true,
@@ -52,6 +52,13 @@ adminAnalyticsRoutes.get('/', async (c) => {
                 createdAt: true,
                 user: { select: { email: true, name: true } }
             }
+        });
+
+        const recentActivity = recentLogs.map((log) => {
+            const who = log.user?.name ?? log.user?.email ?? 'System';
+            const target = log.entity ? ` on ${log.entity}` : '';
+            const message = `${who} — ${log.action.replace(/_/g, ' ').toLowerCase()}${target}`;
+            return { type: log.action, message, createdAt: log.createdAt };
         });
 
         return c.json({

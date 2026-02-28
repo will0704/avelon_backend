@@ -1,42 +1,40 @@
-import { Resend } from 'resend';
+import { MailerSend, EmailParams, Sender, Recipient } from 'mailersend';
 import { env } from '../config/env.js';
 
 class EmailService {
-    private resend: Resend | null = null;
+    private mailerSend: MailerSend | null = null;
     private isConfigured = false;
 
     constructor() {
-        if (env.RESEND_API_KEY) {
-            this.resend = new Resend(env.RESEND_API_KEY);
+        if (env.MAILERSEND_API_KEY) {
+            this.mailerSend = new MailerSend({ apiKey: env.MAILERSEND_API_KEY });
             this.isConfigured = true;
-            console.log('✅ Resend Email Service initialized');
+            console.log('✅ MailerSend Email Service initialized');
         } else {
-            console.warn('⚠️ RESEND_API_KEY not found. Email service is disabled.');
+            console.warn('⚠️ MAILERSEND_API_KEY not found. Email service is disabled.');
         }
     }
 
     /**
-     * Send an email using Resend
+     * Send an email using MailerSend
      */
     async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-        if (!this.isConfigured || !this.resend) {
+        if (!this.isConfigured || !this.mailerSend) {
             console.log(`[STUB] Would have sent email to ${to}: ${subject}`);
             return true; // Pretend it succeeded in dev if no key
         }
 
         try {
-            const { error } = await this.resend.emails.send({
-                from: env.EMAIL_FROM,
-                to,
-                subject,
-                html,
-            });
+            const sentFrom = new Sender(env.EMAIL_FROM, 'Avelon');
+            const recipients = [new Recipient(to)];
 
-            if (error) {
-                console.error('Failed to send email:', error);
-                return false;
-            }
+            const emailParams = new EmailParams()
+                .setFrom(sentFrom)
+                .setTo(recipients)
+                .setSubject(subject)
+                .setHtml(html);
 
+            await this.mailerSend.email.send(emailParams);
             return true;
         } catch (error) {
             console.error('Email service error:', error);

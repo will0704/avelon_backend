@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
 import { NotFoundError } from '../middleware/error.middleware.js';
+import { firebaseService } from '../services/firebase.service.js';
 
 const notificationRoutes = new Hono();
 
@@ -179,6 +180,83 @@ notificationRoutes.put('/preferences', zValidator('json', updatePreferencesSchem
             pushRepaymentReminders: prefs.pushRepaymentReminders,
             pushLiquidationAlerts: prefs.pushLiquidationAlerts,
         },
+    });
+});
+
+// Validation schema for device token registration
+const deviceTokenSchema = z.object({
+    token: z.string().min(1),
+    platform: z.enum(['IOS', 'ANDROID', 'WEB']),
+});
+
+/**
+ * POST /notifications/device-token
+ * Register an FCM device token for push notifications
+ */
+notificationRoutes.post('/device-token', zValidator('json', deviceTokenSchema), async (c) => {
+    const userId = c.get('userId');
+    const { token, platform } = c.req.valid('json');
+
+    await prisma.deviceToken.upsert({
+        where: { token },
+        create: { userId, token, platform, isActive: true },
+        update: { userId, isActive: true, lastUsedAt: new Date() },
+    });
+
+    return c.json({ success: true, message: 'Device token registered' });
+});
+
+/**
+ * DELETE /notifications/device-token
+ * Unregister an FCM device token (e.g. on logout)
+ */
+notificationRoutes.delete('/device-token', zValidator('json', z.object({ token: z.string().min(1) })), async (c) => {
+    const userId = c.get('userId');
+    const { token } = c.req.valid('json');
+
+    await prisma.deviceToken.updateMany({
+        where: { token, userId },
+        data: { isActive: false },
+    });
+
+    return c.json({ success: true, message: 'Device token unregistered' });
+});
+
+/**
+ * POST /notifications/test-push  (dev/debug only)
+ * Send a test push to the authenticated user's registered devices
+ */
+notificationRoutes.post('/test-push', async (c) => {
+    const userId = c.get('userId');
+
+    const deviceTokens = await prisma.deviceToken.findMany({
+        where: { userId, isActive: true },
+        select: { id: true, token: true },
+    });
+
+    if (deviceTokens.length === 0) {
+        return c.json({ success: false, message: 'No active device tokens found for this user' }, 404);
+    }
+
+    const tokens = deviceTokens.map((d) => d.token);
+    const invalidTokens = await firebaseService.sendToMultiple(tokens, {
+        title: '🔔 Avelon Test Notification',
+        body: 'Push notifications are working!',
+        data: { type: 'TEST' },
+    });
+
+    // Deactivate invalid tokens
+    if (invalidTokens.length > 0) {
+        await prisma.deviceToken.updateMany({
+            where: { token: { in: invalidTokens } },
+            data: { isActive: false },
+        });
+    }
+
+    return c.json({
+        success: true,
+        message: `Push sent to ${tokens.length - invalidTokens.length} device(s)`,
+        data: { sent: tokens.length - invalidTokens.length, invalidRemoved: invalidTokens.length },
     });
 });
 

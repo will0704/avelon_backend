@@ -19,7 +19,7 @@
     "db:studio": "prisma studio",
     "hardhat:compile": "cd contracts && npx hardhat compile",
     "hardhat:test": "cd contracts && npx hardhat test",
-    "hardhat:deploy": "cd contracts && npx hardhat run scripts/deploy.ts --network ganache",
+    "hardhat:deploy": "cd contracts && npx tsx scripts/deploy.ts --network sepolia",
     "lint": "eslint src/",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run"
@@ -49,12 +49,13 @@
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "ethers": "^6.16.0",
+    "firebase-admin": "^13.7.0",
     "hono": "^4.11.4",
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",
+    "mailersend": "^2.6.0",
     "node-cron": "^4.2.1",
     "pg": "^8.17.1",
-    "resend": "^6.7.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {

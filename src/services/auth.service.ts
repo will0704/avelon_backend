@@ -403,6 +403,10 @@ export class AuthService {
             throw new UnauthorizedError('User not found');
         }
 
+        if (!user.passwordHash) {
+            throw new ValidationError('No password set for this account');
+        }
+
         const isValid = await compare(currentPassword, user.passwordHash);
         if (!isValid) {
             throw new ValidationError('Current password is incorrect');

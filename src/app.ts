@@ -62,7 +62,8 @@ app.use('*', enforceContentType);
 app.use('/api/v1/admin/*', adminRateLimiter);
 
 // Global rate limiter (OWASP A04 — 100 req/15min per IP)
-app.use('*', globalRateLimiter);
+// Scoped to /api/* to exclude health check endpoints
+app.use('/api/*', globalRateLimiter);
 
 // Auth-specific rate limiter (OWASP A07 — 5 req/15min per IP)
 app.use('/api/v1/auth/login', authRateLimiter);
@@ -83,7 +84,10 @@ app.use('*', cors({
             'http://localhost:3002',
             'http://localhost:19006',
             'https://avelon.io',
+            'https://avelon-web.vercel.app',
         ];
+        // Allow all vercel.app preview deployments
+        if (origin && origin.endsWith('.vercel.app')) return origin;
         return allowedOrigins.includes(origin || '') ? origin : null;
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

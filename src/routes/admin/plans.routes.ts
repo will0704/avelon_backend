@@ -38,7 +38,7 @@ const createPlanSchema = z.object({
     maxAmount: z.union([z.string(), z.number()]).transform(String),
     durationOptions: z.array(z.number().int().positive()),
     interestRate: z.number().positive(),
-    interestType: z.enum(['FLAT', 'REDUCING']).default('FLAT'),
+    interestType: z.enum(['FLAT', 'COMPOUND']).default('FLAT'),
     collateralRatio: z.number().positive(),
     originationFee: z.number().min(0),
     latePenaltyRate: z.number().min(0).default(0.5),
@@ -95,7 +95,7 @@ adminPlansRoutes.post('/', zValidator('json', createPlanSchema), async (c) => {
                 maxAmount: body.maxAmount,
                 durationOptions: body.durationOptions,
                 interestRate: body.interestRate,
-                interestType: body.interestType as 'FLAT' | 'REDUCING',
+                interestType: body.interestType,
                 collateralRatio: body.collateralRatio,
                 originationFee: body.originationFee,
                 latePenaltyRate: body.latePenaltyRate,
@@ -106,7 +106,7 @@ adminPlansRoutes.post('/', zValidator('json', createPlanSchema), async (c) => {
                 createdBy,
             },
             select: planSelect,
-        });
+        }) as any;
 
         return c.json({
             success: true,
@@ -144,9 +144,9 @@ adminPlansRoutes.put('/:id', zValidator('json', createPlanSchema.partial()), asy
 
         const plan = await prisma.loanPlan.update({
             where: { id },
-            data: body,
+            data: body as any,
             select: planSelect,
-        });
+        }) as any;
 
         return c.json({
             success: true,

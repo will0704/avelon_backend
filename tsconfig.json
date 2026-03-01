@@ -52,6 +52,7 @@
     "exclude": [
         "node_modules",
         "dist",
-        "contracts"
+        "contracts",
+        "src/__tests__"
     ]
 }

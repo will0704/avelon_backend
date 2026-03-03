@@ -6,62 +6,78 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /**
  * @title RepaymentSchedule
  * @dev Tracks repayment schedules and milestones for loans
+ * Gas-optimized with struct packing and custom errors
  */
 contract RepaymentSchedule is Ownable {
     // ============================================
+    // CUSTOM ERRORS
+    // ============================================
+
+    error ScheduleAlreadyExists();
+    error ScheduleNotFound();
+    error ScheduleAlreadyComplete();
+    error InvalidAmount();
+    error DueDateMustBeFuture();
+
+    // ============================================
     // TYPES
     // ============================================
-    
+
+    /// @dev Packed into 2 storage slots (down from 8)
     struct Schedule {
-        uint256 loanId;
-        uint256 totalAmount;        // Total amount to be repaid
-        uint256 amountPaid;         // Amount already paid
-        uint256 installments;       // Number of installments (0 = single payment)
-        uint256 installmentAmount;  // Amount per installment
-        uint256 nextDueDate;        // Next payment due date
-        uint256 interval;           // Interval between payments (seconds)
+        // Slot 1: uint128(16) + uint128(16) = 32 bytes
+        uint128 totalAmount;
+        uint128 amountPaid;
+        // Slot 2: uint128(16) + uint48(6) + uint32(4) + uint16(2) + bool(1) = 29 bytes
+        uint128 installmentAmount;
+        uint48 nextDueDate;
+        uint32 interval;            // Max ~136 years between payments
+        uint16 installments;        // Max 65535 installments
         bool isComplete;
     }
 
+    /// @dev Packed into 2 storage slots (down from 3)
     struct Payment {
-        uint256 amount;
-        uint256 timestamp;
-        bytes32 txHash;             // Transaction hash reference
+        // Slot 1: uint128(16) + uint48(6) = 22 bytes
+        uint128 amount;
+        uint48 timestamp;
+        // Slot 2: bytes32(32)
+        bytes32 txHash;
     }
 
     // ============================================
     // STATE VARIABLES
     // ============================================
-    
+
     // Loan ID => Schedule
-    mapping(uint256 => Schedule) public schedules;
-    
+    mapping(uint32 => Schedule) public schedules;
+
     // Loan ID => Payments
-    mapping(uint256 => Payment[]) public payments;
-    
+    mapping(uint32 => Payment[]) public payments;
+
     // ============================================
     // EVENTS
     // ============================================
-    
+
     event ScheduleCreated(
-        uint256 indexed loanId,
-        uint256 totalAmount,
-        uint256 installments,
-        uint256 firstDueDate
+        uint32 indexed loanId,
+        uint128 totalAmount,
+        uint16 installments,
+        uint48 firstDueDate
     );
-    event PaymentRecorded(uint256 indexed loanId, uint256 amount, uint256 remaining);
-    event ScheduleCompleted(uint256 indexed loanId);
+    event PaymentRecorded(uint32 indexed loanId, uint128 amount, uint128 remaining);
+    event ScheduleCompleted(uint32 indexed loanId);
 
     // ============================================
     // CONSTRUCTOR
     // ============================================
-    
+
     constructor() Ownable(msg.sender) {}
 
     // ============================================
     // SCHEDULE MANAGEMENT
     // ============================================
-    
+
     /**
      * @dev Create a repayment schedule for a loan
      * @param loanId The loan ID
@@ -71,29 +87,25 @@ contract RepaymentSchedule is Ownable {
      * @param interval Interval between payments in seconds
      */
     function createSchedule(
-        uint256 loanId,
-        uint256 totalAmount,
-        uint256 installments,
-        uint256 firstDueDate,
-        uint256 interval
+        uint32 loanId,
+        uint128 totalAmount,
+        uint16 installments,
+        uint48 firstDueDate,
+        uint32 interval
     ) external onlyOwner {
-        require(schedules[loanId].loanId == 0, "Schedule exists");
-        require(totalAmount > 0, "Amount must be > 0");
-        require(firstDueDate > block.timestamp, "Due date must be future");
+        if (schedules[loanId].totalAmount != 0) revert ScheduleAlreadyExists();
+        if (totalAmount == 0) revert InvalidAmount();
+        if (firstDueDate <= uint48(block.timestamp)) revert DueDateMustBeFuture();
 
-        uint256 numInstallments = installments == 0 ? 1 : installments;
-        uint256 perInstallment = totalAmount / numInstallments;
+        uint16 numInstallments = installments == 0 ? 1 : installments;
+        uint128 perInstallment = totalAmount / numInstallments;
 
-        schedules[loanId] = Schedule({
-            loanId: loanId,
-            totalAmount: totalAmount,
-            amountPaid: 0,
-            installments: numInstallments,
-            installmentAmount: perInstallment,
-            nextDueDate: firstDueDate,
-            interval: interval,
-            isComplete: false
-        });
+        Schedule storage schedule = schedules[loanId];
+        schedule.totalAmount = totalAmount;
+        schedule.installments = numInstallments;
+        schedule.installmentAmount = perInstallment;
+        schedule.nextDueDate = firstDueDate;
+        schedule.interval = interval;
 
         emit ScheduleCreated(loanId, totalAmount, numInstallments, firstDueDate);
     }
@@ -105,26 +117,26 @@ contract RepaymentSchedule is Ownable {
      * @param txHash Transaction hash reference
      */
     function recordPayment(
-        uint256 loanId,
-        uint256 amount,
+        uint32 loanId,
+        uint128 amount,
         bytes32 txHash
     ) external onlyOwner {
         Schedule storage schedule = schedules[loanId];
-        require(schedule.loanId == loanId, "Schedule not found");
-        require(!schedule.isComplete, "Already complete");
-        require(amount > 0, "Amount must be > 0");
+        if (schedule.totalAmount == 0) revert ScheduleNotFound();
+        if (schedule.isComplete) revert ScheduleAlreadyComplete();
+        if (amount == 0) revert InvalidAmount();
 
         schedule.amountPaid += amount;
-        
+
         // Record payment history
         payments[loanId].push(Payment({
             amount: amount,
-            timestamp: block.timestamp,
+            timestamp: uint48(block.timestamp),
             txHash: txHash
         }));
 
-        uint256 remaining = schedule.totalAmount > schedule.amountPaid 
-            ? schedule.totalAmount - schedule.amountPaid 
+        uint128 remaining = schedule.totalAmount > schedule.amountPaid
+            ? schedule.totalAmount - schedule.amountPaid
             : 0;
 
         emit PaymentRecorded(loanId, amount, remaining);
@@ -135,7 +147,7 @@ contract RepaymentSchedule is Ownable {
             emit ScheduleCompleted(loanId);
         } else if (schedule.interval > 0) {
             // Update next due date
-            schedule.nextDueDate += schedule.interval;
+            schedule.nextDueDate += uint48(schedule.interval);
         }
     }
 
@@ -144,19 +156,19 @@ contract RepaymentSchedule is Ownable {
      * @param loanId The loan ID
      * @param additionalAmount Amount to add
      */
-    function addToSchedule(uint256 loanId, uint256 additionalAmount) external onlyOwner {
+    function addToSchedule(uint32 loanId, uint128 additionalAmount) external onlyOwner {
         Schedule storage schedule = schedules[loanId];
-        require(schedule.loanId == loanId, "Schedule not found");
-        require(!schedule.isComplete, "Already complete");
+        if (schedule.totalAmount == 0) revert ScheduleNotFound();
+        if (schedule.isComplete) revert ScheduleAlreadyComplete();
 
         schedule.totalAmount += additionalAmount;
-        
+
         // Recalculate installment amount if applicable
         if (schedule.installments > 1) {
-            uint256 remaining = schedule.totalAmount - schedule.amountPaid;
-            uint256 remainingInstallments = _getRemainingInstallments(loanId);
+            uint128 remaining = schedule.totalAmount - schedule.amountPaid;
+            uint16 remainingInstallments = _getRemainingInstallments(loanId);
             if (remainingInstallments > 0) {
-                schedule.installmentAmount = remaining / remainingInstallments;
+                schedule.installmentAmount = remaining / uint128(remainingInstallments);
             }
         }
     }
@@ -164,43 +176,43 @@ contract RepaymentSchedule is Ownable {
     // ============================================
     // VIEW FUNCTIONS
     // ============================================
-    
+
     /**
      * @dev Get outstanding amount for a loan
      */
-    function getOutstanding(uint256 loanId) external view returns (uint256) {
+    function getOutstanding(uint32 loanId) external view returns (uint128) {
         Schedule storage schedule = schedules[loanId];
         if (schedule.isComplete) return 0;
-        return schedule.totalAmount > schedule.amountPaid 
-            ? schedule.totalAmount - schedule.amountPaid 
+        return schedule.totalAmount > schedule.amountPaid
+            ? schedule.totalAmount - schedule.amountPaid
             : 0;
     }
 
     /**
      * @dev Get schedule details
      */
-    function getSchedule(uint256 loanId) external view returns (Schedule memory) {
+    function getSchedule(uint32 loanId) external view returns (Schedule memory) {
         return schedules[loanId];
     }
 
     /**
      * @dev Get payment history for a loan
      */
-    function getPayments(uint256 loanId) external view returns (Payment[] memory) {
+    function getPayments(uint32 loanId) external view returns (Payment[] memory) {
         return payments[loanId];
     }
 
     /**
      * @dev Get number of payments made
      */
-    function getPaymentCount(uint256 loanId) external view returns (uint256) {
+    function getPaymentCount(uint32 loanId) external view returns (uint256) {
         return payments[loanId].length;
     }
 
     /**
      * @dev Check if a payment is overdue
      */
-    function isOverdue(uint256 loanId) external view returns (bool) {
+    function isOverdue(uint32 loanId) external view returns (bool) {
         Schedule storage schedule = schedules[loanId];
         return !schedule.isComplete && block.timestamp > schedule.nextDueDate;
     }
@@ -208,10 +220,10 @@ contract RepaymentSchedule is Ownable {
     /**
      * @dev Get days until next payment
      */
-    function getDaysUntilDue(uint256 loanId) external view returns (int256) {
+    function getDaysUntilDue(uint32 loanId) external view returns (int256) {
         Schedule storage schedule = schedules[loanId];
         if (schedule.isComplete) return type(int256).max;
-        
+
         if (block.timestamp >= schedule.nextDueDate) {
             return -int256((block.timestamp - schedule.nextDueDate) / 1 days);
         }
@@ -221,18 +233,18 @@ contract RepaymentSchedule is Ownable {
     /**
      * @dev Calculate remaining installments
      */
-    function _getRemainingInstallments(uint256 loanId) internal view returns (uint256) {
+    function _getRemainingInstallments(uint32 loanId) internal view returns (uint16) {
         Schedule storage schedule = schedules[loanId];
         uint256 paid = payments[loanId].length;
-        return paid >= schedule.installments ? 0 : schedule.installments - paid;
+        return paid >= schedule.installments ? 0 : schedule.installments - uint16(paid);
     }
 
     /**
      * @dev Calculate progress percentage
      */
-    function getProgress(uint256 loanId) external view returns (uint256 percentage) {
+    function getProgress(uint32 loanId) external view returns (uint256 percentage) {
         Schedule storage schedule = schedules[loanId];
         if (schedule.totalAmount == 0) return 0;
-        return (schedule.amountPaid * 100) / schedule.totalAmount;
+        return (uint256(schedule.amountPaid) * 100) / schedule.totalAmount;
     }
 }

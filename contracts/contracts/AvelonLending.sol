@@ -7,13 +7,26 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 /**
  * @title AvelonLending
  * @dev Core lending contract for the Avelon crypto lending platform
- * Manages loan lifecycle: creation, activation, repayment tracking, and closure
+ * Gas-optimized with struct packing and custom errors
  */
 contract AvelonLending is Ownable, ReentrancyGuard {
     // ============================================
+    // CUSTOM ERRORS
+    // ============================================
+
+    error InvalidAddress();
+    error InvalidAmount();
+    error InvalidDuration();
+    error LoanNotFound();
+    error InvalidLoanStatus();
+    error OnlyCollateralManager();
+    error NotAuthorized();
+    error AmountExceedsOwed();
+
+    // ============================================
     // TYPES
     // ============================================
-    
+
     enum LoanStatus {
         PendingCollateral,  // Loan created, awaiting collateral
         Active,             // Collateral deposited, loan disbursed
@@ -22,88 +35,92 @@ contract AvelonLending is Ownable, ReentrancyGuard {
         Cancelled           // Cancelled before collateral deposit
     }
 
+    /// @dev Packed into 4 storage slots (down from 12)
     struct Loan {
-        uint256 id;
+        // Slot 1: address(20) + uint48(6) + uint48(6) = 32 bytes
         address borrower;
-        uint256 principal;          // Loan amount in wei
-        uint256 collateralRequired; // Required collateral in wei
-        uint256 interestRate;       // Interest rate in basis points (100 = 1%)
-        uint256 duration;           // Duration in seconds
-        uint256 createdAt;
-        uint256 activatedAt;
-        uint256 dueDate;
-        uint256 principalOwed;
-        uint256 interestOwed;
+        uint48 createdAt;
+        uint48 activatedAt;
+        // Slot 2: uint48(6) + uint32(4) + uint16(2) + uint8(1) = 13 bytes
+        uint48 dueDate;
+        uint32 duration;            // Max ~136 years in seconds
+        uint16 interestRate;        // Max 655.35% in basis points
         LoanStatus status;
+        // Slot 3: uint128(16) + uint128(16) = 32 bytes
+        uint128 principal;          // Max ~340 billion ETH in wei
+        uint128 collateralRequired;
+        // Slot 4: uint128(16) + uint128(16) = 32 bytes
+        uint128 principalOwed;
+        uint128 interestOwed;
     }
 
     // ============================================
     // STATE VARIABLES
     // ============================================
-    
-    uint256 private _loanIdCounter;
+
+    uint32 private _loanIdCounter;
     address public collateralManager;
     address public treasury;
-    
+
     // Loan ID => Loan
-    mapping(uint256 => Loan) public loans;
-    
+    mapping(uint32 => Loan) public loans;
+
     // Borrower => Loan IDs
-    mapping(address => uint256[]) public borrowerLoans;
-    
+    mapping(address => uint32[]) public borrowerLoans;
+
     // ============================================
     // EVENTS
     // ============================================
-    
+
     event LoanCreated(
-        uint256 indexed loanId,
+        uint32 indexed loanId,
         address indexed borrower,
-        uint256 principal,
-        uint256 collateralRequired,
-        uint256 interestRate,
-        uint256 duration
+        uint128 principal,
+        uint128 collateralRequired,
+        uint16 interestRate,
+        uint32 duration
     );
-    
-    event LoanActivated(uint256 indexed loanId, uint256 activatedAt, uint256 dueDate);
-    event RepaymentRecorded(uint256 indexed loanId, uint256 amount, uint256 remainingOwed);
-    event LoanRepaid(uint256 indexed loanId, uint256 repaidAt);
-    event LoanLiquidated(uint256 indexed loanId, uint256 liquidatedAt);
-    event LoanCancelled(uint256 indexed loanId);
+
+    event LoanActivated(uint32 indexed loanId, uint48 activatedAt, uint48 dueDate);
+    event RepaymentRecorded(uint32 indexed loanId, uint128 amount, uint128 remainingOwed);
+    event LoanRepaid(uint32 indexed loanId, uint48 repaidAt);
+    event LoanLiquidated(uint32 indexed loanId, uint48 liquidatedAt);
+    event LoanCancelled(uint32 indexed loanId);
     event CollateralManagerUpdated(address indexed oldManager, address indexed newManager);
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
 
     // ============================================
     // MODIFIERS
     // ============================================
-    
+
     modifier onlyCollateralManager() {
-        require(msg.sender == collateralManager, "Only CollateralManager");
+        if (msg.sender != collateralManager) revert OnlyCollateralManager();
         _;
     }
 
-    modifier loanExists(uint256 loanId) {
-        require(loans[loanId].id == loanId && loanId > 0, "Loan does not exist");
+    modifier loanExists(uint32 loanId) {
+        if (loans[loanId].borrower == address(0) || loanId == 0) revert LoanNotFound();
         _;
     }
 
     // ============================================
     // CONSTRUCTOR
     // ============================================
-    
+
     constructor(address _treasury) Ownable(msg.sender) {
-        require(_treasury != address(0), "Invalid treasury");
+        if (_treasury == address(0)) revert InvalidAddress();
         treasury = _treasury;
     }
 
     // ============================================
     // ADMIN FUNCTIONS
     // ============================================
-    
+
     /**
      * @dev Set the CollateralManager contract address
      */
     function setCollateralManager(address _collateralManager) external onlyOwner {
-        require(_collateralManager != address(0), "Invalid address");
+        if (_collateralManager == address(0)) revert InvalidAddress();
         address oldManager = collateralManager;
         collateralManager = _collateralManager;
         emit CollateralManagerUpdated(oldManager, _collateralManager);
@@ -113,7 +130,7 @@ contract AvelonLending is Ownable, ReentrancyGuard {
      * @dev Update the treasury address
      */
     function setTreasury(address _treasury) external onlyOwner {
-        require(_treasury != address(0), "Invalid address");
+        if (_treasury == address(0)) revert InvalidAddress();
         address oldTreasury = treasury;
         treasury = _treasury;
         emit TreasuryUpdated(oldTreasury, _treasury);
@@ -122,7 +139,7 @@ contract AvelonLending is Ownable, ReentrancyGuard {
     // ============================================
     // LOAN LIFECYCLE FUNCTIONS
     // ============================================
-    
+
     /**
      * @dev Create a new loan application
      * @param borrower Address of the borrower
@@ -133,38 +150,33 @@ contract AvelonLending is Ownable, ReentrancyGuard {
      */
     function createLoan(
         address borrower,
-        uint256 principal,
-        uint256 collateralRequired,
-        uint256 interestRate,
-        uint256 duration
-    ) external onlyOwner returns (uint256) {
-        require(borrower != address(0), "Invalid borrower");
-        require(principal > 0, "Principal must be > 0");
-        require(collateralRequired > 0, "Collateral must be > 0");
-        require(duration > 0, "Duration must be > 0");
+        uint128 principal,
+        uint128 collateralRequired,
+        uint16 interestRate,
+        uint32 duration
+    ) external onlyOwner returns (uint32) {
+        if (borrower == address(0)) revert InvalidAddress();
+        if (principal == 0) revert InvalidAmount();
+        if (collateralRequired == 0) revert InvalidAmount();
+        if (duration == 0) revert InvalidDuration();
 
         _loanIdCounter++;
-        uint256 loanId = _loanIdCounter;
+        uint32 loanId = _loanIdCounter;
 
-        loans[loanId] = Loan({
-            id: loanId,
-            borrower: borrower,
-            principal: principal,
-            collateralRequired: collateralRequired,
-            interestRate: interestRate,
-            duration: duration,
-            createdAt: block.timestamp,
-            activatedAt: 0,
-            dueDate: 0,
-            principalOwed: principal,
-            interestOwed: 0,
-            status: LoanStatus.PendingCollateral
-        });
+        Loan storage loan = loans[loanId];
+        loan.borrower = borrower;
+        loan.principal = principal;
+        loan.collateralRequired = collateralRequired;
+        loan.interestRate = interestRate;
+        loan.duration = duration;
+        loan.createdAt = uint48(block.timestamp);
+        loan.principalOwed = principal;
+        loan.status = LoanStatus.PendingCollateral;
 
         borrowerLoans[borrower].push(loanId);
 
         emit LoanCreated(loanId, borrower, principal, collateralRequired, interestRate, duration);
-        
+
         return loanId;
     }
 
@@ -172,16 +184,18 @@ contract AvelonLending is Ownable, ReentrancyGuard {
      * @dev Activate a loan after collateral is verified
      * Called by CollateralManager after collateral deposit
      */
-    function activateLoan(uint256 loanId) external onlyCollateralManager loanExists(loanId) {
+    function activateLoan(uint32 loanId) external onlyCollateralManager loanExists(loanId) {
         Loan storage loan = loans[loanId];
-        require(loan.status == LoanStatus.PendingCollateral, "Invalid loan status");
+        if (loan.status != LoanStatus.PendingCollateral) revert InvalidLoanStatus();
 
         loan.status = LoanStatus.Active;
-        loan.activatedAt = block.timestamp;
-        loan.dueDate = block.timestamp + loan.duration;
-        
-        // Calculate interest owed (simple interest for now)
-        loan.interestOwed = (loan.principal * loan.interestRate * loan.duration) / (365 days * 10000);
+        loan.activatedAt = uint48(block.timestamp);
+        loan.dueDate = uint48(block.timestamp + loan.duration);
+
+        // Calculate interest owed (simple interest)
+        loan.interestOwed = uint128(
+            (uint256(loan.principal) * loan.interestRate * loan.duration) / (365 days * 10000)
+        );
 
         emit LoanActivated(loanId, loan.activatedAt, loan.dueDate);
     }
@@ -192,57 +206,54 @@ contract AvelonLending is Ownable, ReentrancyGuard {
      * @param amount Amount repaid in wei
      */
     function recordRepayment(
-        uint256 loanId,
-        uint256 amount
+        uint32 loanId,
+        uint128 amount
     ) external onlyOwner loanExists(loanId) {
         Loan storage loan = loans[loanId];
-        require(loan.status == LoanStatus.Active, "Loan not active");
-        require(amount > 0, "Amount must be > 0");
+        if (loan.status != LoanStatus.Active) revert InvalidLoanStatus();
+        if (amount == 0) revert InvalidAmount();
 
-        uint256 totalOwed = loan.principalOwed + loan.interestOwed;
-        require(amount <= totalOwed, "Amount exceeds owed");
+        uint128 totalOwed = loan.principalOwed + loan.interestOwed;
+        if (amount > totalOwed) revert AmountExceedsOwed();
 
         // Apply payment to interest first, then principal
         if (amount <= loan.interestOwed) {
             loan.interestOwed -= amount;
         } else {
-            uint256 remainingAfterInterest = amount - loan.interestOwed;
+            uint128 remainingAfterInterest = amount - loan.interestOwed;
             loan.interestOwed = 0;
             loan.principalOwed -= remainingAfterInterest;
         }
 
-        uint256 remainingOwed = loan.principalOwed + loan.interestOwed;
+        uint128 remainingOwed = loan.principalOwed + loan.interestOwed;
         emit RepaymentRecorded(loanId, amount, remainingOwed);
 
         // Check if loan is fully repaid
         if (remainingOwed == 0) {
             loan.status = LoanStatus.Repaid;
-            emit LoanRepaid(loanId, block.timestamp);
+            emit LoanRepaid(loanId, uint48(block.timestamp));
         }
     }
 
     /**
      * @dev Mark a loan as liquidated
      */
-    function liquidateLoan(uint256 loanId) external onlyCollateralManager loanExists(loanId) {
+    function liquidateLoan(uint32 loanId) external onlyCollateralManager loanExists(loanId) {
         Loan storage loan = loans[loanId];
-        require(loan.status == LoanStatus.Active, "Loan not active");
-        
+        if (loan.status != LoanStatus.Active) revert InvalidLoanStatus();
+
         loan.status = LoanStatus.Liquidated;
-        emit LoanLiquidated(loanId, block.timestamp);
+        emit LoanLiquidated(loanId, uint48(block.timestamp));
     }
 
     /**
      * @dev Cancel a loan before collateral is deposited
      */
-    function cancelLoan(uint256 loanId) external loanExists(loanId) {
+    function cancelLoan(uint32 loanId) external loanExists(loanId) {
         Loan storage loan = loans[loanId];
-        require(
-            msg.sender == loan.borrower || msg.sender == owner(),
-            "Not authorized"
-        );
-        require(loan.status == LoanStatus.PendingCollateral, "Cannot cancel");
-        
+        if (msg.sender != loan.borrower && msg.sender != owner()) revert NotAuthorized();
+        if (loan.status != LoanStatus.PendingCollateral) revert InvalidLoanStatus();
+
         loan.status = LoanStatus.Cancelled;
         emit LoanCancelled(loanId);
     }
@@ -250,18 +261,18 @@ contract AvelonLending is Ownable, ReentrancyGuard {
     // ============================================
     // VIEW FUNCTIONS
     // ============================================
-    
+
     /**
      * @dev Get loan details
      */
-    function getLoan(uint256 loanId) external view returns (Loan memory) {
+    function getLoan(uint32 loanId) external view returns (Loan memory) {
         return loans[loanId];
     }
 
     /**
      * @dev Get total amount owed on a loan
      */
-    function getTotalOwed(uint256 loanId) external view loanExists(loanId) returns (uint256) {
+    function getTotalOwed(uint32 loanId) external view loanExists(loanId) returns (uint128) {
         Loan storage loan = loans[loanId];
         return loan.principalOwed + loan.interestOwed;
     }
@@ -269,14 +280,14 @@ contract AvelonLending is Ownable, ReentrancyGuard {
     /**
      * @dev Get all loan IDs for a borrower
      */
-    function getBorrowerLoans(address borrower) external view returns (uint256[] memory) {
+    function getBorrowerLoans(address borrower) external view returns (uint32[] memory) {
         return borrowerLoans[borrower];
     }
 
     /**
      * @dev Check if a loan is overdue
      */
-    function isOverdue(uint256 loanId) external view loanExists(loanId) returns (bool) {
+    function isOverdue(uint32 loanId) external view loanExists(loanId) returns (bool) {
         Loan storage loan = loans[loanId];
         return loan.status == LoanStatus.Active && block.timestamp > loan.dueDate;
     }
@@ -284,7 +295,30 @@ contract AvelonLending is Ownable, ReentrancyGuard {
     /**
      * @dev Get the current loan ID counter
      */
-    function getCurrentLoanId() external view returns (uint256) {
+    function getCurrentLoanId() external view returns (uint32) {
         return _loanIdCounter;
+    }
+
+    /**
+     * @dev Get borrower address and status for a loan (gas-efficient getter for CollateralManager)
+     */
+    function getLoanBorrowerAndStatus(uint32 loanId) external view returns (address borrower, LoanStatus status) {
+        Loan storage loan = loans[loanId];
+        return (loan.borrower, loan.status);
+    }
+
+    /**
+     * @dev Get collateral required for a loan (gas-efficient getter for CollateralManager)
+     */
+    function getLoanCollateralRequired(uint32 loanId) external view returns (uint128) {
+        return loans[loanId].collateralRequired;
+    }
+
+    /**
+     * @dev Get owed amounts for a loan (gas-efficient getter for CollateralManager)
+     */
+    function getLoanOwed(uint32 loanId) external view returns (uint128 principalOwed, uint128 interestOwed) {
+        Loan storage loan = loans[loanId];
+        return (loan.principalOwed, loan.interestOwed);
     }
 }

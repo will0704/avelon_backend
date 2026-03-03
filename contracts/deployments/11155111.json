@@ -1,9 +1,9 @@
 {
-  "avelonLending": "0x1c352Cc577b410810aD6D40eC90f66e7bf897cCB",
-  "collateralManager": "0xd8E2Df50f228559e8428235F85a699259335688C",
-  "repaymentSchedule": "0x1E8210e6c4F70E765bB2B57Edb4BBA4Afa1131a9",
+  "avelonLending": "0xdf1d60eb1163195e4C1B8a098f8767166d55d488",
+  "collateralManager": "0x4CFf8B5c2f7378EFcC3cD6Aab4f813c08Cf9358e",
+  "repaymentSchedule": "0xa57695992c721FE25Ea7423d650bf20E227FA8f3",
   "deployer": "0x38f00aD0B7f04CF4772A60349Bcfff7035082cd4",
   "network": "sepolia",
   "chainId": 11155111,
-  "timestamp": "2026-02-28T16:22:30.044Z"
+  "timestamp": "2026-03-03T13:59:03.373Z"
 }

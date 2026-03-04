@@ -4,6 +4,7 @@ import { blockchainService } from './blockchain.service.js';
 /**
  * ContractService
  * High-level service for interacting with deployed smart contracts
+ * Updated for gas-optimized contract ABIs (packed structs, uint32/uint128/uint48 types)
  */
 export class ContractService {
     // ============================================
@@ -24,10 +25,10 @@ export class ContractService {
 
         const tx = await contract.createLoan(
             borrowerAddress,
-            ethers.parseEther(principal),
+            ethers.parseEther(principal),      // uint128 — ethers handles BigInt
             ethers.parseEther(collateralRequired),
-            interestRate, // in basis points
-            durationSeconds
+            interestRate, // uint16 basis points
+            durationSeconds // uint32
         );
 
         const receipt = await tx.wait();
@@ -47,13 +48,14 @@ export class ContractService {
 
     /**
      * Get loan details from chain
+     * Note: Loan struct no longer has an `id` field — the ID is the mapping key
      */
     async getLoan(loanId: number) {
         const contract = blockchainService.getAvelonLending();
         const loan = await contract.getLoan(loanId);
 
         return {
-            id: Number(loan.id),
+            id: loanId, // ID comes from mapping key, not struct
             borrower: loan.borrower,
             principal: ethers.formatEther(loan.principal),
             collateralRequired: ethers.formatEther(loan.collateralRequired),
@@ -235,9 +237,9 @@ export class ContractService {
         const tx = await contract.createSchedule(
             loanId,
             ethers.parseEther(totalAmount),
-            installments,
-            firstDueDate,
-            intervalSeconds
+            installments,   // uint16
+            firstDueDate,    // uint48
+            intervalSeconds  // uint32
         );
 
         const receipt = await tx.wait();
@@ -275,13 +277,14 @@ export class ContractService {
 
     /**
      * Get repayment schedule details
+     * Note: Schedule struct no longer has a loanId field — the ID is the mapping key
      */
     async getSchedule(loanId: number) {
         const contract = blockchainService.getRepaymentSchedule();
         const schedule = await contract.getSchedule(loanId);
 
         return {
-            loanId: Number(schedule.loanId),
+            loanId, // ID comes from mapping key, not struct
             totalAmount: ethers.formatEther(schedule.totalAmount),
             amountPaid: ethers.formatEther(schedule.amountPaid),
             installments: Number(schedule.installments),

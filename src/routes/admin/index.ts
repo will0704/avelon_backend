@@ -13,6 +13,7 @@ import { adminAnalyticsRoutes } from './analytics.routes.js';
 import { authMiddleware, adminMiddleware } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../lib/prisma.js';
 import { blockchainService } from '../../services/blockchain.service.js';
+import { contractService } from '../../services/contract.service.js';
 
 const adminRoutes = new Hono();
 
@@ -188,6 +189,105 @@ adminRoutes.get('/treasury', async (c) => {
         } catch {
             return c.json({ success: false, message: 'Failed to fetch treasury data' }, 500);
         }
+    }
+});
+
+/**
+ * GET /admin/blockchain
+ * Overview of on-chain state: network, contracts, balances, loan counter
+ */
+adminRoutes.get('/blockchain', async (c) => {
+    try {
+        const lendingAddress = process.env.AVELON_LENDING_ADDRESS || null;
+        const collateralAddress = process.env.COLLATERAL_MANAGER_ADDRESS || null;
+        const scheduleAddress = process.env.REPAYMENT_SCHEDULE_ADDRESS || null;
+        const treasuryAddress = process.env.TREASURY_ADDRESS || null;
+
+        // Fetch all on-chain data in parallel
+        const [
+            networkInfo,
+            blockNumber,
+            deployerAddress,
+            treasuryBalance,
+            collateralBalance,
+        ] = await Promise.all([
+            blockchainService.getNetworkInfo(),
+            blockchainService.getBlockNumber(),
+            blockchainService.getDeployerAddress(),
+            treasuryAddress
+                ? blockchainService.getBalance(treasuryAddress)
+                : Promise.resolve('0'),
+            collateralAddress
+                ? blockchainService.getBalance(collateralAddress)
+                : Promise.resolve('0'),
+        ]);
+
+        // Get deployer balance and on-chain loan count
+        const [deployerBalance, currentLoanId] = await Promise.all([
+            blockchainService.getBalance(deployerAddress),
+            (async () => {
+                try {
+                    const contract = blockchainService.getAvelonLending();
+                    const id = await contract.getCurrentLoanId();
+                    return Number(id);
+                } catch {
+                    return 0;
+                }
+            })(),
+        ]);
+
+        return c.json({
+            success: true,
+            data: {
+                online: true,
+                network: networkInfo,
+                blockNumber,
+                deployer: {
+                    address: deployerAddress,
+                    balance: deployerBalance,
+                },
+                contracts: {
+                    avelonLending: lendingAddress,
+                    collateralManager: collateralAddress,
+                    repaymentSchedule: scheduleAddress,
+                },
+                treasury: {
+                    address: treasuryAddress,
+                    balance: treasuryBalance,
+                },
+                collateralPool: {
+                    address: collateralAddress,
+                    balance: collateralBalance,
+                },
+                onChainLoanCount: currentLoanId,
+            },
+        });
+    } catch (err) {
+        console.error('[admin/blockchain] error:', err);
+        return c.json({
+            success: true,
+            data: {
+                online: false,
+                network: { name: 'offline', chainId: '0' },
+                blockNumber: 0,
+                deployer: { address: null, balance: '0' },
+                contracts: {
+                    avelonLending: process.env.AVELON_LENDING_ADDRESS || null,
+                    collateralManager: process.env.COLLATERAL_MANAGER_ADDRESS || null,
+                    repaymentSchedule: process.env.REPAYMENT_SCHEDULE_ADDRESS || null,
+                },
+                treasury: {
+                    address: process.env.TREASURY_ADDRESS || null,
+                    balance: '0',
+                },
+                collateralPool: {
+                    address: process.env.COLLATERAL_MANAGER_ADDRESS || null,
+                    balance: '0',
+                },
+                onChainLoanCount: 0,
+                _warning: 'Blockchain unreachable',
+            },
+        });
     }
 });
 

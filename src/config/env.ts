@@ -21,9 +21,10 @@ const envSchema = z.object({
     JWT_ACCESS_EXPIRY: z.string().default('15m'),
     JWT_REFRESH_EXPIRY: z.string().default('7d'),
 
-    // Email
-    MAILERSEND_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().email().default('noreply@avelon.finance'),
+    // Email (Gmail SMTP)
+    GMAIL_USER: z.string().email().optional(),
+    GMAIL_APP_PASSWORD: z.string().optional(),
+    EMAIL_FROM: z.string().email().optional(),
 
     // Blockchain (Sepolia)
     SEPOLIA_RPC_URL: z.string().url().optional(),

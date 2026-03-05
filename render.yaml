@@ -26,8 +26,8 @@ services:
       # PRISMA_FIELD_ENCRYPTION_KEY — set manually in dashboard
       # Generate with: npx @47ng/cloak generate
       # Set these manually in the Render dashboard:
-      # MAILERSEND_API_KEY
-      # EMAIL_FROM
+      # GMAIL_USER
+      # GMAIL_APP_PASSWORD
       # SEPOLIA_RPC_URL
       # SEPOLIA_PRIVATE_KEY
       # TREASURY_ADDRESS

@@ -4,6 +4,7 @@ import { blockchainService } from './blockchain.service.js';
 import { contractService } from './contract.service.js';
 import { NotFoundError, ValidationError, ForbiddenError } from '../middleware/error.middleware.js';
 import { LoanStatus, LoanTransactionType } from '@avelon_capstone/types';
+import { notificationService } from './notification.service.js';
 
 // For Decimal type annotations
 type DecimalType = Prisma.Decimal;
@@ -267,6 +268,14 @@ export class LoanService {
                 activeLoansCount: { increment: 1 },
                 totalBorrowed: { increment: loan.principal },
             },
+        });
+
+        // Notify: loan disbursed
+        await notificationService.notify(loan.userId, {
+            type: 'LOAN_DISBURSED',
+            title: '💰 Funds Disbursed',
+            message: `${loan.principal} ETH has been sent to your wallet. Your first repayment is due on ${dueDate.toLocaleDateString()}.`,
+            metadata: { loanId, amount: loan.principal.toString(), dueDate: dueDate.toISOString() },
         });
     }
 

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
 import { loanService } from '../services/loan.service.js';
 import { blockchainService } from '../services/blockchain.service.js';
+import { notificationService } from '../services/notification.service.js';
 
 const loanRoutes = new Hono();
 
@@ -74,6 +75,14 @@ loanRoutes.post(
         // Get CollateralManager address for frontend
         const collateralManagerAddress = process.env.COLLATERAL_MANAGER_ADDRESS;
 
+        // Notify: loan application submitted
+        await notificationService.notify(userId, {
+            type: 'LOAN_APPLICATION_RECEIVED',
+            title: '🎉 Loan Application Submitted',
+            message: `Your loan application for ${body.amount} ETH has been submitted and is being processed.`,
+            metadata: { loanId: loan.id, amount: body.amount },
+        });
+
         return c.json({
             success: true,
             message: 'Loan application created',
@@ -135,6 +144,14 @@ loanRoutes.post(
 
         const result = await loanService.recordCollateralDeposit(loanId, userId, txHash);
 
+        // Notify: collateral deposited
+        await notificationService.notify(userId, {
+            type: 'COLLATERAL_DEPOSITED',
+            title: '💰 Collateral Deposited',
+            message: `Your collateral of ${result.loan.collateralDeposited} ETH has been recorded. Your loan is now being activated.`,
+            metadata: { loanId: result.loan.id, txHash },
+        });
+
         return c.json({
             success: true,
             message: 'Collateral deposit recorded',
@@ -164,9 +181,26 @@ loanRoutes.post(
 
         const result = await loanService.recordRepayment(loanId, userId, amount, txHash);
 
+        // Notify: repayment received or loan fully repaid
+        const isFullyRepaid = result.remainingOwed === '0';
+        await notificationService.notify(userId, isFullyRepaid
+            ? {
+                type: 'LOAN_REPAID',
+                title: '🏆 Loan Fully Repaid!',
+                message: 'Congratulations! Your loan has been fully repaid. Your collateral has been released.',
+                metadata: { loanId, amount, txHash },
+            }
+            : {
+                type: 'REPAYMENT_RECEIVED',
+                title: '✅ Payment Received',
+                message: `Your repayment of ${amount} ETH has been confirmed. Remaining balance: ${result.remainingOwed} ETH.`,
+                metadata: { loanId, amount, txHash, remainingOwed: result.remainingOwed },
+            }
+        );
+
         return c.json({
             success: true,
-            message: result.remainingOwed === '0'
+            message: isFullyRepaid
                 ? 'Loan fully repaid!'
                 : 'Repayment recorded',
             data: {
@@ -174,7 +208,7 @@ loanRoutes.post(
                 amount,
                 txHash,
                 remainingOwed: result.remainingOwed,
-                isFullyRepaid: result.remainingOwed === '0',
+                isFullyRepaid,
             },
         });
     }
@@ -195,6 +229,14 @@ loanRoutes.post(
 
         // Use same flow as initial collateral deposit
         const result = await loanService.recordCollateralDeposit(loanId, userId, txHash);
+
+        // Notify: additional collateral added
+        await notificationService.notify(userId, {
+            type: 'COLLATERAL_ADDED',
+            title: '✅ Additional Collateral Added',
+            message: `Additional collateral recorded. Total collateral: ${result.loan.collateralDeposited} ETH.`,
+            metadata: { loanId: result.loan.id, txHash },
+        });
 
         return c.json({
             success: true,
@@ -217,6 +259,14 @@ loanRoutes.delete('/:id', authMiddleware, async (c) => {
     const loanId = c.req.param('id');
 
     await loanService.cancelLoan(loanId, userId);
+
+    // Notify: loan cancelled
+    await notificationService.notify(userId, {
+        type: 'LOAN_CANCELLED',
+        title: 'Loan Cancelled',
+        message: 'Your loan application has been cancelled.',
+        metadata: { loanId },
+    });
 
     return c.json({
         success: true,

@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { prisma } from '../../lib/prisma.js';
+import { notificationService } from '../../services/notification.service.js';
 
 const adminLoansRoutes = new Hono();
 
@@ -192,6 +193,14 @@ adminLoansRoutes.post('/:id/liquidate', async (c) => {
                 status: 'LIQUIDATED',
                 liquidatedAt: new Date(),
             },
+        });
+
+        // Notify: liquidation executed
+        await notificationService.notify(loan.userId, {
+            type: 'LOAN_LIQUIDATED',
+            title: '⚠️ Loan Liquidated',
+            message: 'Your loan has been liquidated due to insufficient collateral coverage. Your collateral has been seized.',
+            metadata: { loanId: id },
         });
 
         return c.json({

@@ -225,6 +225,7 @@ notificationRoutes.delete('/device-token', zValidator('json', z.object({ token: 
 /**
  * POST /notifications/test-push  (dev/debug only)
  * Send a test push to the authenticated user's registered devices
+ * Accepts optional JSON body: { title, body, data }
  */
 notificationRoutes.post('/test-push', async (c) => {
     const userId = c.get('userId');
@@ -238,11 +239,25 @@ notificationRoutes.post('/test-push', async (c) => {
         return c.json({ success: false, message: 'No active device tokens found for this user' }, 404);
     }
 
+    // Allow custom title/body/data for testing different notification types
+    let title = '🔔 Avelon Test Notification';
+    let body = 'Push notifications are working!';
+    let notifData: Record<string, string> = { type: 'TEST' };
+
+    try {
+        const json = await c.req.json();
+        if (json.title) title = json.title;
+        if (json.body) body = json.body;
+        if (json.data) notifData = json.data;
+    } catch {
+        // No body provided — use defaults
+    }
+
     const tokens = deviceTokens.map((d) => d.token);
     const invalidTokens = await firebaseService.sendToMultiple(tokens, {
-        title: '🔔 Avelon Test Notification',
-        body: 'Push notifications are working!',
-        data: { type: 'TEST' },
+        title,
+        body,
+        data: notifData,
     });
 
     // Deactivate invalid tokens
@@ -257,6 +272,70 @@ notificationRoutes.post('/test-push', async (c) => {
         success: true,
         message: `Push sent to ${tokens.length - invalidTokens.length} device(s)`,
         data: { sent: tokens.length - invalidTokens.length, invalidRemoved: invalidTokens.length },
+    });
+});
+
+/**
+ * POST /notifications/test-push-all  (dev/debug only)
+ * Send ALL notification types to the authenticated user's devices with delays between each
+ */
+notificationRoutes.post('/test-push-all', async (c) => {
+    const userId = c.get('userId');
+
+    const deviceTokens = await prisma.deviceToken.findMany({
+        where: { userId, isActive: true },
+        select: { id: true, token: true },
+    });
+
+    if (deviceTokens.length === 0) {
+        return c.json({ success: false, message: 'No active device tokens found for this user' }, 404);
+    }
+
+    const tokens = deviceTokens.map((d) => d.token);
+
+    const notifications: Array<{ title: string; body: string; data: Record<string, string> }> = [
+        { title: '✅ Identity Verified', body: 'Your KYC verification has been approved! You can now apply for loans.', data: { type: 'KYC_APPROVED' } },
+        { title: '❌ Verification Failed', body: 'Your KYC verification was rejected. Please re-submit your documents.', data: { type: 'KYC_REJECTED' } },
+        { title: '🎉 Loan Approved!', body: 'Your Starting Loan Plan for 0.00001452 ETH has been approved.', data: { type: 'LOAN_APPROVED', loanId: 'loan_001' } },
+        { title: '💰 Funds Disbursed', body: '0.00001452 ETH has been sent to your wallet.', data: { type: 'LOAN_DISBURSED', loanId: 'loan_001' } },
+        { title: '⏰ Repayment Due Soon', body: 'Your monthly payment of 0.00054312 ETH is due in 3 days.', data: { type: 'REPAYMENT_REMINDER', loanId: 'loan_001' } },
+        { title: '✅ Payment Received', body: 'Your repayment of 0.00054312 ETH has been confirmed.', data: { type: 'REPAYMENT_RECEIVED', loanId: 'loan_001' } },
+        { title: '🚨 Payment Overdue!', body: 'Your repayment was due on March 5. Please pay immediately.', data: { type: 'REPAYMENT_OVERDUE', loanId: 'loan_001' } },
+        { title: '⚠️ Collateral Value Dropping', body: 'Your collateral ratio has fallen to 135%. Add more collateral.', data: { type: 'COLLATERAL_WARNING', loanId: 'loan_001' } },
+        { title: '🔴 Liquidation Risk!', body: 'Collateral ratio critically low at 110%. Add collateral NOW.', data: { type: 'LIQUIDATION_WARNING', loanId: 'loan_001' } },
+        { title: '🏆 Loan Fully Repaid!', body: 'Congratulations! Your loan has been fully repaid. Collateral released.', data: { type: 'LOAN_REPAID', loanId: 'loan_001' } },
+        { title: '📈 ETH Price Update', body: 'ETH is up 8.5% in the last 24 hours. Current price: $3,216.74.', data: { type: 'PRICE_UPDATE', asset: 'ETH' } },
+    ];
+
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    let sent = 0;
+    let totalInvalid: string[] = [];
+
+    for (const notif of notifications) {
+        const invalid = await firebaseService.sendToMultiple(tokens, notif);
+        totalInvalid.push(...invalid);
+        sent++;
+        // 2-second delay so notifications arrive one by one
+        if (sent < notifications.length) await delay(2000);
+    }
+
+    // Deactivate any invalid tokens
+    const uniqueInvalid = [...new Set(totalInvalid)];
+    if (uniqueInvalid.length > 0) {
+        await prisma.deviceToken.updateMany({
+            where: { token: { in: uniqueInvalid } },
+            data: { isActive: false },
+        });
+    }
+
+    return c.json({
+        success: true,
+        message: `Sent ${notifications.length} notification types to ${tokens.length} device(s)`,
+        data: {
+            notificationsSent: notifications.length,
+            devices: tokens.length,
+            invalidTokensRemoved: uniqueInvalid.length,
+        },
     });
 });
 

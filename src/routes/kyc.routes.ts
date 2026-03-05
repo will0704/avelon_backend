@@ -8,6 +8,7 @@ import { NotFoundError, ValidationError, ForbiddenError, AppError } from '../mid
 import { UserStatus } from '@avelon_capstone/types';
 import path from 'path';
 import fs from 'fs/promises';
+import { notificationService } from '../services/notification.service.js';
 
 const kycRoutes = new Hono();
 
@@ -463,15 +464,12 @@ kycRoutes.post('/submit', zValidator('json', submitKycSchema), async (c) => {
         },
     });
 
-    // Create notification for user
-    await prisma.notification.create({
-        data: {
-            userId,
-            type: 'KYC_APPROVED', // Using closest available enum — maps to "KYC submitted" contextually
-            title: 'KYC Submitted',
-            message: 'Your KYC documents have been submitted for verification. You will be notified once the review is complete.',
-            metadata: { documentCount: documents.length },
-        },
+    // Create notification + send push
+    await notificationService.notify(userId, {
+        type: 'KYC_SUBMITTED',
+        title: 'KYC Submitted',
+        message: 'Your KYC documents have been submitted for verification. You will be notified once the review is complete.',
+        metadata: { documentCount: documents.length },
     });
 
     // Attempt to call AI service asynchronously (fire-and-forget)

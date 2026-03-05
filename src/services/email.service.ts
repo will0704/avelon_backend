@@ -1,5 +1,9 @@
+import dns from 'node:dns';
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
+
+// Force IPv4 DNS resolution — Render's outbound network doesn't support IPv6
+dns.setDefaultResultOrder('ipv4first');
 
 class EmailService {
     private transporter: nodemailer.Transporter | null = null;

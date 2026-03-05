@@ -12,11 +12,14 @@ class EmailService {
 
         if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
             this.transporter = nodemailer.createTransport({
-                service: 'gmail',
+                host: 'smtp.gmail.com',
+                port: 587,
+                secure: false,
                 auth: {
                     user: env.GMAIL_USER,
                     pass: env.GMAIL_APP_PASSWORD,
                 },
+                dnsOptions: { family: 4 },
             });
             this.isConfigured = true;
             console.log('✅ Gmail Email Service initialized');

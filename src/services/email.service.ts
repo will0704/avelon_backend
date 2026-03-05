@@ -1,40 +1,43 @@
-import { MailerSend, EmailParams, Sender, Recipient } from 'mailersend';
+import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 import { env } from '../config/env.js';
 
 class EmailService {
-    private mailerSend: MailerSend | null = null;
+    private transporter: Transporter | null = null;
     private isConfigured = false;
+    private fromAddress: string;
 
     constructor() {
-        if (env.MAILERSEND_API_KEY) {
-            this.mailerSend = new MailerSend({ apiKey: env.MAILERSEND_API_KEY });
+        this.fromAddress = env.EMAIL_FROM || env.GMAIL_USER || 'noreply@avelon.finance';
+
+        if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
+            this.transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: env.GMAIL_USER,
+                    pass: env.GMAIL_APP_PASSWORD,
+                },
+            });
             this.isConfigured = true;
-            console.log('✅ MailerSend Email Service initialized');
+            console.log('✅ Gmail Email Service initialized');
         } else {
-            console.warn('⚠️ MAILERSEND_API_KEY not found. Email service is disabled.');
+            console.warn('⚠️ Gmail credentials not found. Email service is disabled.');
         }
     }
 
-    /**
-     * Send an email using MailerSend
-     */
     async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-        if (!this.isConfigured || !this.mailerSend) {
+        if (!this.isConfigured || !this.transporter) {
             console.log(`[STUB] Would have sent email to ${to}: ${subject}`);
-            return true; // Pretend it succeeded in dev if no key
+            return true;
         }
 
         try {
-            const sentFrom = new Sender(env.EMAIL_FROM, 'Avelon');
-            const recipients = [new Recipient(to)];
-
-            const emailParams = new EmailParams()
-                .setFrom(sentFrom)
-                .setTo(recipients)
-                .setSubject(subject)
-                .setHtml(html);
-
-            await this.mailerSend.email.send(emailParams);
+            await this.transporter.sendMail({
+                from: `"Avelon" <${this.fromAddress}>`,
+                to,
+                subject,
+                html,
+            });
             return true;
         } catch (error) {
             console.error('Email service error:', error);
@@ -42,9 +45,6 @@ class EmailService {
         }
     }
 
-    /**
-     * Send Verification OTP
-     */
     async sendVerificationEmail(to: string, otp: string): Promise<boolean> {
         const subject = 'Verify your Avelon Account';
         const html = `
@@ -61,9 +61,6 @@ class EmailService {
         return this.sendEmail(to, subject, html);
     }
 
-    /**
-     * Send Password Reset OTP
-     */
     async sendPasswordResetEmail(to: string, otp: string): Promise<boolean> {
         const subject = 'Reset your Avelon Password';
         const html = `

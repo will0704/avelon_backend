@@ -7,7 +7,7 @@ class EmailService {
     private fromAddress: string;
 
     constructor() {
-        this.fromAddress = env.EMAIL_FROM || env.GMAIL_USER || 'noreply@avelon.finance';
+        this.fromAddress = env.EMAIL_FROM || env.GMAIL_USER;
 
         if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
             this.transporter = nodemailer.createTransport({
@@ -18,6 +18,7 @@ class EmailService {
                     user: env.GMAIL_USER,
                     pass: env.GMAIL_APP_PASSWORD,
                 },
+                dnsOptions: { family: 4 },
             } as Record<string, unknown>);
             this.isConfigured = true;
             console.log('✅ Gmail Email Service initialized');

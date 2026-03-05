@@ -69,8 +69,8 @@ adminKycRoutes.get('/pending', async (c) => {
 
 // Validation for KYC approval
 const approveSchema = z.object({
-    creditScore: z.number().int().min(300).max(850),
-    tier: z.enum(['BRONZE', 'SILVER', 'GOLD', 'PLATINUM']),
+    creditScore: z.number().int().min(0).max(100),
+    tier: z.enum(['BASIC', 'STANDARD', 'PREMIUM', 'VIP']),
 });
 
 /**

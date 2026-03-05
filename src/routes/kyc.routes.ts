@@ -9,6 +9,7 @@ import { UserStatus } from '@avelon_capstone/types';
 import path from 'path';
 import fs from 'fs/promises';
 import { notificationService } from '../services/notification.service.js';
+import { triggerAIVerification } from '../services/kyc-verification.service.js';
 
 const kycRoutes = new Hono();
 
@@ -499,57 +500,5 @@ kycRoutes.post('/submit', zValidator('json', submitKycSchema), async (c) => {
         },
     });
 });
-
-/**
- * Trigger AI verification via the LLM service (fire-and-forget)
- * Results are stored back on the documents and user record
- */
-async function triggerAIVerification(
-    userId: string,
-    documents: { id: string; type: string; storagePath: string; fileName: string }[]
-) {
-    try {
-        for (const doc of documents) {
-            // Read file and send to AI service
-            const fileBuffer = await fs.readFile(doc.storagePath);
-
-            const formData = new FormData();
-            formData.append('file', new Blob([fileBuffer]), doc.fileName);
-            formData.append('document_type', doc.type.toLowerCase());
-
-            const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/document`, {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (response.ok) {
-                const result = await response.json() as {
-                    is_authentic: boolean;
-                    confidence: number;
-                    fraud_score: number;
-                    fraud_flags: string[];
-                    extracted_data: Record<string, unknown>;
-                };
-
-                // Update document with AI results
-                await prisma.document.update({
-                    where: { id: doc.id },
-                    data: {
-                        aiVerified: result.is_authentic,
-                        aiConfidence: result.confidence,
-                        aiFraudScore: result.fraud_score,
-                        aiFraudFlags: result.fraud_flags ?? [],
-                        aiExtractedData: (result.extracted_data as any) ?? undefined,
-                    },
-                });
-            } else {
-                console.error(`[KYC] AI verification failed for doc ${doc.id}:`, response.status);
-            }
-        }
-    } catch (error) {
-        console.error('[KYC] AI service error:', error);
-        // Don't throw — this is fire-and-forget. Admin can still manually review.
-    }
-}
 
 export { kycRoutes };

@@ -7,7 +7,7 @@ class EmailService {
     private fromAddress: string;
 
     constructor() {
-        this.fromAddress = env.EMAIL_FROM || env.GMAIL_USER;
+        this.fromAddress = env.EMAIL_FROM || env.GMAIL_USER || '';
 
         if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
             this.transporter = nodemailer.createTransport({

@@ -1592,6 +1592,7 @@ export const UserScalarFieldEnum = {
   barangay: 'barangay',
   contactNumber: 'contactNumber',
   secondaryEmail: 'secondaryEmail',
+  idType: 'idType',
   creditScore: 'creditScore',
   creditTier: 'creditTier',
   legalName: 'legalName',

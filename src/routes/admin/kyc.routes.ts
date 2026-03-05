@@ -5,6 +5,7 @@ import { prisma } from '../../lib/prisma.js';
 import { UserStatus } from '@avelon_capstone/types';
 import { notificationService } from '../../services/notification.service.js';
 import { NotFoundError, AppError } from '../../middleware/error.middleware.js';
+import fs from 'fs/promises';
 
 const adminKycRoutes = new Hono();
 
@@ -79,6 +80,7 @@ const approveSchema = z.object({
  */
 adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async (c) => {
     const userId = c.req.param('userId');
+    const adminId = c.get('userId');
     const { creditScore, tier } = c.req.valid('json');
 
     // Validate user exists and is in correct state
@@ -102,7 +104,11 @@ adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async 
     // Update all pending documents to APPROVED
     await prisma.document.updateMany({
         where: { userId, status: 'PENDING' },
-        data: { status: 'APPROVED' },
+        data: {
+            status: 'APPROVED',
+            reviewedBy: adminId,
+            reviewedAt: new Date(),
+        },
     });
 
     // Update user status, credit score, and KYC level
@@ -164,6 +170,7 @@ const rejectSchema = z.object({
  */
 adminKycRoutes.put('/:userId/reject', zValidator('json', rejectSchema), async (c) => {
     const userId = c.req.param('userId');
+    const adminId = c.get('userId');
     const { reason } = c.req.valid('json');
 
     // Validate user exists and is in correct state
@@ -187,7 +194,12 @@ adminKycRoutes.put('/:userId/reject', zValidator('json', rejectSchema), async (c
     // Update all pending documents to REJECTED
     await prisma.document.updateMany({
         where: { userId, status: 'PENDING' },
-        data: { status: 'REJECTED', rejectionReason: reason },
+        data: {
+            status: 'REJECTED',
+            rejectionReason: reason,
+            reviewedBy: adminId,
+            reviewedAt: new Date(),
+        },
     });
 
     // Update user status
@@ -231,4 +243,37 @@ adminKycRoutes.put('/:userId/reject', zValidator('json', rejectSchema), async (c
     });
 });
 
+/**
+ * GET /admin/kyc/documents/:id/file
+ * Stream a KYC document file (admin access — any user's document)
+ */
+adminKycRoutes.get('/documents/:id/file', async (c) => {
+    const id = c.req.param('id');
+
+    const document = await prisma.document.findUnique({
+        where: { id },
+        select: { storagePath: true, mimeType: true, fileName: true },
+    });
+
+    if (!document) {
+        throw new NotFoundError('Document not found');
+    }
+
+    try {
+        await fs.access(document.storagePath);
+    } catch {
+        throw new NotFoundError('Document file not found on disk');
+    }
+
+    const fileBuffer = await fs.readFile(document.storagePath);
+
+    c.header('Content-Type', document.mimeType);
+    c.header('Content-Disposition', `inline; filename="${document.fileName}"`);
+    c.header('Cache-Control', 'private, max-age=3600');
+
+    return c.body(fileBuffer);
+});
+
 export { adminKycRoutes };
+
+// Intentionally blank line to close file

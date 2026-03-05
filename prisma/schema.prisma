@@ -131,6 +131,7 @@ model User {
   barangay            String?
   contactNumber       String?
   secondaryEmail      String?
+  idType              String?    // e.g. PhilID, Driver's License, Passport
 
   // Credit Score
   creditScore         Int?       // 0-100

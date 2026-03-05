@@ -69,6 +69,7 @@ export type UserMinAggregateOutputType = {
   barangay: string | null
   contactNumber: string | null
   secondaryEmail: string | null
+  idType: string | null
   creditScore: number | null
   creditTier: string | null
   legalName: string | null
@@ -111,6 +112,7 @@ export type UserMaxAggregateOutputType = {
   barangay: string | null
   contactNumber: string | null
   secondaryEmail: string | null
+  idType: string | null
   creditScore: number | null
   creditTier: string | null
   legalName: string | null
@@ -153,6 +155,7 @@ export type UserCountAggregateOutputType = {
   barangay: number
   contactNumber: number
   secondaryEmail: number
+  idType: number
   creditScore: number
   creditTier: number
   legalName: number
@@ -215,6 +218,7 @@ export type UserMinAggregateInputType = {
   barangay?: true
   contactNumber?: true
   secondaryEmail?: true
+  idType?: true
   creditScore?: true
   creditTier?: true
   legalName?: true
@@ -257,6 +261,7 @@ export type UserMaxAggregateInputType = {
   barangay?: true
   contactNumber?: true
   secondaryEmail?: true
+  idType?: true
   creditScore?: true
   creditTier?: true
   legalName?: true
@@ -299,6 +304,7 @@ export type UserCountAggregateInputType = {
   barangay?: true
   contactNumber?: true
   secondaryEmail?: true
+  idType?: true
   creditScore?: true
   creditTier?: true
   legalName?: true
@@ -428,6 +434,7 @@ export type UserGroupByOutputType = {
   barangay: string | null
   contactNumber: string | null
   secondaryEmail: string | null
+  idType: string | null
   creditScore: number | null
   creditTier: string | null
   legalName: string | null
@@ -493,6 +500,7 @@ export type UserWhereInput = {
   barangay?: Prisma.StringNullableFilter<"User"> | string | null
   contactNumber?: Prisma.StringNullableFilter<"User"> | string | null
   secondaryEmail?: Prisma.StringNullableFilter<"User"> | string | null
+  idType?: Prisma.StringNullableFilter<"User"> | string | null
   creditScore?: Prisma.IntNullableFilter<"User"> | number | null
   creditTier?: Prisma.StringNullableFilter<"User"> | string | null
   legalName?: Prisma.StringNullableFilter<"User"> | string | null
@@ -544,6 +552,7 @@ export type UserOrderByWithRelationInput = {
   barangay?: Prisma.SortOrderInput | Prisma.SortOrder
   contactNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   secondaryEmail?: Prisma.SortOrderInput | Prisma.SortOrder
+  idType?: Prisma.SortOrderInput | Prisma.SortOrder
   creditScore?: Prisma.SortOrderInput | Prisma.SortOrder
   creditTier?: Prisma.SortOrderInput | Prisma.SortOrder
   legalName?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -598,6 +607,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   barangay?: Prisma.StringNullableFilter<"User"> | string | null
   contactNumber?: Prisma.StringNullableFilter<"User"> | string | null
   secondaryEmail?: Prisma.StringNullableFilter<"User"> | string | null
+  idType?: Prisma.StringNullableFilter<"User"> | string | null
   creditScore?: Prisma.IntNullableFilter<"User"> | number | null
   creditTier?: Prisma.StringNullableFilter<"User"> | string | null
   legalName?: Prisma.StringNullableFilter<"User"> | string | null
@@ -649,6 +659,7 @@ export type UserOrderByWithAggregationInput = {
   barangay?: Prisma.SortOrderInput | Prisma.SortOrder
   contactNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   secondaryEmail?: Prisma.SortOrderInput | Prisma.SortOrder
+  idType?: Prisma.SortOrderInput | Prisma.SortOrder
   creditScore?: Prisma.SortOrderInput | Prisma.SortOrder
   creditTier?: Prisma.SortOrderInput | Prisma.SortOrder
   legalName?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -699,6 +710,7 @@ export type UserScalarWhereWithAggregatesInput = {
   barangay?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   contactNumber?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   secondaryEmail?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  idType?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   creditScore?: Prisma.IntNullableWithAggregatesFilter<"User"> | number | null
   creditTier?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   legalName?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
@@ -741,6 +753,7 @@ export type UserCreateInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -792,6 +805,7 @@ export type UserUncheckedCreateInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -843,6 +857,7 @@ export type UserUpdateInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -894,6 +909,7 @@ export type UserUncheckedUpdateInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -945,6 +961,7 @@ export type UserCreateManyInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -987,6 +1004,7 @@ export type UserUpdateManyMutationInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1029,6 +1047,7 @@ export type UserUncheckedUpdateManyInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1071,6 +1090,7 @@ export type UserCountOrderByAggregateInput = {
   barangay?: Prisma.SortOrder
   contactNumber?: Prisma.SortOrder
   secondaryEmail?: Prisma.SortOrder
+  idType?: Prisma.SortOrder
   creditScore?: Prisma.SortOrder
   creditTier?: Prisma.SortOrder
   legalName?: Prisma.SortOrder
@@ -1122,6 +1142,7 @@ export type UserMaxOrderByAggregateInput = {
   barangay?: Prisma.SortOrder
   contactNumber?: Prisma.SortOrder
   secondaryEmail?: Prisma.SortOrder
+  idType?: Prisma.SortOrder
   creditScore?: Prisma.SortOrder
   creditTier?: Prisma.SortOrder
   legalName?: Prisma.SortOrder
@@ -1164,6 +1185,7 @@ export type UserMinOrderByAggregateInput = {
   barangay?: Prisma.SortOrder
   contactNumber?: Prisma.SortOrder
   secondaryEmail?: Prisma.SortOrder
+  idType?: Prisma.SortOrder
   creditScore?: Prisma.SortOrder
   creditTier?: Prisma.SortOrder
   legalName?: Prisma.SortOrder
@@ -1405,6 +1427,7 @@ export type UserCreateWithoutAccountsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1455,6 +1478,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1521,6 +1545,7 @@ export type UserUpdateWithoutAccountsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1571,6 +1596,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1621,6 +1647,7 @@ export type UserCreateWithoutSessionsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1671,6 +1698,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1737,6 +1765,7 @@ export type UserUpdateWithoutSessionsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1787,6 +1816,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1837,6 +1867,7 @@ export type UserCreateWithoutWalletsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1887,6 +1918,7 @@ export type UserUncheckedCreateWithoutWalletsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -1953,6 +1985,7 @@ export type UserUpdateWithoutWalletsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2003,6 +2036,7 @@ export type UserUncheckedUpdateWithoutWalletsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2053,6 +2087,7 @@ export type UserCreateWithoutDocumentsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2103,6 +2138,7 @@ export type UserUncheckedCreateWithoutDocumentsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2169,6 +2205,7 @@ export type UserUpdateWithoutDocumentsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2219,6 +2256,7 @@ export type UserUncheckedUpdateWithoutDocumentsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2269,6 +2307,7 @@ export type UserCreateWithoutLoansInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2319,6 +2358,7 @@ export type UserUncheckedCreateWithoutLoansInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2385,6 +2425,7 @@ export type UserUpdateWithoutLoansInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2435,6 +2476,7 @@ export type UserUncheckedUpdateWithoutLoansInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2485,6 +2527,7 @@ export type UserCreateWithoutNotificationsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2535,6 +2578,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2601,6 +2645,7 @@ export type UserUpdateWithoutNotificationsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2651,6 +2696,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2701,6 +2747,7 @@ export type UserCreateWithoutNotificationPrefsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2751,6 +2798,7 @@ export type UserUncheckedCreateWithoutNotificationPrefsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2817,6 +2865,7 @@ export type UserUpdateWithoutNotificationPrefsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2867,6 +2916,7 @@ export type UserUncheckedUpdateWithoutNotificationPrefsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2917,6 +2967,7 @@ export type UserCreateWithoutDeviceTokensInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -2967,6 +3018,7 @@ export type UserUncheckedCreateWithoutDeviceTokensInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -3033,6 +3085,7 @@ export type UserUpdateWithoutDeviceTokensInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3083,6 +3136,7 @@ export type UserUncheckedUpdateWithoutDeviceTokensInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3133,6 +3187,7 @@ export type UserCreateWithoutAuditLogsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -3183,6 +3238,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   barangay?: string | null
   contactNumber?: string | null
   secondaryEmail?: string | null
+  idType?: string | null
   creditScore?: number | null
   creditTier?: string | null
   legalName?: string | null
@@ -3249,6 +3305,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3299,6 +3356,7 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3443,6 +3501,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   barangay?: boolean
   contactNumber?: boolean
   secondaryEmail?: boolean
+  idType?: boolean
   creditScore?: boolean
   creditTier?: boolean
   legalName?: boolean
@@ -3495,6 +3554,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   barangay?: boolean
   contactNumber?: boolean
   secondaryEmail?: boolean
+  idType?: boolean
   creditScore?: boolean
   creditTier?: boolean
   legalName?: boolean
@@ -3537,6 +3597,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   barangay?: boolean
   contactNumber?: boolean
   secondaryEmail?: boolean
+  idType?: boolean
   creditScore?: boolean
   creditTier?: boolean
   legalName?: boolean
@@ -3579,6 +3640,7 @@ export type UserSelectScalar = {
   barangay?: boolean
   contactNumber?: boolean
   secondaryEmail?: boolean
+  idType?: boolean
   creditScore?: boolean
   creditTier?: boolean
   legalName?: boolean
@@ -3596,7 +3658,7 @@ export type UserSelectScalar = {
   lastLoginAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "emailVerified" | "passwordHash" | "name" | "phone" | "avatar" | "role" | "status" | "kycLevel" | "kycSubmittedAt" | "kycApprovedAt" | "kycRejectionReason" | "dateOfBirth" | "gender" | "civilStatus" | "educationLevel" | "country" | "region" | "province" | "cityTown" | "barangay" | "contactNumber" | "secondaryEmail" | "creditScore" | "creditTier" | "legalName" | "birthDate" | "address" | "monthlyIncome" | "employmentType" | "totalBorrowed" | "totalRepaid" | "activeLoansCount" | "completedLoansCount" | "defaultCount" | "createdAt" | "updatedAt" | "lastLoginAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "emailVerified" | "passwordHash" | "name" | "phone" | "avatar" | "role" | "status" | "kycLevel" | "kycSubmittedAt" | "kycApprovedAt" | "kycRejectionReason" | "dateOfBirth" | "gender" | "civilStatus" | "educationLevel" | "country" | "region" | "province" | "cityTown" | "barangay" | "contactNumber" | "secondaryEmail" | "idType" | "creditScore" | "creditTier" | "legalName" | "birthDate" | "address" | "monthlyIncome" | "employmentType" | "totalBorrowed" | "totalRepaid" | "activeLoansCount" | "completedLoansCount" | "defaultCount" | "createdAt" | "updatedAt" | "lastLoginAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
@@ -3650,6 +3712,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     barangay: string | null
     contactNumber: string | null
     secondaryEmail: string | null
+    idType: string | null
     creditScore: number | null
     creditTier: string | null
     /**
@@ -4133,6 +4196,7 @@ export interface UserFieldRefs {
   readonly barangay: Prisma.FieldRef<"User", 'String'>
   readonly contactNumber: Prisma.FieldRef<"User", 'String'>
   readonly secondaryEmail: Prisma.FieldRef<"User", 'String'>
+  readonly idType: Prisma.FieldRef<"User", 'String'>
   readonly creditScore: Prisma.FieldRef<"User", 'Int'>
   readonly creditTier: Prisma.FieldRef<"User", 'String'>
   readonly legalName: Prisma.FieldRef<"User", 'String'>

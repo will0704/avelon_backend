@@ -12,6 +12,7 @@ interface AIDocumentResult {
     confidence: number;
     extracted_data: Record<string, unknown>;
     fraud_indicators: string[];
+    fraud_probability?: number;
     message: string | null;
 }
 
@@ -76,6 +77,7 @@ export async function triggerAIVerification(
                 data: {
                     aiVerified: result.valid,
                     aiConfidence: result.confidence,
+                    aiFraudScore: result.fraud_probability ?? null,
                     aiFraudFlags: result.fraud_indicators ?? [],
                     aiExtractedData: (result.extracted_data as any) ?? undefined,
                     ...(result.valid ? {} : { status: 'REJECTED', rejectionReason: result.message ?? 'AI verification failed' }),

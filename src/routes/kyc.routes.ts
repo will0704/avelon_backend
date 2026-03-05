@@ -110,6 +110,7 @@ const kycProfileSchema = z.object({
     barangay: z.string().optional(),
     contactNumber: z.string().min(1, 'Contact number is required'),
     secondaryEmail: z.string().email('Must be a valid email').optional(),
+    idType: z.string().min(1, 'ID type is required').optional(),
 });
 
 /**
@@ -153,6 +154,7 @@ kycRoutes.post('/profile', zValidator('json', kycProfileSchema), async (c) => {
             barangay: body.barangay ?? null,
             contactNumber: body.contactNumber,
             secondaryEmail: body.secondaryEmail ?? null,
+            idType: body.idType ?? null,
         },
         select: {
             id: true,
@@ -167,6 +169,7 @@ kycRoutes.post('/profile', zValidator('json', kycProfileSchema), async (c) => {
             barangay: true,
             contactNumber: true,
             secondaryEmail: true,
+            idType: true,
         },
     });
 
@@ -354,6 +357,40 @@ kycRoutes.get('/documents', async (c) => {
         data: documents,
         meta: { total: documents.length },
     });
+});
+
+/**
+ * GET /kyc/documents/:id/file
+ * Stream a KYC document file back to the client
+ */
+kycRoutes.get('/documents/:id/file', async (c) => {
+    const userId = c.get('userId');
+    const id = c.req.param('id');
+
+    // Find document belonging to user (IDOR protection)
+    const document = await prisma.document.findFirst({
+        where: { id, userId },
+        select: { storagePath: true, mimeType: true, fileName: true },
+    });
+
+    if (!document) {
+        throw new NotFoundError('Document not found');
+    }
+
+    // Verify file exists on disk
+    try {
+        await fs.access(document.storagePath);
+    } catch {
+        throw new NotFoundError('Document file not found on disk');
+    }
+
+    const fileBuffer = await fs.readFile(document.storagePath);
+
+    c.header('Content-Type', document.mimeType);
+    c.header('Content-Disposition', `inline; filename="${document.fileName}"`);
+    c.header('Cache-Control', 'private, max-age=3600');
+
+    return c.body(fileBuffer);
 });
 
 /**

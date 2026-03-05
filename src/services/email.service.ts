@@ -1,48 +1,55 @@
-import dns from 'node:dns';
-import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 import { env } from '../config/env.js';
 
-// Force IPv4 DNS resolution — Render's outbound network doesn't support IPv6
-dns.setDefaultResultOrder('ipv4first');
-
 class EmailService {
-    private transporter: nodemailer.Transporter | null = null;
+    private gmail: ReturnType<typeof google.gmail> | null = null;
     private isConfigured = false;
     private fromAddress: string;
 
     constructor() {
-        this.fromAddress = env.EMAIL_FROM || env.GMAIL_USER || '';
+        this.fromAddress = env.GMAIL_USER || '';
 
-        if (env.GMAIL_USER && env.GMAIL_APP_PASSWORD) {
-            this.transporter = nodemailer.createTransport({
-                host: 'smtp.gmail.com',
-                port: 587,
-                secure: false,
-                auth: {
-                    user: env.GMAIL_USER,
-                    pass: env.GMAIL_APP_PASSWORD,
-                },
-                dnsOptions: { family: 4 },
-            } as Record<string, unknown>);
+        if (env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET && env.GMAIL_REFRESH_TOKEN && env.GMAIL_USER) {
+            const oauth2Client = new google.auth.OAuth2(
+                env.GMAIL_CLIENT_ID,
+                env.GMAIL_CLIENT_SECRET,
+            );
+            oauth2Client.setCredentials({ refresh_token: env.GMAIL_REFRESH_TOKEN });
+
+            this.gmail = google.gmail({ version: 'v1', auth: oauth2Client });
             this.isConfigured = true;
-            console.log('✅ Gmail Email Service initialized');
+            console.log('✅ Gmail API Email Service initialized (OAuth2)');
         } else {
-            console.warn('⚠️ Gmail credentials not found. Email service is disabled.');
+            console.warn('⚠️ Gmail OAuth2 credentials not found. Email service is disabled.');
         }
     }
 
+    private buildRawMessage(to: string, subject: string, html: string): string {
+        const messageParts = [
+            `From: Avelon <${this.fromAddress}>`,
+            `To: ${to}`,
+            `Subject: ${subject}`,
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=utf-8',
+            '',
+            html,
+        ];
+        const message = messageParts.join('\r\n');
+        return Buffer.from(message).toString('base64url');
+    }
+
     async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-        if (!this.isConfigured || !this.transporter) {
+        if (!this.isConfigured || !this.gmail) {
             console.log(`[STUB] Would have sent email to ${to}: ${subject}`);
             return true;
         }
 
         try {
-            await this.transporter.sendMail({
-                from: `"Avelon" <${this.fromAddress}>`,
-                to,
-                subject,
-                html,
+            await this.gmail.users.messages.send({
+                userId: 'me',
+                requestBody: {
+                    raw: this.buildRawMessage(to, subject, html),
+                },
             });
             return true;
         } catch (error) {

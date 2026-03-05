@@ -1,23 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock nodemailer before importing the service
-const mockSendMail = vi.fn();
-const mockCreateTransport = vi.fn(() => ({
-    sendMail: mockSendMail,
-    verify: vi.fn().mockResolvedValue(true),
+// Mock Gmail API send method
+const mockGmailSend = vi.fn();
+
+vi.mock('googleapis', () => ({
+    google: {
+        auth: {
+            OAuth2: class MockOAuth2 {
+                setCredentials = vi.fn();
+            },
+        },
+        gmail: vi.fn(() => ({
+            users: {
+                messages: {
+                    send: mockGmailSend,
+                },
+            },
+        })),
+    },
 }));
 
-vi.mock('nodemailer', () => ({
-    default: { createTransport: mockCreateTransport },
-    createTransport: mockCreateTransport,
-}));
-
-// Mock env
+// Mock env with Gmail OAuth2 credentials
 vi.mock('../config/env.js', () => ({
     env: {
+        GMAIL_CLIENT_ID: 'test-client-id.apps.googleusercontent.com',
+        GMAIL_CLIENT_SECRET: 'test-client-secret',
+        GMAIL_REFRESH_TOKEN: 'test-refresh-token',
         GMAIL_USER: 'test@gmail.com',
-        GMAIL_APP_PASSWORD: 'abcd efgh ijkl mnop',
-        EMAIL_FROM: 'test@gmail.com',
     },
 }));
 
@@ -26,15 +35,14 @@ describe('EmailService', () => {
 
     beforeEach(async () => {
         vi.clearAllMocks();
-        mockSendMail.mockResolvedValue({ messageId: '<test-id>' });
+        mockGmailSend.mockResolvedValue({ data: { id: 'msg-123' } });
 
-        // Re-import to get fresh instance
         const mod = await import('../services/email.service.js');
         emailService = mod.emailService;
     });
 
     describe('sendEmail', () => {
-        it('sends email with correct parameters', async () => {
+        it('sends email via Gmail API with correct base64 message', async () => {
             const result = await emailService.sendEmail(
                 'user@example.com',
                 'Test Subject',
@@ -42,16 +50,23 @@ describe('EmailService', () => {
             );
 
             expect(result).toBe(true);
-            expect(mockSendMail).toHaveBeenCalledWith({
-                from: '"Avelon" <test@gmail.com>',
-                to: 'user@example.com',
-                subject: 'Test Subject',
-                html: '<p>Hello</p>',
-            });
+            expect(mockGmailSend).toHaveBeenCalledTimes(1);
+
+            const callArgs = mockGmailSend.mock.calls[0][0];
+            expect(callArgs.userId).toBe('me');
+            expect(callArgs.requestBody.raw).toBeDefined();
+
+            // Decode the base64url raw message and verify headers
+            const raw = callArgs.requestBody.raw;
+            const decoded = Buffer.from(raw, 'base64url').toString('utf-8');
+            expect(decoded).toContain('To: user@example.com');
+            expect(decoded).toContain('Subject: Test Subject');
+            expect(decoded).toContain('From: Avelon <test@gmail.com>');
+            expect(decoded).toContain('<p>Hello</p>');
         });
 
-        it('returns false on send failure', async () => {
-            mockSendMail.mockRejectedValueOnce(new Error('SMTP error'));
+        it('returns false on API error', async () => {
+            mockGmailSend.mockRejectedValueOnce(new Error('Gmail API error'));
 
             const result = await emailService.sendEmail(
                 'user@example.com',
@@ -64,73 +79,89 @@ describe('EmailService', () => {
     });
 
     describe('sendVerificationEmail', () => {
-        it('sends verification OTP with correct subject', async () => {
+        it('sends verification OTP with correct subject and content', async () => {
             const result = await emailService.sendVerificationEmail(
                 'user@example.com',
                 '123456'
             );
 
             expect(result).toBe(true);
-            expect(mockSendMail).toHaveBeenCalledTimes(1);
+            expect(mockGmailSend).toHaveBeenCalledTimes(1);
 
-            const callArgs = mockSendMail.mock.calls[0][0];
-            expect(callArgs.to).toBe('user@example.com');
-            expect(callArgs.subject).toBe('Verify your Avelon Account');
-            expect(callArgs.html).toContain('123456');
-            expect(callArgs.html).toContain('Welcome to Avelon');
+            const raw = mockGmailSend.mock.calls[0][0].requestBody.raw;
+            const decoded = Buffer.from(raw, 'base64url').toString('utf-8');
+            expect(decoded).toContain('To: user@example.com');
+            expect(decoded).toContain('Subject: Verify your Avelon Account');
+            expect(decoded).toContain('123456');
+            expect(decoded).toContain('Welcome to Avelon');
         });
 
         it('includes expiration notice in verification email', async () => {
             await emailService.sendVerificationEmail('user@example.com', '999999');
 
-            const callArgs = mockSendMail.mock.calls[0][0];
-            expect(callArgs.html).toContain('expire in 1 hour');
+            const raw = mockGmailSend.mock.calls[0][0].requestBody.raw;
+            const decoded = Buffer.from(raw, 'base64url').toString('utf-8');
+            expect(decoded).toContain('expire in 1 hour');
         });
     });
 
     describe('sendPasswordResetEmail', () => {
-        it('sends password reset OTP with correct subject', async () => {
+        it('sends password reset OTP with correct subject and content', async () => {
             const result = await emailService.sendPasswordResetEmail(
                 'user@example.com',
                 '654321'
             );
 
             expect(result).toBe(true);
-            expect(mockSendMail).toHaveBeenCalledTimes(1);
+            expect(mockGmailSend).toHaveBeenCalledTimes(1);
 
-            const callArgs = mockSendMail.mock.calls[0][0];
-            expect(callArgs.to).toBe('user@example.com');
-            expect(callArgs.subject).toBe('Reset your Avelon Password');
-            expect(callArgs.html).toContain('654321');
-            expect(callArgs.html).toContain('Password Reset Request');
+            const raw = mockGmailSend.mock.calls[0][0].requestBody.raw;
+            const decoded = Buffer.from(raw, 'base64url').toString('utf-8');
+            expect(decoded).toContain('To: user@example.com');
+            expect(decoded).toContain('Subject: Reset your Avelon Password');
+            expect(decoded).toContain('654321');
+            expect(decoded).toContain('Password Reset Request');
         });
 
         it('includes expiration notice in reset email', async () => {
             await emailService.sendPasswordResetEmail('user@example.com', '111111');
 
-            const callArgs = mockSendMail.mock.calls[0][0];
-            expect(callArgs.html).toContain('expire in 1 hour');
+            const raw = mockGmailSend.mock.calls[0][0].requestBody.raw;
+            const decoded = Buffer.from(raw, 'base64url').toString('utf-8');
+            expect(decoded).toContain('expire in 1 hour');
         });
     });
 });
 
 describe('EmailService (unconfigured)', () => {
-    it('stubs email when credentials are missing', async () => {
-        // Reset modules to re-evaluate with missing credentials
+    it('stubs email when OAuth2 credentials are missing', async () => {
         vi.resetModules();
-        mockSendMail.mockClear();
+        mockGmailSend.mockClear();
 
         vi.doMock('../config/env.js', () => ({
             env: {
+                GMAIL_CLIENT_ID: undefined,
+                GMAIL_CLIENT_SECRET: undefined,
+                GMAIL_REFRESH_TOKEN: undefined,
                 GMAIL_USER: undefined,
-                GMAIL_APP_PASSWORD: undefined,
-                EMAIL_FROM: 'noreply@avelon.finance',
             },
         }));
 
-        vi.doMock('nodemailer', () => ({
-            default: { createTransport: mockCreateTransport },
-            createTransport: mockCreateTransport,
+        vi.doMock('googleapis', () => ({
+            google: {
+                auth: {
+                    OAuth2: class MockOAuth2 {
+                        setCredentials = vi.fn();
+                    },
+                },
+                gmail: vi.fn(() => ({
+                    users: {
+                        messages: {
+                            send: mockGmailSend,
+                        },
+                    },
+                })),
+            },
         }));
 
         const { emailService: unconfiguredService } = await import(
@@ -144,6 +175,6 @@ describe('EmailService (unconfigured)', () => {
         );
 
         expect(result).toBe(true); // stub returns true
-        expect(mockSendMail).not.toHaveBeenCalled();
+        expect(mockGmailSend).not.toHaveBeenCalled();
     });
 });

@@ -21,10 +21,11 @@ const envSchema = z.object({
     JWT_ACCESS_EXPIRY: z.string().default('15m'),
     JWT_REFRESH_EXPIRY: z.string().default('7d'),
 
-    // Email (Gmail SMTP)
+    // Email (Gmail API OAuth2)
+    GMAIL_CLIENT_ID: z.string().optional(),
+    GMAIL_CLIENT_SECRET: z.string().optional(),
+    GMAIL_REFRESH_TOKEN: z.string().optional(),
     GMAIL_USER: z.string().email().optional(),
-    GMAIL_APP_PASSWORD: z.string().optional(),
-    EMAIL_FROM: z.string().email().optional(),
 
     // Blockchain (Sepolia)
     SEPOLIA_RPC_URL: z.string().url().optional(),

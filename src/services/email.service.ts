@@ -1,9 +1,8 @@
 import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
 import { env } from '../config/env.js';
 
 class EmailService {
-    private transporter: Transporter | null = null;
+    private transporter: nodemailer.Transporter | null = null;
     private isConfigured = false;
     private fromAddress: string;
 
@@ -19,8 +18,7 @@ class EmailService {
                     user: env.GMAIL_USER,
                     pass: env.GMAIL_APP_PASSWORD,
                 },
-                dnsOptions: { family: 4 },
-            });
+            } as Record<string, unknown>);
             this.isConfigured = true;
             console.log('✅ Gmail Email Service initialized');
         } else {

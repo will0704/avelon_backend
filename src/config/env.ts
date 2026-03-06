@@ -41,6 +41,7 @@ const envSchema = z.object({
 
     // AI Service
     AI_SERVICE_URL: z.string().url().default('http://localhost:8000'),
+    AI_API_KEY: z.string().default('dev-api-key-change-in-production'),
 
     // Firebase (FCM Push Notifications)
     FIREBASE_PROJECT_ID: z.string().optional(),

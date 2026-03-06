@@ -77,6 +77,7 @@ export async function triggerAIVerification(
 
             const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/document?document_type=${aiDocType}`, {
                 method: 'POST',
+                headers: { 'X-API-Key': env.AI_API_KEY },
                 body: formData,
             });
 

@@ -21,7 +21,7 @@ vi.mock('../services/notification.service.js', () => ({
 }));
 
 vi.mock('../config/env.js', () => ({
-    env: { AI_SERVICE_URL: 'http://localhost:8000' },
+    env: { AI_SERVICE_URL: 'http://localhost:8000', AI_API_KEY: 'test-api-key' },
 }));
 
 // Global fetch mock

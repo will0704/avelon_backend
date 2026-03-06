@@ -1,0 +1,3 @@
+-- AlterEnum: Add PASSWORD_RESET and WELCOME to NotificationType
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'PASSWORD_RESET';
+ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'WELCOME';

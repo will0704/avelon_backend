@@ -93,6 +93,64 @@ export class WalletService {
     }
 
     /**
+     * Connect and verify wallet directly (mobile flow — no signature required)
+     */
+    async connectDirect(userId: string, address: string) {
+        const existingWallet = await prisma.wallet.findUnique({
+            where: { address: address.toLowerCase() },
+        });
+
+        if (existingWallet && existingWallet.userId !== userId) {
+            throw new ConflictError('This wallet is already linked to another account');
+        }
+
+        const wallet = await prisma.wallet.upsert({
+            where: {
+                userId_address: {
+                    userId,
+                    address: address.toLowerCase(),
+                },
+            },
+            update: {
+                isVerified: true,
+                verifiedAt: new Date(),
+                lastUsedAt: new Date(),
+            },
+            create: {
+                userId,
+                address: address.toLowerCase(),
+                isVerified: true,
+                verifiedAt: new Date(),
+                isPrimary: true,
+            },
+        });
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { status: true },
+        });
+
+        if (user && user.status === UserStatus.VERIFIED) {
+            await prisma.user.update({
+                where: { id: userId },
+                data: { status: UserStatus.CONNECTED },
+            });
+        }
+
+        await prisma.auditLog.create({
+            data: {
+                userId,
+                action: 'WALLET_CONNECTED',
+                entity: 'Wallet',
+                entityId: wallet.id,
+                metadata: { address: wallet.address },
+            },
+        });
+
+        return wallet;
+    }
+
+    /**
      * Get user's wallets
      */
     async getUserWallets(userId: string) {

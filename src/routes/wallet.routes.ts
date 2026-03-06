@@ -69,6 +69,23 @@ walletRoutes.post('/verify', authMiddleware, verifiedMiddleware, zValidator('jso
 });
 
 /**
+ * POST /wallets/connect-direct
+ * Connect and verify wallet in one step (mobile flow)
+ */
+walletRoutes.post('/connect-direct', authMiddleware, verifiedMiddleware, zValidator('json', connectWalletSchema), async (c) => {
+    const userId = c.get('userId');
+    const { address } = c.req.valid('json');
+
+    const wallet = await walletService.connectDirect(userId, address);
+
+    return c.json({
+        success: true,
+        message: 'Wallet connected and verified',
+        data: wallet,
+    });
+});
+
+/**
  * PUT /wallets/:id/primary
  * Set wallet as primary
  */

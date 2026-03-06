@@ -5,7 +5,8 @@ import { randomBytes } from 'crypto';
 // SECURITY MIDDLEWARE (OWASP A04, A05, A08)
 // =====================================================
 
-const MAX_BODY_SIZE = 1 * 1024 * 1024; // 1MB
+const MAX_BODY_SIZE = 1 * 1024 * 1024; // 1MB for JSON requests
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10MB for file uploads
 
 /**
  * Request body size limiter
@@ -14,14 +15,21 @@ const MAX_BODY_SIZE = 1 * 1024 * 1024; // 1MB
 export const bodySizeLimiter = createMiddleware(async (c, next) => {
     const contentLength = c.req.header('content-length');
 
-    if (contentLength && parseInt(contentLength, 10) > MAX_BODY_SIZE) {
-        return c.json({
-            success: false,
-            error: {
-                code: 'PAYLOAD_TOO_LARGE',
-                message: 'Request body exceeds the maximum allowed size of 1MB',
-            },
-        }, 413);
+    if (contentLength) {
+        const size = parseInt(contentLength, 10);
+        const contentType = c.req.header('content-type') || '';
+        const isMultipart = contentType.startsWith('multipart/form-data');
+        const limit = isMultipart ? MAX_UPLOAD_SIZE : MAX_BODY_SIZE;
+
+        if (size > limit) {
+            return c.json({
+                success: false,
+                error: {
+                    code: 'PAYLOAD_TOO_LARGE',
+                    message: `Request body exceeds the maximum allowed size of ${limit / (1024 * 1024)}MB`,
+                },
+            }, 413);
+        }
     }
 
     return await next();

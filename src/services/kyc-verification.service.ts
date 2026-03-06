@@ -39,6 +39,17 @@ function deriveKycLevel(docTypes: string[]): KYCLevel {
     return KYCLevel.BASIC;
 }
 
+// ─── Document type mapping ────────────────────────────────────────────────────
+// Maps backend document types to LLM-compatible document_type values.
+// E_SIGNATURE is skipped — it's a user-drawn signature, not a verifiable document.
+const DOC_TYPE_TO_AI: Record<string, string | null> = {
+    GOVERNMENT_ID:      'government_id',
+    GOVERNMENT_ID_BACK: 'government_id',   // back of same ID — verify as government_id
+    E_SIGNATURE:        null,              // skip — not a verifiable document
+    PROOF_OF_INCOME:    'proof_of_income',
+    PROOF_OF_ADDRESS:   'proof_of_address',
+};
+
 // ─── Main function ────────────────────────────────────────────────────────────
 
 /**
@@ -53,13 +64,18 @@ export async function triggerAIVerification(
         const results: { docId: string; type: string; result: AIDocumentResult }[] = [];
 
         for (const doc of documents) {
+            const aiDocType = DOC_TYPE_TO_AI[doc.type] ?? null;
+            if (aiDocType === null) {
+                // Non-verifiable document (e.g. E_SIGNATURE) — skip AI call
+                continue;
+            }
+
             const fileBuffer = await fs.readFile(doc.storagePath);
 
             const formData = new FormData();
             formData.append('file', new Blob([fileBuffer]), doc.fileName);
-            formData.append('document_type', doc.type.toLowerCase());
 
-            const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/document`, {
+            const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/document?document_type=${aiDocType}`, {
                 method: 'POST',
                 body: formData,
             });

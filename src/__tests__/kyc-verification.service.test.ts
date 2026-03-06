@@ -67,6 +67,11 @@ const TWO_DOCS = [
     { id: 'doc-1', type: 'GOVERNMENT_ID', storagePath: '/uploads/gov.jpg', fileName: 'gov.jpg' },
     { id: 'doc-2', type: 'PROOF_OF_INCOME', storagePath: '/uploads/income.jpg', fileName: 'income.jpg' },
 ];
+const FULL_DOCS = [
+    { id: 'doc-1', type: 'GOVERNMENT_ID', storagePath: '/uploads/gov.jpg', fileName: 'gov.jpg' },
+    { id: 'doc-2', type: 'GOVERNMENT_ID_BACK', storagePath: '/uploads/gov_back.jpg', fileName: 'gov_back.jpg' },
+    { id: 'doc-3', type: 'E_SIGNATURE', storagePath: '/uploads/sig.jpg', fileName: 'sig.jpg' },
+];
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 describe('triggerAIVerification', () => {
@@ -93,9 +98,53 @@ describe('triggerAIVerification', () => {
 
         expect(mockFetch).toHaveBeenCalledOnce();
         const [url, opts] = mockFetch.mock.calls[0];
-        expect(url).toBe('http://localhost:8000/api/v1/verify/document');
+        expect(url).toContain('http://localhost:8000/api/v1/verify/document');
         expect(opts.method).toBe('POST');
         expect(opts.body).toBeInstanceOf(FormData);
+    });
+
+    // ────── Document type mapping ──────
+
+    it('sends document_type as a URL query parameter, not form data', async () => {
+        mockFetch.mockResolvedValue(aiSuccessResponse());
+
+        await triggerAIVerification(USER_ID, DOCS);
+
+        const [url] = mockFetch.mock.calls[0];
+        expect(url).toContain('?document_type=government_id');
+    });
+
+    it('maps GOVERNMENT_ID_BACK to government_id for the AI service', async () => {
+        mockFetch.mockResolvedValue(aiSuccessResponse());
+        const docs = [{ id: 'doc-1', type: 'GOVERNMENT_ID_BACK', storagePath: '/uploads/back.jpg', fileName: 'back.jpg' }];
+
+        await triggerAIVerification(USER_ID, docs);
+
+        const [url] = mockFetch.mock.calls[0];
+        expect(url).toContain('?document_type=government_id');
+    });
+
+    it('skips E_SIGNATURE documents — does not send to AI service', async () => {
+        mockFetch.mockResolvedValue(aiSuccessResponse());
+
+        await triggerAIVerification(USER_ID, FULL_DOCS);
+
+        // 3 docs but E_SIGNATURE skipped → only 2 AI calls
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        const urls = mockFetch.mock.calls.map((c: any[]) => c[0]);
+        expect(urls.every((u: string) => u.includes('government_id'))).toBe(true);
+    });
+
+    it('auto-approves even when E_SIGNATURE is in the documents list', async () => {
+        mockFetch.mockResolvedValue(aiSuccessResponse());
+
+        await triggerAIVerification(USER_ID, FULL_DOCS);
+
+        expect(mockUserUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({ status: 'APPROVED' }),
+            }),
+        );
     });
 
     it('stores AI results on the document record', async () => {

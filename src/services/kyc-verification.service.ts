@@ -73,7 +73,8 @@ export async function triggerAIVerification(
             const fileBuffer = await fs.readFile(doc.storagePath);
 
             const formData = new FormData();
-            formData.append('file', new Blob([fileBuffer]), doc.fileName);
+            const mimeType = doc.fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
+            formData.append('file', new Blob([fileBuffer], { type: mimeType }), doc.fileName);
 
             const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/document?document_type=${aiDocType}`, {
                 method: 'POST',

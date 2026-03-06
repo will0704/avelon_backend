@@ -65,7 +65,31 @@ export async function triggerAIVerification(
             });
 
             if (!response.ok) {
-                console.error(`[KYC] AI verification failed for doc ${doc.id}: HTTP ${response.status}`);
+                const errorReason = `AI service returned HTTP ${response.status}`;
+                console.error(`[KYC] AI verification failed for doc ${doc.id}: ${errorReason}`);
+
+                // Mark document as REJECTED so it doesn't stay PENDING forever
+                await prisma.document.update({
+                    where: { id: doc.id },
+                    data: {
+                        status: 'REJECTED',
+                        rejectionReason: `${errorReason} — please re-upload a clearer document`,
+                    },
+                });
+
+                // Track as a failed result so the user gets auto-rejected
+                results.push({
+                    docId: doc.id,
+                    type: doc.type,
+                    result: {
+                        valid: false,
+                        document_type: doc.type.toLowerCase(),
+                        confidence: 0,
+                        extracted_data: {},
+                        fraud_indicators: [],
+                        message: errorReason,
+                    },
+                });
                 continue;
             }
 
@@ -87,8 +111,24 @@ export async function triggerAIVerification(
             results.push({ docId: doc.id, type: doc.type, result });
         }
 
-        // If no results at all (AI unreachable for every doc), bail out silently
-        if (results.length === 0) return;
+        // If no results at all (AI completely unreachable), still reject
+        if (results.length === 0) {
+            const reason = 'AI verification service was unreachable for all documents';
+            await prisma.user.update({
+                where: { id: userId },
+                data: { status: UserStatus.REJECTED, kycRejectionReason: reason },
+            });
+            await prisma.auditLog.create({
+                data: { userId, action: 'KYC_REJECTED', entity: 'User', entityId: userId, metadata: { reason, rejectedBy: 'ai' } },
+            });
+            await notificationService.notify(userId, {
+                type: 'KYC_REJECTED',
+                title: '❌ Verification Failed',
+                message: `${reason}. Please try again later.`,
+                metadata: { reason },
+            });
+            return;
+        }
 
         const allPassed = results.every((r) => r.result.valid);
 
@@ -159,6 +199,21 @@ export async function triggerAIVerification(
         }
     } catch (error) {
         console.error('[KYC] AI verification error:', error);
-        // Fire-and-forget — don't throw
+        // Still reject the user so they don't stay stuck in PENDING_KYC
+        try {
+            const reason = 'Verification failed due to a system error. Please try again.';
+            await prisma.user.update({
+                where: { id: userId },
+                data: { status: UserStatus.REJECTED, kycRejectionReason: reason },
+            });
+            await notificationService.notify(userId, {
+                type: 'KYC_REJECTED',
+                title: '❌ Verification Failed',
+                message: `${reason}`,
+                metadata: { reason },
+            });
+        } catch (innerErr) {
+            console.error('[KYC] Failed to reject user after error:', innerErr);
+        }
     }
 }

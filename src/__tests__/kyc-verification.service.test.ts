@@ -249,10 +249,85 @@ describe('triggerAIVerification', () => {
         await expect(triggerAIVerification(USER_ID, DOCS)).resolves.not.toThrow();
     });
 
+    it('auto-rejects user when AI service throws (e.g. ECONNREFUSED)', async () => {
+        mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
+
+        await triggerAIVerification(USER_ID, DOCS);
+
+        expect(mockUserUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: USER_ID },
+                data: expect.objectContaining({
+                    status: 'REJECTED',
+                    kycRejectionReason: expect.stringContaining('system error'),
+                }),
+            }),
+        );
+    });
+
     it('does not throw when AI returns non-ok status', async () => {
         mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
         await expect(triggerAIVerification(USER_ID, DOCS)).resolves.not.toThrow();
+    });
+
+    it('marks document as REJECTED when AI returns non-ok status (e.g. 422)', async () => {
+        mockFetch.mockResolvedValue({ ok: false, status: 422 });
+
+        await triggerAIVerification(USER_ID, DOCS);
+
+        expect(mockDocUpdate).toHaveBeenCalledWith({
+            where: { id: 'doc-1' },
+            data: expect.objectContaining({
+                status: 'REJECTED',
+                rejectionReason: expect.stringContaining('AI service'),
+            }),
+        });
+    });
+
+    it('auto-rejects user when all documents fail with non-ok HTTP status', async () => {
+        mockFetch.mockResolvedValue({ ok: false, status: 422 });
+
+        await triggerAIVerification(USER_ID, DOCS);
+
+        expect(mockUserUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: USER_ID },
+                data: expect.objectContaining({
+                    status: 'REJECTED',
+                    kycRejectionReason: expect.any(String),
+                }),
+            }),
+        );
+    });
+
+    it('sends KYC_REJECTED notification when all documents fail with HTTP errors', async () => {
+        mockFetch.mockResolvedValue({ ok: false, status: 422 });
+
+        await triggerAIVerification(USER_ID, DOCS);
+
+        expect(mockNotify).toHaveBeenCalledWith(
+            USER_ID,
+            expect.objectContaining({
+                type: 'KYC_REJECTED',
+                title: expect.stringContaining('Failed'),
+            }),
+        );
+    });
+
+    it('creates audit log when all documents fail with HTTP errors', async () => {
+        mockFetch.mockResolvedValue({ ok: false, status: 422 });
+
+        await triggerAIVerification(USER_ID, DOCS);
+
+        expect(mockAuditCreate).toHaveBeenCalledWith({
+            data: expect.objectContaining({
+                userId: USER_ID,
+                action: 'KYC_REJECTED',
+                entity: 'User',
+                entityId: USER_ID,
+            }),
+        });
     });
 
     // ────── Tier mapping ──────

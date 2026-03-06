@@ -121,6 +121,31 @@ app.get('/health', (c) => {
     });
 });
 
+// Diagnostic: check AI service connectivity
+app.get('/health/ai', async (c) => {
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch(`${aiUrl}/health`, { signal: controller.signal });
+        clearTimeout(timeout);
+        const body = await res.json();
+        return c.json({
+            status: 'ok',
+            ai_service_url: aiUrl,
+            ai_response_status: res.status,
+            ai_health: body,
+        });
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        return c.json({
+            status: 'error',
+            ai_service_url: aiUrl,
+            error: message,
+        }, 502);
+    }
+});
+
 // =====================================================
 // API ROUTES (v1)
 // =====================================================

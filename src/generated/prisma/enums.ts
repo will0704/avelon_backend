@@ -89,6 +89,7 @@ export type TransactionType = (typeof TransactionType)[keyof typeof TransactionT
 
 export const NotificationType = {
   EMAIL_VERIFICATION: 'EMAIL_VERIFICATION',
+  KYC_SUBMITTED: 'KYC_SUBMITTED',
   KYC_APPROVED: 'KYC_APPROVED',
   KYC_REJECTED: 'KYC_REJECTED',
   LOAN_CREATED: 'LOAN_CREATED',

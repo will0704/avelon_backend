@@ -78,6 +78,7 @@ enum TransactionType {
 
 enum NotificationType {
   EMAIL_VERIFICATION
+  KYC_SUBMITTED
   KYC_APPROVED
   KYC_REJECTED
   LOAN_CREATED

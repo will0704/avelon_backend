@@ -21,6 +21,7 @@ interface CreateLoanInput {
 
 interface LoanWithDetails {
     id: string;
+    contractLoanId?: number | null;
     principal: DecimalType;
     collateralRequired: DecimalType;
     collateralDeposited: DecimalType;
@@ -55,6 +56,22 @@ export class LoanService {
 
         if (!wallet) {
             throw new NotFoundError('Wallet not found or does not belong to user');
+        }
+
+        // Prevent multiple concurrent loan applications
+        const activeLoan = await prisma.loan.findFirst({
+            where: {
+                userId,
+                status: { in: ['PENDING_COLLATERAL', 'COLLATERAL_DEPOSITED', 'ACTIVE'] },
+            },
+            select: { id: true, status: true },
+        });
+
+        if (activeLoan) {
+            throw new ValidationError(
+                `You already have an active loan application (status: ${activeLoan.status}). ` +
+                `Cancel or repay it before applying for a new one.`
+            );
         }
 
         // Get loan plan
@@ -127,6 +144,34 @@ export class LoanService {
             },
         });
 
+        // Create loan on-chain (best-effort — DB loan is authoritative if this fails)
+        let contractLoanId: number | null = null;
+        try {
+            const onChain = await contractService.createLoan(
+                wallet.address,
+                amount,
+                collateralRequired.toString(),
+                plan.interestRate * 100,  // % to basis points
+                duration * 86400           // days to seconds
+            );
+            contractLoanId = onChain.loanId;
+            console.log(`[LoanService] On-chain loan created: contractLoanId=${contractLoanId}, txHash=${onChain.txHash}`);
+        } catch (err) {
+            console.error('[LoanService] On-chain loan creation failed (DB record still active):', err);
+        }
+
+        // Persist contractLoanId if on-chain call succeeded
+        const finalLoan = contractLoanId !== null
+            ? await prisma.loan.update({
+                where: { id: loan.id },
+                data: { contractLoanId },
+                include: {
+                    wallet: { select: { address: true } },
+                    plan: { select: { name: true } },
+                },
+              })
+            : loan;
+
         // Log audit
         await prisma.auditLog.create({
             data: {
@@ -138,11 +183,12 @@ export class LoanService {
                     planId,
                     principal: amount,
                     duration,
+                    contractLoanId,
                 },
             },
         });
 
-        return loan;
+        return finalLoan;
     }
 
     // ============================================
@@ -375,6 +421,16 @@ export class LoanService {
                 }),
             },
         });
+
+        // Sync repayment on-chain if this loan has a contract record
+        if (loan.contractLoanId) {
+            try {
+                await contractService.recordRepayment(loan.contractLoanId, amount);
+                console.log(`[LoanService] On-chain repayment recorded: contractLoanId=${loan.contractLoanId}`);
+            } catch (err) {
+                console.error('[LoanService] Failed to sync repayment on-chain:', err);
+            }
+        }
 
         // Update user stats if fully repaid
         if (isFullyRepaid) {

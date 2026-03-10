@@ -45,6 +45,11 @@ const loanSelect = {
             name: true,
         },
     },
+    wallet: {
+        select: {
+            address: true,
+        },
+    },
     _count: {
         select: { transactions: true },
     },

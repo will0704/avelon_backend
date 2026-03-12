@@ -31,6 +31,17 @@ const mockPrismaClient = {
     wallet: {
         findMany: vi.fn().mockResolvedValue([]),
     },
+    systemConfig: {
+        findUnique: vi.fn().mockResolvedValue(null),
+    },
+    priceHistory: {
+        findMany: vi.fn().mockResolvedValue([]),
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({}),
+    },
+    loanPlan: {
+        findMany: vi.fn().mockResolvedValue([]),
+    },
 };
 
 // Mock the prisma module

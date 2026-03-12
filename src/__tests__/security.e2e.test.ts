@@ -172,7 +172,9 @@ describe('A05 — Security Misconfiguration', () => {
         });
 
         it('should include rate limit headers', async () => {
-            const res = await jsonRequest('/health');
+            // /health is intentionally excluded from rate limiting (keep-alive pings).
+            // Use an /api/* route to verify rate limit headers are applied correctly.
+            const res = await jsonRequest('/api/v1/plans');
             expect(res.headers.get('x-ratelimit-limit')).toBeTruthy();
             expect(res.headers.get('x-ratelimit-remaining')).toBeTruthy();
         });

@@ -1,7 +1,7 @@
 import { createMiddleware } from 'hono/factory';
 import { RateLimitError } from './error.middleware.js';
 import { securityLogger } from '../lib/security.logger.js';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 
 // =====================================================
 // REDIS-BACKED RATE LIMITER  (OWASP A04 + A07)

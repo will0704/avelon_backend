@@ -90,6 +90,11 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
 
     const result = await authService.login(body, ipAddress, userAgent);
 
+    // Set httpOnly secure cookie for accessToken (OWASP A01 protection against XSS)
+    const isSecure = env.NODE_ENV === 'production';
+    const cookieValue = `${result.accessToken}; Path=/; Max-Age=3600; HttpOnly; SameSite=Strict${isSecure ? '; Secure' : ''}`;
+    c.header('Set-Cookie', cookieValue);
+
     return c.json({
         success: true,
         data: result,
@@ -104,6 +109,10 @@ authRoutes.post('/logout', authMiddleware, async (c) => {
     const userId = c.get('userId');
 
     await authService.logout(userId);
+
+    // Clear httpOnly cookie by setting Max-Age=0
+    const cookieValue = 'accessToken=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict';
+    c.header('Set-Cookie', cookieValue);
 
     return c.json({
         success: true,

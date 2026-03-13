@@ -83,6 +83,7 @@ export class AuthService {
                 name: user.name,
                 status: user.status,
             },
+            verificationToken: token,
         };
     }
 
@@ -256,7 +257,7 @@ export class AuthService {
             console.error('[forgotPassword] Failed to send password reset email:', err);
         });
 
-        return { success: true };
+        return { success: true, token };
     }
 
     /**

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
+import { InternalServerError } from '../middleware/error.middleware.js';
 import { loanService } from '../services/loan.service.js';
 import { blockchainService } from '../services/blockchain.service.js';
 import { notificationService } from '../services/notification.service.js';
@@ -82,8 +83,11 @@ loanRoutes.post(
             duration: body.duration,
         });
 
-        // Get CollateralManager address for frontend
+        // Get CollateralManager address for frontend (validate env var exists)
         const collateralManagerAddress = process.env.COLLATERAL_MANAGER_ADDRESS;
+        if (!collateralManagerAddress) {
+            throw new InternalServerError('COLLATERAL_MANAGER_ADDRESS is not configured');
+        }
 
         // Notify: loan application submitted
         await notificationService.notify(userId, {

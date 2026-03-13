@@ -8,6 +8,7 @@ import { ConflictError, UnauthorizedError, ValidationError } from '../middleware
 import { isAccountLocked, recordFailedLogin, resetLoginAttempts } from '../middleware/rate-limit.middleware.js';
 import { securityLogger } from '../lib/security.logger.js';
 import { UserRole, UserStatus, type RegisterData, type LoginCredentials, type AuthTokens } from '@avelon_capstone/types';
+import { emailService } from './email.service.js';
 
 const { sign, verify } = jwt;
 const { hash, compare } = bcrypt;
@@ -70,6 +71,11 @@ export class AuthService {
             },
         });
 
+        // Send OTP via email (non-blocking)
+        emailService.sendVerificationEmail(user.email, token).catch((err) => {
+            console.error('[register] Failed to send verification email:', err);
+        });
+
         return {
             user: {
                 id: user.id,
@@ -77,7 +83,6 @@ export class AuthService {
                 name: user.name,
                 status: user.status,
             },
-            verificationToken: token,
         };
     }
 
@@ -246,7 +251,10 @@ export class AuthService {
             },
         });
 
-        // TODO: Send email with reset link
+        // Send OTP via email (non-blocking)
+        emailService.sendPasswordResetEmail(email, token).catch((err) => {
+            console.error('[forgotPassword] Failed to send password reset email:', err);
+        });
 
         return { success: true };
     }

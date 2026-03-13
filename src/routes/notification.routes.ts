@@ -3,8 +3,9 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
-import { NotFoundError } from '../middleware/error.middleware.js';
+import { ForbiddenError, NotFoundError } from '../middleware/error.middleware.js';
 import { firebaseService } from '../services/firebase.service.js';
+import { env } from '../config/env.js';
 
 const notificationRoutes = new Hono();
 
@@ -228,6 +229,10 @@ notificationRoutes.delete('/device-token', zValidator('json', z.object({ token: 
  * Accepts optional JSON body: { title, body, data }
  */
 notificationRoutes.post('/test-push', async (c) => {
+    if (env.NODE_ENV !== 'development') {
+        throw new ForbiddenError('This endpoint is only available in development');
+    }
+
     const userId = c.get('userId');
 
     const deviceTokens = await prisma.deviceToken.findMany({
@@ -280,6 +285,10 @@ notificationRoutes.post('/test-push', async (c) => {
  * Send ALL notification types to the authenticated user's devices with delays between each
  */
 notificationRoutes.post('/test-push-all', async (c) => {
+    if (env.NODE_ENV !== 'development') {
+        throw new ForbiddenError('This endpoint is only available in development');
+    }
+
     const userId = c.get('userId');
 
     const deviceTokens = await prisma.deviceToken.findMany({

@@ -40,7 +40,7 @@ adminUsersRoutes.get('/', async (c) => {
             where.OR = [
                 { email: { contains: search, mode: 'insensitive' } },
                 { name: { contains: search, mode: 'insensitive' } },
-                { legalName: { contains: search, mode: 'insensitive' } },
+                // legalName is AES-256-GCM encrypted at rest — plaintext search is not possible
             ];
         }
 

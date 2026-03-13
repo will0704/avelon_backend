@@ -127,6 +127,14 @@ export class BlockchainService {
     }
 
     /**
+     * Get the transaction count (nonce) for an address.
+     * Reflects the number of outgoing transactions sent from this address.
+     */
+    async getTransactionCount(address: string): Promise<number> {
+        return this.provider.getTransactionCount(address);
+    }
+
+    /**
      * Check if an address is valid
      */
     isValidAddress(address: string): boolean {

@@ -106,7 +106,7 @@ adminPlansRoutes.post('/', zValidator('json', createPlanSchema), async (c) => {
                 createdBy,
             },
             select: planSelect,
-        }) as any;
+        });
 
         return c.json({
             success: true,
@@ -119,9 +119,9 @@ adminPlansRoutes.post('/', zValidator('json', createPlanSchema), async (c) => {
                 _count: undefined,
             },
         }, 201);
-    } catch (err: any) {
+    } catch (err) {
         console.error('[admin/plans] create error:', err);
-        if (err?.code === 'P2002') {
+        if (typeof err === 'object' && err !== null && 'code' in err && (err as Record<string, unknown>).code === 'P2002') {
             return c.json({ success: false, message: 'A plan with that name already exists' }, 409);
         }
         return c.json({ success: false, message: 'Failed to create plan' }, 500);
@@ -144,9 +144,9 @@ adminPlansRoutes.put('/:id', zValidator('json', createPlanSchema.partial()), asy
 
         const plan = await prisma.loanPlan.update({
             where: { id },
-            data: body as any,
+            data: body,
             select: planSelect,
-        }) as any;
+        });
 
         return c.json({
             success: true,
@@ -159,9 +159,9 @@ adminPlansRoutes.put('/:id', zValidator('json', createPlanSchema.partial()), asy
                 _count: undefined,
             },
         });
-    } catch (err: any) {
+    } catch (err) {
         console.error('[admin/plans] update error:', err);
-        if (err?.code === 'P2002') {
+        if (typeof err === 'object' && err !== null && 'code' in err && (err as Record<string, unknown>).code === 'P2002') {
             return c.json({ success: false, message: 'A plan with that name already exists' }, 409);
         }
         return c.json({ success: false, message: 'Failed to update plan' }, 500);

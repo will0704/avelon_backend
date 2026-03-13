@@ -250,6 +250,12 @@ kycRoutes.post('/documents', async (c) => {
         throw new ValidationError('File is required. Send as multipart/form-data with field name "file".');
     }
 
+    // Validate extension first (prevents .pdf.exe double-extension attacks)
+    const ext = path.extname(file.name).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        throw new ValidationError(`File type not allowed. Accepted: ${ALLOWED_EXTENSIONS.join(', ')}`);
+    }
+
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
         throw new ValidationError(
             `Unsupported file type "${file.type}". Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`
@@ -279,13 +285,6 @@ kycRoutes.post('/documents', async (c) => {
 
     // Save file to disk
     const uploadDir = await ensureUploadDir(userId);
-    const ext = path.extname(file.name).toLowerCase() || '.bin';
-
-    // Validate file extension against whitelist (prevent .pdf.exe, .jpg.exe, etc.)
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
-        throw new ValidationError(`File type not allowed. Accepted: ${ALLOWED_EXTENSIONS.join(', ')}`);
-    }
-
     const safeFileName = `${docType}_${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, safeFileName);
 

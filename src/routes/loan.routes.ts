@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
-import { InternalServerError } from '../middleware/error.middleware.js';
+import { AppError } from '../middleware/error.middleware.js';
 import { loanService } from '../services/loan.service.js';
 import { blockchainService } from '../services/blockchain.service.js';
 import { notificationService } from '../services/notification.service.js';
@@ -75,6 +75,12 @@ loanRoutes.post(
         const userId = c.get('userId');
         const body = c.req.valid('json');
 
+        // Validate required env var before touching DB (fail fast)
+        const collateralManagerAddress = process.env.COLLATERAL_MANAGER_ADDRESS;
+        if (!collateralManagerAddress) {
+            throw new AppError(500, 'CONFIGURATION_ERROR', 'COLLATERAL_MANAGER_ADDRESS is not configured');
+        }
+
         const loan = await loanService.createLoan({
             userId,
             walletId: body.walletId,
@@ -82,12 +88,6 @@ loanRoutes.post(
             amount: body.amount,
             duration: body.duration,
         });
-
-        // Get CollateralManager address for frontend (validate env var exists)
-        const collateralManagerAddress = process.env.COLLATERAL_MANAGER_ADDRESS;
-        if (!collateralManagerAddress) {
-            throw new InternalServerError('COLLATERAL_MANAGER_ADDRESS is not configured');
-        }
 
         // Notify: loan application submitted
         await notificationService.notify(userId, {

@@ -42,6 +42,19 @@ const mockPrismaClient = {
     loanPlan: {
         findMany: vi.fn().mockResolvedValue([]),
     },
+    document: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({
+            id: 'doc-test',
+            type: 'GOVERNMENT_ID',
+            status: 'PENDING',
+            fileName: 'passport.jpg',
+            fileSize: 12345,
+            mimeType: 'image/jpeg',
+            createdAt: new Date(),
+        }),
+        findMany: vi.fn().mockResolvedValue([]),
+    },
 };
 
 // Mock the prisma module

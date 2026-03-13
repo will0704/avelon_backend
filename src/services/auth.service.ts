@@ -126,12 +126,11 @@ export class AuthService {
         // Reset failed login attempts on successful login (OWASP A07)
         resetLoginAttempts(email);
 
-        // Create session with unique token
-        const sessionToken = randomBytes(32).toString('hex');
+        // Create session keyed by the refresh token's jti
         await prisma.session.create({
             data: {
                 userId: user.id,
-                sessionToken,
+                sessionToken: tokens.jti,
                 expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
                 ipAddress,
                 userAgent,
@@ -167,7 +166,8 @@ export class AuthService {
                 creditScore: user.creditScore,
                 creditTier: user.creditTier,
             },
-            ...tokens,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
         };
     }
 
@@ -248,7 +248,7 @@ export class AuthService {
 
         // TODO: Send email with reset link
 
-        return { success: true, token }; // Token returned for dev, remove in prod
+        return { success: true };
     }
 
     /**
@@ -309,17 +309,18 @@ export class AuthService {
                 email: string;
                 role: string;
                 type: string;
+                jti: string;
             };
 
             if (payload.type !== 'refresh') {
                 throw new UnauthorizedError('Invalid refresh token');
             }
 
-            // Check if session exists
+            // Check if session exists using the jti embedded in the refresh token
             const session = await prisma.session.findFirst({
                 where: {
                     userId: payload.sub,
-                    sessionToken: refreshToken.substring(0, 64),
+                    sessionToken: payload.jti,
                     expires: { gt: new Date() },
                 },
             });
@@ -366,11 +367,10 @@ export class AuthService {
     /**
      * Generate JWT tokens
      */
-    private generateTokens(userId: string, email: string, role: string): TokenPair {
+    private generateTokens(userId: string, email: string, role: string): TokenPair & { jti: string } {
         const accessToken = this.generateAccessToken(userId, email, role);
-        const refreshToken = this.generateRefreshToken(userId, email, role);
-
-        return { accessToken, refreshToken };
+        const { token: refreshToken, jti } = this.generateRefreshToken(userId, email, role);
+        return { accessToken, refreshToken, jti };
     }
 
     /**
@@ -430,13 +430,15 @@ export class AuthService {
         );
     }
 
-    private generateRefreshToken(userId: string, email: string, role: string): string {
+    private generateRefreshToken(userId: string, email: string, role: string): { token: string; jti: string } {
+        const jti = randomBytes(16).toString('hex');
         const expiresIn = this.parseDuration(env.JWT_REFRESH_EXPIRY);
-        return sign(
-            { userId, email, role, type: 'refresh' },
+        const token = sign(
+            { sub: userId, email, role, type: 'refresh', jti },
             env.JWT_SECRET,
             { expiresIn }
         );
+        return { token, jti };
     }
 }
 

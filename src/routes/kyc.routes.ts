@@ -18,6 +18,7 @@ kycRoutes.use('*', authMiddleware);
 
 // Allowed document types and MIME types
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const VALID_DOC_TYPES = ['GOVERNMENT_ID', 'GOVERNMENT_ID_BACK', 'E_SIGNATURE', 'PROOF_OF_INCOME', 'PROOF_OF_ADDRESS', 'SELFIE'] as const;
 
@@ -278,7 +279,13 @@ kycRoutes.post('/documents', async (c) => {
 
     // Save file to disk
     const uploadDir = await ensureUploadDir(userId);
-    const ext = path.extname(file.name) || '.bin';
+    const ext = path.extname(file.name).toLowerCase() || '.bin';
+
+    // Validate file extension against whitelist (prevent .pdf.exe, .jpg.exe, etc.)
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        throw new ValidationError(`File type not allowed. Accepted: ${ALLOWED_EXTENSIONS.join(', ')}`);
+    }
+
     const safeFileName = `${docType}_${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, safeFileName);
 

@@ -87,8 +87,9 @@ app.use('*', cors({
             'https://avelon-web.vercel.app',
             'https://avelon-app.com',
         ];
-        // Allow all vercel.app preview deployments
+        // Allow all vercel.app and onrender.com preview deployments
         if (origin && origin.endsWith('.vercel.app')) return origin;
+        if (origin && origin.endsWith('.onrender.com')) return origin;
         return allowedOrigins.includes(origin || '') ? origin : null;
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

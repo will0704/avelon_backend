@@ -122,7 +122,7 @@ export const approvedMiddleware = createMiddleware(async (c, next) => {
         throw new UnauthorizedError('Authentication required');
     }
 
-    if (user.status !== UserStatus.APPROVED) {
+    if (user.status !== UserStatus.APPROVED && user.status !== UserStatus.CONNECTED) {
         throw new ForbiddenError('KYC approval required to access this feature');
     }
 

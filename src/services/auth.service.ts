@@ -93,7 +93,7 @@ export class AuthService {
         const { email, password } = input;
 
         // Check account lockout (OWASP A07 — brute-force protection)
-        const lockStatus = isAccountLocked(email);
+        const lockStatus = await isAccountLocked(email);
         if (lockStatus.locked) {
             securityLogger.authFailure(ipAddress || 'unknown', email, 'Account locked');
             throw new UnauthorizedError(
@@ -107,7 +107,7 @@ export class AuthService {
         });
 
         if (!user || !user.passwordHash) {
-            recordFailedLogin(email, ipAddress);
+            await recordFailedLogin(email, ipAddress);
             securityLogger.authFailure(ipAddress || 'unknown', email, 'Invalid credentials');
             throw new UnauthorizedError('Invalid email or password');
         }
@@ -115,7 +115,7 @@ export class AuthService {
         // Check password
         const isValid = await compare(password, user.passwordHash);
         if (!isValid) {
-            recordFailedLogin(email, ipAddress);
+            await recordFailedLogin(email, ipAddress);
             securityLogger.authFailure(ipAddress || 'unknown', email, 'Invalid password');
             throw new UnauthorizedError('Invalid email or password');
         }
@@ -129,7 +129,7 @@ export class AuthService {
         const tokens = this.generateTokens(user.id, user.email, user.role);
 
         // Reset failed login attempts on successful login (OWASP A07)
-        resetLoginAttempts(email);
+        await resetLoginAttempts(email);
 
         // Create session keyed by the refresh token's jti
         await prisma.session.create({

@@ -1,16 +1,28 @@
 import { Hono } from 'hono';
-
 import { prisma } from '../../lib/prisma.js';
+import { blockchainService } from '../../services/blockchain.service.js';
+import { env } from '../../config/env.js';
 
 const adminAnalyticsRoutes = new Hono();
 
+/** Group an array of records into YYYY-MM buckets by createdAt. */
+function groupByMonth(records: { createdAt: Date }[]): { month: string; count: number }[] {
+    const map = new Map<string, number>();
+    for (const r of records) {
+        const key = r.createdAt.toISOString().slice(0, 7);
+        map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    return Array.from(map.entries())
+        .map(([month, count]) => ({ month, count }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+}
+
 /**
  * GET /admin/analytics
- * Get platform analytics
+ * Platform-wide metrics + live treasury balance
  */
 adminAnalyticsRoutes.get('/', async (c) => {
     try {
-        // Users Metrics
         const [totalUsers, verifiedUsers, approvedUsers, pendingUsers] = await Promise.all([
             prisma.user.count(),
             prisma.user.count({ where: { status: 'VERIFIED' } }),
@@ -18,7 +30,6 @@ adminAnalyticsRoutes.get('/', async (c) => {
             prisma.user.count({ where: { status: 'PENDING_KYC' } }),
         ]);
 
-        // Loans Metrics
         const [totalLoans, activeLoans, repaidLoans, liquidatedLoans] = await Promise.all([
             prisma.loan.count(),
             prisma.loan.count({ where: { status: 'ACTIVE' } }),
@@ -26,21 +37,24 @@ adminAnalyticsRoutes.get('/', async (c) => {
             prisma.loan.count({ where: { status: 'LIQUIDATED' } }),
         ]);
 
-        // Aggregate volume (Sum of all principal)
         const loanAggregates = await prisma.loan.aggregate({
-            _sum: {
-                principal: true,
-                originationFee: true,
-                interestOwed: true,
-            }
+            _sum: { principal: true, originationFee: true, interestOwed: true },
         });
 
-        // Sum of disbursed loans (could conditionally filter by status if preferred)
-        const totalVolume = loanAggregates._sum.principal?.toString() || '0';
-        const totalFees = loanAggregates._sum.originationFee?.toString() || '0';
-        const totalInterestEarned = loanAggregates._sum.interestOwed?.toString() || '0';
+        const totalVolume = loanAggregates._sum.principal?.toString() ?? '0';
+        const totalFees = loanAggregates._sum.originationFee?.toString() ?? '0';
+        const totalInterestEarned = loanAggregates._sum.interestOwed?.toString() ?? '0';
 
-        // Get 10 most recent audit logs for recent activity
+        // Live treasury balance — falls back to null if blockchain is unavailable
+        let treasuryBalance: string | null = null;
+        if (env.TREASURY_ADDRESS) {
+            try {
+                treasuryBalance = await blockchainService.getBalance(env.TREASURY_ADDRESS);
+            } catch {
+                // Blockchain unavailable — omit balance rather than failing the whole endpoint
+            }
+        }
+
         const recentLogs = await prisma.auditLog.findMany({
             take: 10,
             orderBy: { createdAt: 'desc' },
@@ -50,83 +64,114 @@ adminAnalyticsRoutes.get('/', async (c) => {
                 entity: true,
                 entityId: true,
                 createdAt: true,
-                user: { select: { email: true, name: true } }
-            }
+                user: { select: { email: true, name: true } },
+            },
         });
 
         const recentActivity = recentLogs.map((log) => {
             const who = log.user?.name ?? log.user?.email ?? 'System';
             const target = log.entity ? ` on ${log.entity}` : '';
-            const message = `${who} — ${log.action.replace(/_/g, ' ').toLowerCase()}${target}`;
-            return { type: log.action, message, createdAt: log.createdAt };
+            return {
+                type: log.action,
+                message: `${who} — ${log.action.replace(/_/g, ' ').toLowerCase()}${target}`,
+                createdAt: log.createdAt,
+            };
         });
 
         return c.json({
             success: true,
             data: {
-                users: {
-                    total: totalUsers,
-                    verified: verifiedUsers,
-                    approved: approvedUsers,
-                    pending: pendingUsers,
-                },
-                loans: {
-                    total: totalLoans,
-                    active: activeLoans,
-                    repaid: repaidLoans,
-                    liquidated: liquidatedLoans,
-                    totalVolume,
-                },
-                treasury: {
-                    balance: '10.0', // TODO: implement accurate treasury pool balance tracker
-                    totalLent: totalVolume,
-                    totalInterestEarned,
-                    totalFees,
-                },
+                users: { total: totalUsers, verified: verifiedUsers, approved: approvedUsers, pending: pendingUsers },
+                loans: { total: totalLoans, active: activeLoans, repaid: repaidLoans, liquidated: liquidatedLoans, totalVolume },
+                treasury: { balance: treasuryBalance, totalLent: totalVolume, totalInterestEarned, totalFees },
                 recentActivity,
             },
         });
     } catch (error) {
         console.error('Error fetching analytics:', error);
-        return c.json({
-            success: false,
-            error: {
-                message: 'Failed to fetch analytics data'
-            }
-        }, 500);
+        return c.json({ success: false, error: { message: 'Failed to fetch analytics data' } }, 500);
     }
 });
 
 /**
  * GET /admin/analytics/loans
- * Get loan analytics
+ * Loans broken down by status, plan, and monthly volume
  */
 adminAnalyticsRoutes.get('/loans', async (c) => {
-    // TODO: Implement loan analytics
-    return c.json({
-        success: true,
-        data: {
-            byStatus: {},
-            byPlan: {},
-            volumeByMonth: [],
-        },
-    });
+    try {
+        const statusGroups = await prisma.loan.groupBy({
+            by: ['status'],
+            _count: { id: true },
+            _sum: { principal: true },
+        });
+        const byStatus = Object.fromEntries(
+            statusGroups.map((g) => [g.status, { count: g._count.id, volume: g._sum.principal?.toString() ?? '0' }])
+        );
+
+        const planGroups = await prisma.loan.groupBy({
+            by: ['planId'],
+            _count: { id: true },
+            _sum: { principal: true },
+        });
+        const planIds = planGroups.map((g) => g.planId);
+        const plans = await prisma.loanPlan.findMany({
+            where: { id: { in: planIds } },
+            select: { id: true, name: true },
+        });
+        const planNameMap = Object.fromEntries(plans.map((p) => [p.id, p.name]));
+        const byPlan = Object.fromEntries(
+            planGroups.map((g) => [
+                planNameMap[g.planId] ?? g.planId,
+                { count: g._count.id, volume: g._sum.principal?.toString() ?? '0' },
+            ])
+        );
+
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const recentLoans = await prisma.loan.findMany({
+            where: { createdAt: { gte: sixMonthsAgo } },
+            select: { createdAt: true },
+        });
+        const volumeByMonth = groupByMonth(recentLoans);
+
+        return c.json({ success: true, data: { byStatus, byPlan, volumeByMonth } });
+    } catch (error) {
+        console.error('Error fetching loan analytics:', error);
+        return c.json({ success: false, error: { message: 'Failed to fetch loan analytics' } }, 500);
+    }
 });
 
 /**
  * GET /admin/analytics/users
- * Get user analytics
+ * Users broken down by status, credit tier, and monthly registrations
  */
 adminAnalyticsRoutes.get('/users', async (c) => {
-    // TODO: Implement user analytics
-    return c.json({
-        success: true,
-        data: {
-            byStatus: {},
-            byTier: {},
-            registrationsbyMonth: [],
-        },
-    });
+    try {
+        const statusGroups = await prisma.user.groupBy({
+            by: ['status'],
+            _count: { id: true },
+        });
+        const byStatus = Object.fromEntries(statusGroups.map((g) => [g.status, g._count.id]));
+
+        const tierGroups = await prisma.user.groupBy({
+            by: ['creditTier'],
+            _count: { id: true },
+        });
+        const byTier = Object.fromEntries(tierGroups.map((g) => [g.creditTier ?? 'NONE', g._count.id]));
+
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const recentUsers = await prisma.user.findMany({
+            where: { createdAt: { gte: sixMonthsAgo } },
+            select: { createdAt: true },
+        });
+        const registrationsByMonth = groupByMonth(recentUsers);
+
+        return c.json({ success: true, data: { byStatus, byTier, registrationsByMonth } });
+    } catch (error) {
+        console.error('Error fetching user analytics:', error);
+        return c.json({ success: false, error: { message: 'Failed to fetch user analytics' } }, 500);
+    }
 });
 
 export { adminAnalyticsRoutes };

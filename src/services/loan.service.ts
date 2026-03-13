@@ -560,6 +560,120 @@ export class LoanService {
             },
         });
     }
+
+    // ============================================
+    // LOAN CALCULATION (DRY-RUN)
+    // ============================================
+
+    /**
+     * Stateless loan calculation — no DB writes
+     */
+    async calculateLoan(userId: string, planId: string, amount: string, duration: number) {
+        const plan = await prisma.loanPlan.findUnique({ where: { id: planId } });
+        if (!plan || !plan.isActive) {
+            throw new NotFoundError('Loan plan not found or inactive');
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { creditScore: true },
+        });
+
+        const principal = new PrismaDecimal(amount);
+        const collateralRequired = principal.mul(new PrismaDecimal(plan.collateralRatio).div(100));
+        const originationFee = principal.mul(new PrismaDecimal(plan.originationFee).div(100));
+        const netDisbursement = principal.sub(originationFee);
+        const totalInterest = principal
+            .mul(new PrismaDecimal(plan.interestRate).div(100))
+            .mul(new PrismaDecimal(duration).div(365));
+        const totalRepayment = principal.add(totalInterest);
+
+        const errors: string[] = [];
+        if (principal.lt(plan.minAmount)) errors.push(`Minimum amount is ${plan.minAmount} ETH`);
+        if (principal.gt(plan.maxAmount)) errors.push(`Maximum amount is ${plan.maxAmount} ETH`);
+        if (!plan.durationOptions.includes(duration)) {
+            errors.push(`Duration must be one of: ${plan.durationOptions.join(', ')} days`);
+        }
+        if ((user?.creditScore ?? 0) < plan.minCreditScore) {
+            errors.push(`Credit score too low for this plan (required: ${plan.minCreditScore})`);
+        }
+
+        return {
+            principal: principal.toString(),
+            collateralRequired: collateralRequired.toString(),
+            originationFee: originationFee.toString(),
+            netDisbursement: netDisbursement.toString(),
+            totalInterest: totalInterest.toString(),
+            totalRepayment: totalRepayment.toString(),
+            eligible: errors.length === 0,
+            errors,
+            plan: {
+                id: plan.id,
+                name: plan.name,
+                interestRate: plan.interestRate,
+                interestType: plan.interestType,
+                collateralRatio: plan.collateralRatio,
+                durationOptions: plan.durationOptions,
+                minAmount: plan.minAmount.toString(),
+                maxAmount: plan.maxAmount.toString(),
+            },
+        };
+    }
+
+    // ============================================
+    // LOAN EXTENSION
+    // ============================================
+
+    /**
+     * Extend an active loan's due date (plan must allow it, one-time only)
+     */
+    async extendLoan(loanId: string, userId: string, extensionDays: number): Promise<void> {
+        const loan = await prisma.loan.findFirst({
+            where: { id: loanId, userId },
+            include: { plan: true },
+        });
+
+        if (!loan) throw new NotFoundError('Loan not found');
+        if (loan.status !== LoanStatus.ACTIVE) throw new ValidationError('Can only extend active loans');
+        if (loan.extended) throw new ValidationError('Loan has already been extended');
+        if (!loan.plan.extensionAllowed) throw new ForbiddenError('This loan plan does not allow extensions');
+        if (extensionDays > loan.plan.maxExtensionDays) {
+            throw new ValidationError(`Maximum extension is ${loan.plan.maxExtensionDays} days`);
+        }
+        if (!loan.dueDate) throw new ValidationError('Loan has no due date');
+
+        const extensionFee = loan.principal.mul(new PrismaDecimal(loan.plan.extensionFee).div(100));
+        const newDueDate = new Date(loan.dueDate.getTime());
+        newDueDate.setDate(newDueDate.getDate() + extensionDays);
+
+        await prisma.loan.update({
+            where: { id: loanId },
+            data: {
+                extended: true,
+                originalDueDate: loan.dueDate,
+                dueDate: newDueDate,
+                extensionFee,
+                feesOwed: { increment: extensionFee },
+            },
+        });
+
+        await notificationService.notify(userId, {
+            type: 'LOAN_EXTENDED',
+            title: '📅 Loan Extended',
+            message: `Your loan has been extended by ${extensionDays} days. New due date: ${newDueDate.toLocaleDateString()}.`,
+            metadata: { loanId, extensionDays: extensionDays.toString(), newDueDate: newDueDate.toISOString() },
+        });
+
+        await prisma.auditLog.create({
+            data: {
+                userId,
+                action: 'LOAN_EXTENDED',
+                entity: 'Loan',
+                entityId: loanId,
+                metadata: { extensionDays, newDueDate: newDueDate.toISOString() },
+            },
+        });
+    }
 }
 
 // Singleton instance

@@ -28,6 +28,16 @@ const recordRepaymentSchema = z.object({
     txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash'),
 });
 
+const calculateLoanSchema = z.object({
+    planId: z.string().min(1, 'Plan ID is required'),
+    amount: z.string().regex(/^\d+\.?\d*$/, 'Invalid amount format'),
+    duration: z.string().regex(/^\d+$/, 'Duration must be a positive integer').transform(Number),
+});
+
+const extendLoanSchema = z.object({
+    extensionDays: z.number().int().positive('Extension days must be a positive integer'),
+});
+
 // ============================================
 // ROUTES
 // ============================================
@@ -92,6 +102,24 @@ loanRoutes.post(
                 instruction: `Send ${loan.collateralRequired} ETH to ${collateralManagerAddress} to activate your loan`,
             },
         }, 201);
+    }
+);
+
+/**
+ * GET /loans/calculate
+ * Dry-run loan calculation — no DB writes, returns breakdown of costs
+ */
+loanRoutes.get(
+    '/calculate',
+    authMiddleware,
+    zValidator('query', calculateLoanSchema),
+    async (c) => {
+        const userId = c.get('userId');
+        const { planId, amount, duration } = c.req.valid('query');
+
+        const result = await loanService.calculateLoan(userId, planId, amount, duration);
+
+        return c.json({ success: true, data: result });
     }
 );
 
@@ -273,6 +301,25 @@ loanRoutes.delete('/:id', authMiddleware, async (c) => {
         message: 'Loan cancelled',
     });
 });
+
+/**
+ * POST /loans/:id/extend
+ * Extend an active loan's due date (plan must allow extensions)
+ */
+loanRoutes.post(
+    '/:id/extend',
+    authMiddleware,
+    zValidator('json', extendLoanSchema),
+    async (c) => {
+        const userId = c.get('userId');
+        const loanId = c.req.param('id');
+        const { extensionDays } = c.req.valid('json');
+
+        await loanService.extendLoan(loanId, userId, extensionDays);
+
+        return c.json({ success: true, message: 'Loan extended successfully' });
+    }
+);
 
 /**
  * GET /loans/:id/transactions

@@ -224,6 +224,15 @@ export async function triggerAIVerification(
                 where: { id: userId },
                 data: { status: UserStatus.REJECTED, kycRejectionReason: reason },
             });
+            await prisma.auditLog.create({
+                data: {
+                    userId,
+                    action: 'KYC_REJECTED',
+                    entity: 'User',
+                    entityId: userId,
+                    metadata: { reason, rejectedBy: 'system-error-recovery' },
+                },
+            });
             await notificationService.notify(userId, {
                 type: 'KYC_REJECTED',
                 title: '❌ Verification Failed',
@@ -231,7 +240,9 @@ export async function triggerAIVerification(
                 metadata: { reason },
             });
         } catch (innerErr) {
-            console.error('[KYC] Failed to reject user after error:', innerErr);
+            // Recovery also failed — user may be stuck in PENDING_KYC.
+            // This requires manual admin intervention.
+            console.error('[KYC] CRITICAL: Failed to reject user after AI error. User stuck in PENDING_KYC:', userId, innerErr);
         }
     }
 }

@@ -5,10 +5,25 @@ import { UserStatus, LoanStatus } from '@avelon_capstone/types';
 
 export class WalletService {
     /**
-     * Generate a nonce message for wallet verification
+     * Generate a nonce message and persist the nonce for single-use verification
      */
-    generateNonceMessage(address: string): string {
-        const nonce = Date.now();
+    async generateAndStoreNonce(userId: string, address: string): Promise<string> {
+        const nonce = Date.now().toString();
+        const identifier = `wallet-nonce:${userId}:${address.toLowerCase()}`;
+
+        // Remove any stale nonce for this user+address, then store fresh one
+        await prisma.verificationToken.deleteMany({
+            where: { identifier, type: 'WALLET_NONCE' },
+        });
+        await prisma.verificationToken.create({
+            data: {
+                identifier,
+                token: nonce,
+                type: 'WALLET_NONCE',
+                expires: new Date(Date.now() + 10 * 60 * 1_000), // 10-minute window
+            },
+        });
+
         return `Welcome to Avelon!\n\nPlease sign this message to verify your wallet ownership.\n\nWallet: ${address}\nNonce: ${nonce}\n\nThis request will not trigger a blockchain transaction or cost any gas fees.`;
     }
 
@@ -34,6 +49,20 @@ export class WalletService {
             throw new ValidationError('Signature does not match wallet address');
         }
 
+        // Validate nonce — prevents replay attacks (H-10)
+        const nonceIdentifier = `wallet-nonce:${userId}:${address.toLowerCase()}`;
+        const nonceRecord = await prisma.verificationToken.findFirst({
+            where: { identifier: nonceIdentifier, type: 'WALLET_NONCE' },
+        });
+        if (!nonceRecord || new Date() > nonceRecord.expires) {
+            throw new ValidationError('Nonce expired or not found — please request a new message');
+        }
+        if (!message.includes(`Nonce: ${nonceRecord.token}`)) {
+            throw new ValidationError('Message nonce does not match — possible replay attack');
+        }
+        // Consume the nonce so it cannot be replayed
+        await prisma.verificationToken.delete({ where: { token: nonceRecord.token } });
+
         // Check if wallet already exists for another user
         const existingWallet = await prisma.wallet.findUnique({
             where: { address: address.toLowerCase() },
@@ -42,6 +71,10 @@ export class WalletService {
         if (existingWallet && existingWallet.userId !== userId) {
             throw new ConflictError('This wallet is already linked to another account');
         }
+
+        // Only set as primary if user has no existing wallets
+        const walletCount = await prisma.wallet.count({ where: { userId } });
+        const isFirstWallet = walletCount === 0;
 
         // Upsert wallet
         const wallet = await prisma.wallet.upsert({
@@ -61,7 +94,7 @@ export class WalletService {
                 address: address.toLowerCase(),
                 isVerified: true,
                 verifiedAt: new Date(),
-                isPrimary: true, // First wallet is primary
+                isPrimary: isFirstWallet,
             },
         });
 
@@ -104,6 +137,9 @@ export class WalletService {
             throw new ConflictError('This wallet is already linked to another account');
         }
 
+        const walletCount = await prisma.wallet.count({ where: { userId } });
+        const isFirstWallet = walletCount === 0;
+
         const wallet = await prisma.wallet.upsert({
             where: {
                 userId_address: {
@@ -121,7 +157,7 @@ export class WalletService {
                 address: address.toLowerCase(),
                 isVerified: true,
                 verifiedAt: new Date(),
-                isPrimary: true,
+                isPrimary: isFirstWallet,
             },
         });
 
@@ -176,17 +212,17 @@ export class WalletService {
             throw new NotFoundError('Wallet not found');
         }
 
-        // Unset all other wallets as primary
-        await prisma.wallet.updateMany({
-            where: { userId, isPrimary: true },
-            data: { isPrimary: false },
-        });
-
-        // Set this wallet as primary
-        await prisma.wallet.update({
-            where: { id: walletId },
-            data: { isPrimary: true },
-        });
+        // Atomic: unset all primaries then set the new one
+        await prisma.$transaction([
+            prisma.wallet.updateMany({
+                where: { userId, isPrimary: true },
+                data: { isPrimary: false },
+            }),
+            prisma.wallet.update({
+                where: { id: walletId },
+                data: { isPrimary: true },
+            }),
+        ]);
 
         return { success: true };
     }

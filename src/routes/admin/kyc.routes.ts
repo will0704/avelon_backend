@@ -268,7 +268,9 @@ adminKycRoutes.get('/documents/:id/file', async (c) => {
     const fileBuffer = await fs.readFile(document.storagePath);
 
     c.header('Content-Type', document.mimeType);
-    c.header('Content-Disposition', `inline; filename="${document.fileName}"`);
+    // Strip control characters and quotes to prevent response header injection
+    const safeDisplayName = document.fileName.replace(/[\r\n"\\]/g, '_');
+    c.header('Content-Disposition', `inline; filename="${safeDisplayName}"`);
     c.header('Cache-Control', 'private, max-age=3600');
 
     return c.body(fileBuffer);

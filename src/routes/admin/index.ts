@@ -349,8 +349,8 @@ adminRoutes.post('/price', zValidator('json', updatePriceSchema), async (c) => {
  */
 adminRoutes.get('/notifications', async (c) => {
     try {
-        const page = parseInt(c.req.query('page') || '1');
-        const limit = parseInt(c.req.query('limit') || '30');
+        const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '30', 10)));
         const type = c.req.query('type');
         const unread = c.req.query('unread');
         const skip = (page - 1) * limit;
@@ -399,8 +399,8 @@ adminRoutes.get('/notifications', async (c) => {
  */
 adminRoutes.get('/audit-logs', async (c) => {
     try {
-        const page = parseInt(c.req.query('page') || '1');
-        const limit = parseInt(c.req.query('limit') || '50');
+        const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '50', 10)));
         const action = c.req.query('action');
         const entity = c.req.query('entity');
         const search = c.req.query('search');

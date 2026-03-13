@@ -61,8 +61,8 @@ const loanSelect = {
  */
 adminLoansRoutes.get('/', async (c) => {
     try {
-        const page = parseInt(c.req.query('page') || '1');
-        const limit = parseInt(c.req.query('limit') || '20');
+        const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '20', 10)));
         const status = c.req.query('status');
         const skip = (page - 1) * limit;
 
@@ -182,6 +182,7 @@ adminLoansRoutes.get('/:id', async (c) => {
 adminLoansRoutes.post('/:id/liquidate', async (c) => {
     try {
         const id = c.req.param('id');
+        const adminId = (c.get as (key: string) => string)('userId');
 
         const loan = await prisma.loan.findUnique({ where: { id } });
         if (!loan) {
@@ -197,6 +198,17 @@ adminLoansRoutes.post('/:id/liquidate', async (c) => {
             data: {
                 status: 'LIQUIDATED',
                 liquidatedAt: new Date(),
+            },
+        });
+
+        // Record audit trail — liquidation is irreversible and must be traceable
+        await prisma.auditLog.create({
+            data: {
+                userId: adminId,
+                action: 'LOAN_LIQUIDATED',
+                entity: 'Loan',
+                entityId: id,
+                metadata: { borrowerId: loan.userId, principal: loan.principal?.toString() },
             },
         });
 

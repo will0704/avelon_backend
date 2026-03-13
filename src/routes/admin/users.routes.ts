@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { prisma } from '../../lib/prisma.js';
+import { UserStatus } from '@avelon_capstone/types';
 
 const adminUsersRoutes = new Hono();
 
@@ -30,8 +31,13 @@ adminUsersRoutes.get('/', async (c) => {
         const status = c.req.query('status');
         const search = c.req.query('search');
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const where: any = {};
+        // Validate status against enum to prevent unhandled Prisma errors
+        const validStatuses = Object.values(UserStatus);
+        if (status && !validStatuses.includes(status as UserStatus)) {
+            return c.json({ success: false, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, 400);
+        }
+
+        const where: Record<string, unknown> = {};
 
         if (status) {
             where.status = status;

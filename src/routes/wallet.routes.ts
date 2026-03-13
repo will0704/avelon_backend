@@ -41,9 +41,10 @@ walletRoutes.get('/', authMiddleware, async (c) => {
  * Initiate wallet connection - returns message to sign
  */
 walletRoutes.post('/connect', authMiddleware, verifiedMiddleware, zValidator('json', connectWalletSchema), async (c) => {
+    const userId = c.get('userId');
     const { address } = c.req.valid('json');
 
-    const message = walletService.generateNonceMessage(address);
+    const message = await walletService.generateAndStoreNonce(userId, address);
 
     return c.json({
         success: true,
@@ -236,19 +237,12 @@ walletRoutes.get('/:id/analysis', authMiddleware, async (c) => {
         blockchainService.getTransactionCount(wallet.address),
     ]);
 
-    // Platform-scoped tx dates from LoanTransaction (no external API dependency)
-    const [firstTx, lastTx] = await Promise.all([
-        prisma.loanTransaction.findFirst({
-            where: { loan: { walletId } },
-            orderBy: { createdAt: 'asc' },
-            select: { createdAt: true },
-        }),
-        prisma.loanTransaction.findFirst({
-            where: { loan: { walletId } },
-            orderBy: { createdAt: 'desc' },
-            select: { createdAt: true },
-        }),
-    ]);
+    // Platform-scoped tx dates — single aggregate instead of two findFirst queries
+    const txDates = await prisma.loanTransaction.aggregate({
+        where: { loan: { walletId } },
+        _min: { createdAt: true },
+        _max: { createdAt: true },
+    });
 
     const ageInMonths = Math.floor(
         (Date.now() - wallet.createdAt.getTime()) / (1000 * 60 * 60 * 24 * 30)
@@ -260,8 +254,8 @@ walletRoutes.get('/:id/analysis', authMiddleware, async (c) => {
             address: wallet.address,
             ethBalance: balanceResult.status === 'fulfilled' ? balanceResult.value : null,
             transactionCount: txCountResult.status === 'fulfilled' ? txCountResult.value : null,
-            firstTransactionDate: firstTx?.createdAt ?? null,
-            lastTransactionDate: lastTx?.createdAt ?? null,
+            firstTransactionDate: txDates._min.createdAt ?? null,
+            lastTransactionDate: txDates._max.createdAt ?? null,
             ageInMonths,
         },
     });

@@ -473,9 +473,9 @@ export class LoanService {
      * Get user's loans
      */
     async getUserLoans(userId: string, status?: string) {
-        const where: any = { userId };
+        const where: { userId: string; status?: LoanStatus } = { userId };
         if (status) {
-            where.status = status;
+            where.status = status as LoanStatus;
         }
 
         return prisma.loan.findMany({
@@ -527,6 +527,7 @@ export class LoanService {
         return prisma.loanTransaction.findMany({
             where: { loanId },
             orderBy: { createdAt: 'desc' },
+            take: 100,
         });
     }
 

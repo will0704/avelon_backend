@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { loanService } from '../services/loan.service.js';
+import { LoanStatus } from '@avelon_capstone/types';
 import { blockchainService } from '../services/blockchain.service.js';
 import { notificationService } from '../services/notification.service.js';
 
@@ -50,6 +51,11 @@ const extendLoanSchema = z.object({
 loanRoutes.get('/', authMiddleware, async (c) => {
     const userId = c.get('userId');
     const status = c.req.query('status');
+
+    const validStatuses = Object.values(LoanStatus);
+    if (status && !validStatuses.includes(status as LoanStatus)) {
+        return c.json({ success: false, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, 400);
+    }
 
     const loans = await loanService.getUserLoans(userId, status);
 

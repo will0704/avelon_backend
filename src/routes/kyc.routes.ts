@@ -10,6 +10,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { notificationService } from '../services/notification.service.js';
 import { triggerAIVerification } from '../services/kyc-verification.service.js';
+import { createRateLimiter } from '../middleware/rate-limit.middleware.js';
 
 const kycRoutes = new Hono();
 
@@ -21,6 +22,9 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'applicatio
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const VALID_DOC_TYPES = ['GOVERNMENT_ID', 'GOVERNMENT_ID_BACK', 'E_SIGNATURE', 'PROOF_OF_INCOME', 'PROOF_OF_ADDRESS', 'SELFIE'] as const;
+
+// 5 uploads per minute per IP — prevents disk exhaustion via authenticated flood
+const kycUploadRateLimiter = createRateLimiter({ windowMs: 60_000, maxRequests: 5, keyPrefix: 'kyc-upload' });
 
 /**
  * Ensure the uploads directory exists
@@ -100,7 +104,9 @@ kycRoutes.get('/status', async (c) => {
 
 // Validation for KYC profile info
 const kycProfileSchema = z.object({
-    dateOfBirth: z.string().min(1, 'Date of birth is required'),
+    dateOfBirth: z.string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
+        .refine((d) => !isNaN(Date.parse(d)), 'Date of birth must be a valid date'),
     gender: z.string().min(1, 'Gender is required'),
     civilStatus: z.string().min(1, 'Civil status is required'),
     educationLevel: z.string().min(1, 'Education level is required'),
@@ -230,7 +236,7 @@ kycRoutes.get('/profile', async (c) => {
  * POST /kyc/documents
  * Upload a KYC document (multipart/form-data)
  */
-kycRoutes.post('/documents', async (c) => {
+kycRoutes.post('/documents', kycUploadRateLimiter, async (c) => {
     const userId = c.get('userId');
 
     // Parse multipart form data

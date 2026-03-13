@@ -75,12 +75,20 @@ export class AIServiceError extends AppError {
 
 // Error handler middleware
 export const errorHandler = (err: Error, c: Context) => {
-    console.error('Error:', err);
+    const requestId = c.get('requestId' as never) as string | undefined;
+
+    console.error(JSON.stringify({
+        level: 'ERROR',
+        timestamp: new Date().toISOString(),
+        requestId,
+        error: err instanceof Error ? { name: err.name, message: err.message } : String(err),
+    }));
 
     // Handle Zod validation errors
     if (err instanceof ZodError) {
         return c.json({
             success: false,
+            ...(requestId ? { requestId } : {}),
             error: {
                 code: 'VALIDATION_ERROR',
                 message: 'Invalid input data',
@@ -96,6 +104,7 @@ export const errorHandler = (err: Error, c: Context) => {
     if (err instanceof AppError) {
         return c.json({
             success: false,
+            ...(requestId ? { requestId } : {}),
             error: {
                 code: err.code,
                 message: err.message,
@@ -108,6 +117,7 @@ export const errorHandler = (err: Error, c: Context) => {
     if (err instanceof HTTPException) {
         return c.json({
             success: false,
+            ...(requestId ? { requestId } : {}),
             error: {
                 code: 'HTTP_ERROR',
                 message: err.message,
@@ -119,6 +129,7 @@ export const errorHandler = (err: Error, c: Context) => {
     const isDev = env.NODE_ENV === 'development';
     return c.json({
         success: false,
+        ...(requestId ? { requestId } : {}),
         error: {
             code: 'INTERNAL_ERROR',
             message: isDev ? err.message : 'An unexpected error occurred',

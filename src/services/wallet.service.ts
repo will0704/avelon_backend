@@ -189,7 +189,7 @@ export class WalletService {
     /**
      * Get user's wallets
      */
-    async getUserWallets(userId: string) {
+    getUserWallets(userId: string) {
         return prisma.wallet.findMany({
             where: { userId },
             orderBy: [
@@ -274,7 +274,7 @@ export class WalletService {
     /**
      * Get user's primary wallet
      */
-    async getPrimaryWallet(userId: string) {
+    getPrimaryWallet(userId: string) {
         return prisma.wallet.findFirst({
             where: { userId, isPrimary: true },
         });

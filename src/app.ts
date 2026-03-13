@@ -85,6 +85,7 @@ app.use('*', cors({
             'http://localhost:19006',
             'https://avelon.io',
             'https://avelon-web.vercel.app',
+            'https://avelon-app.com',
         ];
         // Allow all vercel.app preview deployments
         if (origin && origin.endsWith('.vercel.app')) return origin;

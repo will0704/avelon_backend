@@ -130,7 +130,7 @@ export class BlockchainService {
      * Get the transaction count (nonce) for an address.
      * Reflects the number of outgoing transactions sent from this address.
      */
-    async getTransactionCount(address: string): Promise<number> {
+    getTransactionCount(address: string): Promise<number> {
         return this.provider.getTransactionCount(address);
     }
 
@@ -144,7 +144,7 @@ export class BlockchainService {
     /**
      * Get current block number
      */
-    async getBlockNumber(): Promise<number> {
+    getBlockNumber(): Promise<number> {
         return this.provider.getBlockNumber();
     }
 

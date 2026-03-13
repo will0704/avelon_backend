@@ -48,7 +48,7 @@ function decrypt(text: string | null | undefined): string | null | undefined {
 }
 
 // Encrypted fields on the User model
-const ENCRYPTED_FIELDS = ['legalName', 'birthDate', 'address', 'monthlyIncome'] as const;
+const ENCRYPTED_FIELDS = ['legalName', 'birthDate', 'address', 'monthlyIncome', 'dateOfBirth'] as const;
 
 // Create PostgreSQL adapter for Prisma 7
 const adapter = new PrismaPg({
@@ -100,6 +100,10 @@ function createPrismaClient() {
                 monthlyIncome: {
                     needs: { monthlyIncome: true },
                     compute(user) { return decrypt(user.monthlyIncome); }
+                },
+                dateOfBirth: {
+                    needs: { dateOfBirth: true },
+                    compute(user) { return decrypt(user.dateOfBirth); }
                 }
             }
         }

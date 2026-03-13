@@ -98,7 +98,7 @@ interface RateLimitConfig {
     keyPrefix?: string;
 }
 
-function createRateLimiter(config: RateLimitConfig) {
+export function createRateLimiter(config: RateLimitConfig) {
     const { windowMs, maxRequests, keyPrefix = 'global' } = config;
 
     return createMiddleware(async (c, next) => {

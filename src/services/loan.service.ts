@@ -119,8 +119,9 @@ export class LoanService {
         // Calculate origination fee
         const originationFee = principal.mul(new PrismaDecimal(plan.originationFee).div(100));
 
-        // Get current ETH price (from config for now)
-        const ethPrice = new PrismaDecimal(process.env.ETH_PHP_RATE || '150000');
+        // Get current ETH price — prefer DB SystemConfig, fall back to env var
+        const priceConfig = await prisma.systemConfig.findUnique({ where: { key: 'ETH_PHP_RATE' } });
+        const ethPrice = new PrismaDecimal(priceConfig?.value ?? process.env.ETH_PHP_RATE ?? '150000');
 
         // Create loan in database
         const loan = await prisma.loan.create({
@@ -525,7 +526,7 @@ export class LoanService {
         }
 
         return prisma.loanTransaction.findMany({
-            where: { loanId },
+            where: { loanId, loan: { userId } },
             orderBy: { createdAt: 'desc' },
             take: 100,
         });

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { prisma } from '../../lib/prisma.js';
 import { notificationService } from '../../services/notification.service.js';
+import { NotFoundError, ValidationError } from '../../middleware/error.middleware.js';
 
 const adminLoansRoutes = new Hono();
 
@@ -60,29 +61,90 @@ const loanSelect = {
  * List all loans with pagination and filtering
  */
 adminLoansRoutes.get('/', async (c) => {
-    try {
-        const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
-        const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '20', 10)));
-        const status = c.req.query('status');
-        const skip = (page - 1) * limit;
+    const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '20', 10)));
+    const status = c.req.query('status');
+    const skip = (page - 1) * limit;
 
-        const where: Record<string, unknown> = {};
-        if (status) {
-            where.status = status;
-        }
+    const where: Record<string, unknown> = {};
+    if (status) {
+        where.status = status;
+    }
 
-        const [loans, total] = await Promise.all([
-            prisma.loan.findMany({
-                where,
-                select: loanSelect,
+    const [loans, total] = await Promise.all([
+        prisma.loan.findMany({
+            where,
+            select: loanSelect,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+        }),
+        prisma.loan.count({ where }),
+    ]);
+
+    const mapped = loans.map((loan) => ({
+        ...loan,
+        principal: Number(loan.principal),
+        collateralRequired: Number(loan.collateralRequired),
+        collateralDeposited: Number(loan.collateralDeposited),
+        originationFee: Number(loan.originationFee),
+        principalOwed: Number(loan.principalOwed),
+        interestOwed: Number(loan.interestOwed),
+        feesOwed: Number(loan.feesOwed),
+        ethPriceSnapshot: Number(loan.ethPriceSnapshot),
+        transactionCount: loan._count.transactions,
+        _count: undefined,
+    }));
+
+    return c.json({
+        success: true,
+        data: { loans: mapped },
+        meta: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        },
+    });
+});
+
+/**
+ * GET /admin/loans/:id
+ * Get loan details with transactions
+ */
+adminLoansRoutes.get('/:id', async (c) => {
+    const id = c.req.param('id');
+
+    const loan = await prisma.loan.findUnique({
+        where: { id },
+        select: {
+            ...loanSelect,
+            transactions: {
                 orderBy: { createdAt: 'desc' },
-                skip,
-                take: limit,
-            }),
-            prisma.loan.count({ where }),
-        ]);
+                select: {
+                    id: true,
+                    type: true,
+                    amount: true,
+                    amountPHP: true,
+                    ethPrice: true,
+                    txHash: true,
+                    blockNumber: true,
+                    confirmed: true,
+                    confirmedAt: true,
+                    note: true,
+                    createdAt: true,
+                },
+            },
+        },
+    });
 
-        const mapped = loans.map((loan) => ({
+    if (!loan) {
+        throw new NotFoundError('Loan not found');
+    }
+
+    return c.json({
+        success: true,
+        data: {
             ...loan,
             principal: Number(loan.principal),
             collateralRequired: Number(loan.collateralRequired),
@@ -93,86 +155,15 @@ adminLoansRoutes.get('/', async (c) => {
             feesOwed: Number(loan.feesOwed),
             ethPriceSnapshot: Number(loan.ethPriceSnapshot),
             transactionCount: loan._count.transactions,
+            transactions: loan.transactions.map((tx) => ({
+                ...tx,
+                amount: Number(tx.amount),
+                amountPHP: tx.amountPHP ? Number(tx.amountPHP) : null,
+                ethPrice: tx.ethPrice ? Number(tx.ethPrice) : null,
+            })),
             _count: undefined,
-        }));
-
-        return c.json({
-            success: true,
-            data: { loans: mapped },
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit),
-            },
-        });
-    } catch (err) {
-        console.error('[admin/loans] list error:', err);
-        return c.json({ success: false, message: 'Failed to fetch loans' }, 500);
-    }
-});
-
-/**
- * GET /admin/loans/:id
- * Get loan details with transactions
- */
-adminLoansRoutes.get('/:id', async (c) => {
-    try {
-        const id = c.req.param('id');
-
-        const loan = await prisma.loan.findUnique({
-            where: { id },
-            select: {
-                ...loanSelect,
-                transactions: {
-                    orderBy: { createdAt: 'desc' },
-                    select: {
-                        id: true,
-                        type: true,
-                        amount: true,
-                        amountPHP: true,
-                        ethPrice: true,
-                        txHash: true,
-                        blockNumber: true,
-                        confirmed: true,
-                        confirmedAt: true,
-                        note: true,
-                        createdAt: true,
-                    },
-                },
-            },
-        });
-
-        if (!loan) {
-            return c.json({ success: false, message: 'Loan not found' }, 404);
-        }
-
-        return c.json({
-            success: true,
-            data: {
-                ...loan,
-                principal: Number(loan.principal),
-                collateralRequired: Number(loan.collateralRequired),
-                collateralDeposited: Number(loan.collateralDeposited),
-                originationFee: Number(loan.originationFee),
-                principalOwed: Number(loan.principalOwed),
-                interestOwed: Number(loan.interestOwed),
-                feesOwed: Number(loan.feesOwed),
-                ethPriceSnapshot: Number(loan.ethPriceSnapshot),
-                transactionCount: loan._count.transactions,
-                transactions: loan.transactions.map((tx) => ({
-                    ...tx,
-                    amount: Number(tx.amount),
-                    amountPHP: tx.amountPHP ? Number(tx.amountPHP) : null,
-                    ethPrice: tx.ethPrice ? Number(tx.ethPrice) : null,
-                })),
-                _count: undefined,
-            },
-        });
-    } catch (err) {
-        console.error('[admin/loans] get error:', err);
-        return c.json({ success: false, message: 'Failed to fetch loan' }, 500);
-    }
+        },
+    });
 });
 
 /**
@@ -180,54 +171,49 @@ adminLoansRoutes.get('/:id', async (c) => {
  * Manually trigger liquidation
  */
 adminLoansRoutes.post('/:id/liquidate', async (c) => {
-    try {
-        const id = c.req.param('id');
-        const adminId = (c.get as (key: string) => string)('userId');
+    const id = c.req.param('id');
+    const adminId = (c.get as (key: string) => string)('userId');
 
-        const loan = await prisma.loan.findUnique({ where: { id } });
-        if (!loan) {
-            return c.json({ success: false, message: 'Loan not found' }, 404);
-        }
-
-        if (loan.status !== 'ACTIVE') {
-            return c.json({ success: false, message: 'Only active loans can be liquidated' }, 400);
-        }
-
-        await prisma.loan.update({
-            where: { id },
-            data: {
-                status: 'LIQUIDATED',
-                liquidatedAt: new Date(),
-            },
-        });
-
-        // Record audit trail — liquidation is irreversible and must be traceable
-        await prisma.auditLog.create({
-            data: {
-                userId: adminId,
-                action: 'LOAN_LIQUIDATED',
-                entity: 'Loan',
-                entityId: id,
-                metadata: { borrowerId: loan.userId, principal: loan.principal?.toString() },
-            },
-        });
-
-        // Notify: liquidation executed
-        await notificationService.notify(loan.userId, {
-            type: 'LOAN_LIQUIDATED',
-            title: '⚠️ Loan Liquidated',
-            message: 'Your loan has been liquidated due to insufficient collateral coverage. Your collateral has been seized.',
-            metadata: { loanId: id },
-        });
-
-        return c.json({
-            success: true,
-            message: 'Liquidation triggered',
-        });
-    } catch (err) {
-        console.error('[admin/loans] liquidate error:', err);
-        return c.json({ success: false, message: 'Failed to trigger liquidation' }, 500);
+    const loan = await prisma.loan.findUnique({ where: { id } });
+    if (!loan) {
+        throw new NotFoundError('Loan not found');
     }
+
+    if (loan.status !== 'ACTIVE') {
+        throw new ValidationError('Only active loans can be liquidated');
+    }
+
+    await prisma.loan.update({
+        where: { id },
+        data: {
+            status: 'LIQUIDATED',
+            liquidatedAt: new Date(),
+        },
+    });
+
+    // Record audit trail — liquidation is irreversible and must be traceable
+    await prisma.auditLog.create({
+        data: {
+            userId: adminId,
+            action: 'LOAN_LIQUIDATED',
+            entity: 'Loan',
+            entityId: id,
+            metadata: { borrowerId: loan.userId, principal: loan.principal?.toString() },
+        },
+    });
+
+    // Notify: liquidation executed
+    await notificationService.notify(loan.userId, {
+        type: 'LOAN_LIQUIDATED',
+        title: '⚠️ Loan Liquidated',
+        message: 'Your loan has been liquidated due to insufficient collateral coverage. Your collateral has been seized.',
+        metadata: { loanId: id },
+    });
+
+    return c.json({
+        success: true,
+        message: 'Liquidation triggered',
+    });
 });
 
 export { adminLoansRoutes };

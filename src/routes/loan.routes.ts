@@ -134,6 +134,40 @@ loanRoutes.get(
 );
 
 /**
+ * GET /loans/blockchain/status
+ * Get blockchain connection status
+ */
+loanRoutes.get('/blockchain/status', authMiddleware, async (c) => {
+    try {
+        const networkInfo = await blockchainService.getNetworkInfo();
+        const blockNumber = await blockchainService.getBlockNumber();
+
+        return c.json({
+            success: true,
+            data: {
+                connected: true,
+                network: networkInfo.name,
+                chainId: networkInfo.chainId,
+                blockNumber,
+                contracts: {
+                    avelonLending: process.env.AVELON_LENDING_ADDRESS || null,
+                    collateralManager: process.env.COLLATERAL_MANAGER_ADDRESS || null,
+                    repaymentSchedule: process.env.REPAYMENT_SCHEDULE_ADDRESS || null,
+                },
+            },
+        });
+    } catch (error) {
+        return c.json({
+            success: true,
+            data: {
+                connected: false,
+                error: error instanceof Error ? error.message : 'Connection failed',
+            },
+        });
+    }
+});
+
+/**
  * GET /loans/:id
  * Get loan details
  */
@@ -345,40 +379,6 @@ loanRoutes.get('/:id/transactions', authMiddleware, async (c) => {
         success: true,
         data: transactions,
     });
-});
-
-/**
- * GET /loans/blockchain/status
- * Get blockchain connection status
- */
-loanRoutes.get('/blockchain/status', authMiddleware, async (c) => {
-    try {
-        const networkInfo = await blockchainService.getNetworkInfo();
-        const blockNumber = await blockchainService.getBlockNumber();
-
-        return c.json({
-            success: true,
-            data: {
-                connected: true,
-                network: networkInfo.name,
-                chainId: networkInfo.chainId,
-                blockNumber,
-                contracts: {
-                    avelonLending: process.env.AVELON_LENDING_ADDRESS || null,
-                    collateralManager: process.env.COLLATERAL_MANAGER_ADDRESS || null,
-                    repaymentSchedule: process.env.REPAYMENT_SCHEDULE_ADDRESS || null,
-                },
-            },
-        });
-    } catch (error) {
-        return c.json({
-            success: true,
-            data: {
-                connected: false,
-                error: error instanceof Error ? error.message : 'Connection failed',
-            },
-        });
-    }
 });
 
 export { loanRoutes };

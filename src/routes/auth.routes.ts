@@ -4,6 +4,7 @@ import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import { authService } from '../services/auth.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { AppError } from '../middleware/error.middleware.js';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { emailService } from '../services/email.service.js';
@@ -68,7 +69,10 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
     const result = await authService.register(body);
 
     // Send verification email using the OTP generated in the service
-    await emailService.sendVerificationEmail(result.user.email, result.verificationToken);
+    const emailSent = await emailService.sendVerificationEmail(result.user.email, result.verificationToken);
+    if (!emailSent) {
+        throw new AppError(502, 'EMAIL_DELIVERY_FAILED', 'Could not send verification email. Please try again.');
+    }
 
     return c.json({
         success: true,

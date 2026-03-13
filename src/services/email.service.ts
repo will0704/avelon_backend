@@ -38,6 +38,10 @@ class EmailService {
         return Buffer.from(message).toString('base64url');
     }
 
+    /**
+     * Send a raw HTML email via the Gmail API.
+     * @returns `true` on success, `false` if Gmail returns an error (error is logged, not thrown).
+     */
     async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
         if (!this.isConfigured || !this.gmail) {
             console.log(`[STUB] Would have sent email to ${to}: ${subject}`);
@@ -58,6 +62,12 @@ class EmailService {
         }
     }
 
+    /**
+     * Send the 6-digit OTP email verification code to a newly registered user.
+     * @param to  Recipient email address
+     * @param otp 6-digit numeric OTP string
+     * @returns `true` if delivered, `false` if the Gmail send failed
+     */
     async sendVerificationEmail(to: string, otp: string): Promise<boolean> {
         const subject = 'Verify your Avelon Account';
         const html = `
@@ -74,6 +84,12 @@ class EmailService {
         return this.sendEmail(to, subject, html);
     }
 
+    /**
+     * Send a password-reset OTP to an existing user.
+     * @param to  Recipient email address
+     * @param otp 6-digit numeric OTP string
+     * @returns `true` if delivered, `false` if the Gmail send failed
+     */
     async sendPasswordResetEmail(to: string, otp: string): Promise<boolean> {
         const subject = 'Reset your Avelon Password';
         const html = `

@@ -1,0 +1,21 @@
+name: Keep Backend Alive
+
+on:
+  schedule:
+    - cron: '*/13 * * * *'  # Every 13 minutes
+  workflow_dispatch:  # Allow manual trigger via GitHub UI
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Avelon backend
+        run: |
+          curl -f https://avelon-backend.onrender.com/ \
+            -H "User-Agent: GitHub-Actions-KeepAlive" \
+            -w "\nStatus: %{http_code}\n" \
+            || echo "⚠️ Ping failed, but workflow continues..."
+
+      - name: Log success
+        if: success()
+        run: echo "✅ Backend ping successful at $(date -u +'%Y-%m-%d %H:%M:%S UTC')"

@@ -13,6 +13,7 @@ import { adminAnalyticsRoutes } from './analytics.routes.js';
 import { authMiddleware, adminMiddleware } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../lib/prisma.js';
 import { blockchainService } from '../../services/blockchain.service.js';
+import { NotificationType } from '@avelon_capstone/types';
 import { contractService } from '../../services/contract.service.js';
 
 const adminRoutes = new Hono();
@@ -356,7 +357,10 @@ adminRoutes.get('/notifications', async (c) => {
         const skip = (page - 1) * limit;
 
         const where: Record<string, unknown> = {};
-        if (type) where.type = type;
+        if (type) {
+            const matches = Object.values(NotificationType).filter(v => v.startsWith(type));
+            where.type = matches.length > 0 ? { in: matches } : type;
+        }
         if (unread === 'true') where.isRead = false;
         if (unread === 'false') where.isRead = true;
 

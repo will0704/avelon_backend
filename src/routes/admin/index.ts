@@ -13,7 +13,7 @@ import { adminAnalyticsRoutes } from './analytics.routes.js';
 import { authMiddleware, adminMiddleware } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../lib/prisma.js';
 import { blockchainService } from '../../services/blockchain.service.js';
-import { NotificationType } from '@avelon_capstone/types';
+import { NotificationType } from '../../generated/prisma/enums.js';
 import { contractService } from '../../services/contract.service.js';
 
 const adminRoutes = new Hono();

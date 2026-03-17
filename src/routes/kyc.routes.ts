@@ -507,6 +507,12 @@ kycRoutes.post('/submit', zValidator('json', submitKycSchema), async (c) => {
         throw new ValidationError('A government ID document is required for KYC submission');
     }
 
+    // Require a selfie for face verification
+    const hasSelfie = documents.some((d: { type: string }) => d.type === 'SELFIE');
+    if (!hasSelfie) {
+        throw new ValidationError('A selfie photo is required for identity verification');
+    }
+
     // Update user status to pending KYC
     await prisma.user.update({
         where: { id: userId },

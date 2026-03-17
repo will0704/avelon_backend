@@ -16,18 +16,6 @@ interface AIDocumentResult {
     message: string | null;
 }
 
-/** Shape returned by the LLM /verify/face-match endpoint */
-interface AIFaceMatchResult {
-    verified: boolean;
-    confidence: number;
-    distance: number;
-    threshold: number;
-    selfie_face_detected: boolean;
-    id_face_detected: boolean;
-    model: string;
-    message: string | null;
-}
-
 interface VerificationDoc {
     id: string;
     type: string;
@@ -53,56 +41,14 @@ function deriveKycLevel(docTypes: string[]): KYCLevel {
 
 // ─── Document type mapping ────────────────────────────────────────────────────
 // Maps backend document types to LLM-compatible document_type values.
-// E_SIGNATURE and SELFIE are skipped — they are not verifiable documents.
-// SELFIE is handled separately via the face-match endpoint.
+// E_SIGNATURE is skipped — it's a user-drawn signature, not a verifiable document.
 const DOC_TYPE_TO_AI: Record<string, string | null> = {
     GOVERNMENT_ID:      'government_id',
     GOVERNMENT_ID_BACK: 'government_id',   // back of same ID — verify as government_id
     E_SIGNATURE:        null,              // skip — not a verifiable document
-    SELFIE:             null,              // skip — handled by face-match endpoint
     PROOF_OF_INCOME:    'proof_of_income',
     PROOF_OF_ADDRESS:   'proof_of_address',
 };
-
-// ─── Face match helper ───────────────────────────────────────────────────────
-
-/**
- * Call the AI face-match endpoint to compare a selfie against a government ID.
- * Returns null if the call fails (caller should handle gracefully).
- */
-async function callFaceMatch(
-    selfieDoc: VerificationDoc,
-    govIdDoc: VerificationDoc,
-): Promise<AIFaceMatchResult | null> {
-    try {
-        const [selfieBuffer, govIdBuffer] = await Promise.all([
-            fs.readFile(selfieDoc.storagePath),
-            fs.readFile(govIdDoc.storagePath),
-        ]);
-
-        const formData = new FormData();
-        const selfieMime = selfieDoc.fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
-        const govIdMime = govIdDoc.fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
-        formData.append('selfie', new Blob([selfieBuffer], { type: selfieMime }), selfieDoc.fileName);
-        formData.append('id_photo', new Blob([govIdBuffer], { type: govIdMime }), govIdDoc.fileName);
-
-        const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/face-match`, {
-            method: 'POST',
-            headers: { 'X-API-Key': env.AI_API_KEY },
-            body: formData,
-        });
-
-        if (!response.ok) {
-            console.error(`[KYC] Face match API returned HTTP ${response.status}`);
-            return null;
-        }
-
-        return (await response.json()) as AIFaceMatchResult;
-    } catch (error) {
-        console.error('[KYC] Face match call failed:', error);
-        return null;
-    }
-}
 
 // ─── Main function ────────────────────────────────────────────────────────────
 
@@ -181,65 +127,6 @@ export async function triggerAIVerification(
             });
 
             results.push({ docId: doc.id, type: doc.type, result });
-        }
-
-        // ── Face match: compare selfie against government ID ─────────────
-        const selfieDoc = documents.find((d) => d.type === 'SELFIE');
-        const govIdDoc = documents.find((d) => d.type === 'GOVERNMENT_ID');
-
-        if (selfieDoc && govIdDoc) {
-            const faceResult = await callFaceMatch(selfieDoc, govIdDoc);
-
-            if (faceResult) {
-                // Persist face-match results on the selfie document record
-                await prisma.document.update({
-                    where: { id: selfieDoc.id },
-                    data: {
-                        aiVerified: faceResult.verified,
-                        aiConfidence: faceResult.confidence,
-                        aiExtractedData: faceResult as any,
-                        ...(faceResult.verified
-                            ? {}
-                            : { status: 'REJECTED', rejectionReason: faceResult.message ?? 'Face does not match government ID' }),
-                    },
-                });
-
-                // Push into results so the existing allPassed logic includes it
-                results.push({
-                    docId: selfieDoc.id,
-                    type: 'SELFIE',
-                    result: {
-                        valid: faceResult.verified,
-                        document_type: 'selfie',
-                        confidence: faceResult.confidence,
-                        extracted_data: {},
-                        fraud_indicators: [],
-                        message: faceResult.message,
-                    },
-                });
-            } else {
-                // AI face-match service unreachable — treat as failed
-                await prisma.document.update({
-                    where: { id: selfieDoc.id },
-                    data: {
-                        status: 'REJECTED',
-                        rejectionReason: 'Face verification service was unreachable',
-                    },
-                });
-
-                results.push({
-                    docId: selfieDoc.id,
-                    type: 'SELFIE',
-                    result: {
-                        valid: false,
-                        document_type: 'selfie',
-                        confidence: 0,
-                        extracted_data: {},
-                        fraud_indicators: [],
-                        message: 'Face verification service was unreachable',
-                    },
-                });
-            }
         }
 
         // If no results at all (AI completely unreachable), still reject

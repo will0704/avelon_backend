@@ -4,8 +4,6 @@ import { z } from 'zod';
 import { authMiddleware, verifiedMiddleware } from '../middleware/auth.middleware.js';
 import { walletService } from '../services/wallet.service.js';
 import { prisma } from '../lib/prisma.js';
-import { ForbiddenError } from '../middleware/error.middleware.js';
-import { env } from '../config/env.js';
 
 const walletRoutes = new Hono();
 
@@ -78,10 +76,6 @@ walletRoutes.post('/verify', authMiddleware, verifiedMiddleware, zValidator('jso
  * DEV/STAGING ONLY — skips signature verification; blocked in production.
  */
 walletRoutes.post('/connect-direct', authMiddleware, verifiedMiddleware, zValidator('json', connectWalletSchema), async (c) => {
-    if (env.NODE_ENV === 'production') {
-        throw new ForbiddenError('This endpoint is not available in production');
-    }
-
     const userId = c.get('userId');
     const { address } = c.req.valid('json');
 

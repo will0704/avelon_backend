@@ -71,17 +71,14 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
     // Send verification email using the OTP generated in the service
     const emailSent = await emailService.sendVerificationEmail(result.user.email, result.verificationToken);
     if (!emailSent) {
-        console.warn(`[Auth] Verification email delivery failed for ${result.user.email}. User can request resend.`);
+        throw new AppError(502, 'EMAIL_DELIVERY_FAILED', 'Could not send verification email. Please try again.');
     }
 
     return c.json({
         success: true,
-        message: emailSent
-            ? 'Registration successful. Please check your email to verify your account.'
-            : 'Registration successful. We could not send the verification email — please use the resend option.',
+        message: 'Registration successful. Please check your email to verify your account.',
         data: {
             email: result.user.email,
-            emailSent,
         },
     }, 201);
 });

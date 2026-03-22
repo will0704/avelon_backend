@@ -269,6 +269,36 @@ export class BlockchainService {
     }
 
     // ============================================
+    // ETH TRANSFERS
+    // ============================================
+
+    /**
+     * Send ETH from the treasury wallet to a recipient address.
+     * Used for loan disbursement (treasury → borrower).
+     */
+    async sendEth(to: string, amountEth: string): Promise<{
+        txHash: string;
+        blockNumber: number;
+        gasUsed: string;
+    }> {
+        const tx = await this.wallet.sendTransaction({
+            to,
+            value: ethers.parseEther(amountEth),
+        });
+
+        const receipt = await tx.wait();
+        if (!receipt || receipt.status !== 1) {
+            throw new Error(`ETH transfer failed: tx ${tx.hash}`);
+        }
+
+        return {
+            txHash: receipt.hash,
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed.toString(),
+        };
+    }
+
+    // ============================================
     // VERIFICATION UTILITIES
     // ============================================
 

@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { app } from './app.js';
 import { env } from './config/env.js';
+import { startJobs } from './jobs/index.js';
 
 const port = env.PORT;
 
@@ -46,4 +47,7 @@ serve({
 
         console.log('Keep-alive ping scheduled every 14 minutes (Render.com)');
     }
+
+    // Start background jobs (deposit poller, etc.)
+    startJobs();
 });

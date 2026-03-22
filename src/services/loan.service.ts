@@ -281,15 +281,35 @@ export class LoanService {
     }
 
     /**
-     * Activate a loan after collateral is deposited
+     * Activate a loan after collateral is deposited.
+     * Sends ETH from treasury to borrower's wallet, then updates DB.
      */
     private async activateLoan(loanId: string): Promise<void> {
         const loan = await prisma.loan.findUnique({
             where: { id: loanId },
+            include: { wallet: true },
         });
 
-        if (!loan) return;
+        if (!loan || !loan.wallet) return;
 
+        const borrowerAddress = loan.wallet.address;
+        const principalEth = loan.principal.toString();
+
+        // ── Step 1: Send ETH from treasury to borrower ──────────────────
+        let disbursementTxHash: string;
+        try {
+            const result = await blockchainService.sendEth(borrowerAddress, principalEth);
+            disbursementTxHash = result.txHash;
+            console.log(`[LoanService] Disbursed ${principalEth} ETH to ${borrowerAddress} (tx: ${disbursementTxHash})`);
+        } catch (err) {
+            console.error(`[LoanService] ETH disbursement failed for loan ${loanId}:`, err);
+            // Loan stays in COLLATERAL_DEPOSITED — no DB changes
+            throw new ValidationError(
+                `Loan disbursement failed. The loan remains in COLLATERAL_DEPOSITED status. Please retry later.`
+            );
+        }
+
+        // ── Step 2: Update DB only after successful ETH transfer ────────
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + loan.duration);
 
@@ -305,6 +325,16 @@ export class LoanService {
                 disbursedAt: new Date(),
                 dueDate,
                 interestOwed,
+            },
+        });
+
+        // Record disbursement transaction
+        await prisma.loanTransaction.create({
+            data: {
+                loanId,
+                type: LoanTransactionType.LOAN_DISBURSEMENT,
+                amount: loan.principal,
+                txHash: disbursementTxHash,
             },
         });
 
@@ -330,8 +360,8 @@ export class LoanService {
         await notificationService.notify(loan.userId, {
             type: 'LOAN_DISBURSED',
             title: '💰 Funds Disbursed',
-            message: `${loan.principal} ETH has been sent to your wallet. Your first repayment is due on ${dueDate.toLocaleDateString()}.`,
-            metadata: { loanId, amount: loan.principal.toString(), dueDate: dueDate.toISOString() },
+            message: `${loan.principal} ETH has been sent to your wallet (tx: ${disbursementTxHash}). Your first repayment is due on ${dueDate.toLocaleDateString()}.`,
+            metadata: { loanId, amount: loan.principal.toString(), txHash: disbursementTxHash, dueDate: dueDate.toISOString() },
         });
     }
 

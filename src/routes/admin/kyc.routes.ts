@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
-import { UserStatus } from '@/types/index.js';
+import { UserStatus } from '../../types/index.js';
 import { notificationService } from '../../services/notification.service.js';
 import { NotFoundError, AppError } from '../../middleware/error.middleware.js';
 import fs from 'fs/promises';

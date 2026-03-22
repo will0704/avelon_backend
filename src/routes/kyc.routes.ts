@@ -5,7 +5,7 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
 import { NotFoundError, ValidationError, ForbiddenError, AppError } from '../middleware/error.middleware.js';
-import { UserStatus } from '@/types/index.js';
+import { UserStatus } from '../types/index.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { notificationService } from '../services/notification.service.js';

@@ -7,7 +7,7 @@ import { prisma } from '../lib/prisma.js';
 import { ConflictError, UnauthorizedError, ValidationError } from '../middleware/error.middleware.js';
 import { isAccountLocked, recordFailedLogin, resetLoginAttempts } from '../middleware/rate-limit.middleware.js';
 import { securityLogger } from '../lib/security.logger.js';
-import { UserRole, UserStatus, type RegisterData, type LoginCredentials, type AuthTokens } from '@/types/index.js';
+import { UserRole, UserStatus, type RegisterData, type LoginCredentials, type AuthTokens } from '../types/index.js';
 
 const { sign, verify } = jwt;
 const { hash, compare } = bcrypt;

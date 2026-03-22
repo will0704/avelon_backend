@@ -8,8 +8,8 @@ import { AppError } from '../middleware/error.middleware.js';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { emailService } from '../services/email.service.js';
-import type { TokenPayload } from '@avelon_capstone/types';
-import { UserRole } from '@avelon_capstone/types';
+import type { TokenPayload } from '@/types/index.js';
+import { UserRole } from '@/types/index.js';
 
 const { verify } = jwt;
 

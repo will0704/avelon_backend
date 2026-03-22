@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
 import { loanService } from '../services/loan.service.js';
-import { LoanStatus } from '@avelon_capstone/types';
+import { LoanStatus } from '@/types/index.js';
 import { blockchainService } from '../services/blockchain.service.js';
 import { notificationService } from '../services/notification.service.js';
 

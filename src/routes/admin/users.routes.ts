@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { prisma } from '../../lib/prisma.js';
-import { UserStatus } from '@avelon_capstone/types';
+import { UserStatus } from '@/types/index.js';
 import { NotFoundError, ValidationError } from '../../middleware/error.middleware.js';
 
 const adminUsersRoutes = new Hono();

@@ -1,7 +1,7 @@
 import { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { NotFoundError, ValidationError } from '../middleware/error.middleware.js';
-import { DepositStatus } from '@avelon_capstone/types';
+import { DepositStatus } from '@/types/index.js';
 
 // For Decimal type annotations
 const PrismaDecimal = Prisma.Decimal;

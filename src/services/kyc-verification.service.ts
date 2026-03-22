@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
-import { UserStatus } from '@avelon_capstone/types';
+import { UserStatus } from '@/types/index.js';
 import { KYCLevel } from '../generated/prisma/enums.js';
 import { notificationService } from '../services/notification.service.js';
 

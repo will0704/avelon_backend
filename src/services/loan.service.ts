@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { blockchainService } from './blockchain.service.js';
 import { contractService } from './contract.service.js';
 import { NotFoundError, ValidationError, ForbiddenError } from '../middleware/error.middleware.js';
-import { LoanStatus, LoanTransactionType } from '@avelon_capstone/types';
+import { LoanStatus, LoanTransactionType } from '@/types/index.js';
 import { notificationService } from './notification.service.js';
 
 // For Decimal type annotations

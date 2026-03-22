@@ -452,4 +452,88 @@ adminRoutes.get('/audit-logs', async (c) => {
     }
 });
 
+/**
+ * GET /admin/deposits
+ * List all investor deposits across the platform
+ */
+adminRoutes.get('/deposits', async (c) => {
+    try {
+        const status = c.req.query('status');
+        const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '30', 10)));
+        const skip = (page - 1) * limit;
+
+        const where: Record<string, unknown> = {};
+        if (status) where.status = status;
+
+        const [deposits, total] = await Promise.all([
+            prisma.investorDeposit.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                select: {
+                    id: true,
+                    userId: true,
+                    amount: true,
+                    txHash: true,
+                    status: true,
+                    poolSharePercent: true,
+                    createdAt: true,
+                    withdrawnAt: true,
+                    user: { select: { email: true, name: true } },
+                },
+            }),
+            prisma.investorDeposit.count({ where }),
+        ]);
+
+        return c.json({
+            success: true,
+            data: deposits.map((d) => ({ ...d, amount: Number(d.amount) })),
+            meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        });
+    } catch (err) {
+        console.error('[admin/deposits] error:', err);
+        return c.json({ success: false, message: 'Failed to fetch deposits' }, 500);
+    }
+});
+
+/**
+ * GET /admin/pool
+ * Liquidity pool state and metrics
+ */
+adminRoutes.get('/pool', async (c) => {
+    try {
+        const pool = await prisma.liquidityPool.findFirst();
+        if (!pool) {
+            return c.json({
+                success: true,
+                data: {
+                    totalLiquidity: 0,
+                    totalBorrowed: 0,
+                    cumulativeYield: 0,
+                    utilizationRate: 0,
+                    apy: 0,
+                    lastUpdated: new Date(),
+                },
+            });
+        }
+
+        return c.json({
+            success: true,
+            data: {
+                totalLiquidity: Number(pool.totalLiquidity),
+                totalBorrowed: Number(pool.totalBorrowed),
+                cumulativeYield: Number(pool.cumulativeYield),
+                utilizationRate: pool.utilizationRate,
+                apy: pool.apy,
+                lastUpdated: pool.lastUpdated,
+            },
+        });
+    } catch (err) {
+        console.error('[admin/pool] error:', err);
+        return c.json({ success: false, message: 'Failed to fetch pool data' }, 500);
+    }
+});
+
 export { adminRoutes };

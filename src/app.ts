@@ -17,6 +17,7 @@ import { marketRoutes } from './routes/market.routes.js';
 
 // Import admin routes
 import { adminRoutes } from './routes/admin/index.js';
+import { investorRoutes } from './routes/investor.routes.js';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware.js';
@@ -166,6 +167,9 @@ api.route('/market', marketRoutes);
 
 // Admin routes
 api.route('/admin', adminRoutes);
+
+// Investor routes
+api.route('/investor', investorRoutes);
 
 // Mount API under /api/v1
 app.route('/api/v1', api);

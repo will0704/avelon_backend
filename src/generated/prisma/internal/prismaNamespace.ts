@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.4.1
- * Query Engine version: 55ae170b1ced7fc6ed07a15f110549408c501bb3
+ * Prisma Client JS version: 7.5.0
+ * Query Engine version: 280c870be64f457428992c43c1f6d557fab6e29e
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.4.1",
-  engine: "55ae170b1ced7fc6ed07a15f110549408c501bb3"
+  client: "7.5.0",
+  engine: "280c870be64f457428992c43c1f6d557fab6e29e"
 }
 
 /**
@@ -398,7 +398,10 @@ export const ModelName = {
   DeviceToken: 'DeviceToken',
   PriceHistory: 'PriceHistory',
   AuditLog: 'AuditLog',
-  SystemConfig: 'SystemConfig'
+  SystemConfig: 'SystemConfig',
+  InvestorDeposit: 'InvestorDeposit',
+  LiquidityPool: 'LiquidityPool',
+  PoolTransaction: 'PoolTransaction'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -414,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "account" | "session" | "verificationToken" | "wallet" | "document" | "loanPlan" | "loan" | "loanTransaction" | "notification" | "notificationPreference" | "deviceToken" | "priceHistory" | "auditLog" | "systemConfig"
+    modelProps: "user" | "account" | "session" | "verificationToken" | "wallet" | "document" | "loanPlan" | "loan" | "loanTransaction" | "notification" | "notificationPreference" | "deviceToken" | "priceHistory" | "auditLog" | "systemConfig" | "investorDeposit" | "liquidityPool" | "poolTransaction"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1528,6 +1531,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    InvestorDeposit: {
+      payload: Prisma.$InvestorDepositPayload<ExtArgs>
+      fields: Prisma.InvestorDepositFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.InvestorDepositFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.InvestorDepositFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>
+        }
+        findFirst: {
+          args: Prisma.InvestorDepositFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.InvestorDepositFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>
+        }
+        findMany: {
+          args: Prisma.InvestorDepositFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>[]
+        }
+        create: {
+          args: Prisma.InvestorDepositCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>
+        }
+        createMany: {
+          args: Prisma.InvestorDepositCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.InvestorDepositCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>[]
+        }
+        delete: {
+          args: Prisma.InvestorDepositDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>
+        }
+        update: {
+          args: Prisma.InvestorDepositUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>
+        }
+        deleteMany: {
+          args: Prisma.InvestorDepositDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.InvestorDepositUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.InvestorDepositUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>[]
+        }
+        upsert: {
+          args: Prisma.InvestorDepositUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$InvestorDepositPayload>
+        }
+        aggregate: {
+          args: Prisma.InvestorDepositAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateInvestorDeposit>
+        }
+        groupBy: {
+          args: Prisma.InvestorDepositGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.InvestorDepositGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.InvestorDepositCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.InvestorDepositCountAggregateOutputType> | number
+        }
+      }
+    }
+    LiquidityPool: {
+      payload: Prisma.$LiquidityPoolPayload<ExtArgs>
+      fields: Prisma.LiquidityPoolFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LiquidityPoolFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LiquidityPoolFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>
+        }
+        findFirst: {
+          args: Prisma.LiquidityPoolFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LiquidityPoolFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>
+        }
+        findMany: {
+          args: Prisma.LiquidityPoolFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>[]
+        }
+        create: {
+          args: Prisma.LiquidityPoolCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>
+        }
+        createMany: {
+          args: Prisma.LiquidityPoolCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LiquidityPoolCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>[]
+        }
+        delete: {
+          args: Prisma.LiquidityPoolDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>
+        }
+        update: {
+          args: Prisma.LiquidityPoolUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>
+        }
+        deleteMany: {
+          args: Prisma.LiquidityPoolDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LiquidityPoolUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LiquidityPoolUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>[]
+        }
+        upsert: {
+          args: Prisma.LiquidityPoolUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LiquidityPoolPayload>
+        }
+        aggregate: {
+          args: Prisma.LiquidityPoolAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLiquidityPool>
+        }
+        groupBy: {
+          args: Prisma.LiquidityPoolGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LiquidityPoolGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LiquidityPoolCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LiquidityPoolCountAggregateOutputType> | number
+        }
+      }
+    }
+    PoolTransaction: {
+      payload: Prisma.$PoolTransactionPayload<ExtArgs>
+      fields: Prisma.PoolTransactionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PoolTransactionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PoolTransactionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>
+        }
+        findFirst: {
+          args: Prisma.PoolTransactionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PoolTransactionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>
+        }
+        findMany: {
+          args: Prisma.PoolTransactionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>[]
+        }
+        create: {
+          args: Prisma.PoolTransactionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>
+        }
+        createMany: {
+          args: Prisma.PoolTransactionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PoolTransactionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>[]
+        }
+        delete: {
+          args: Prisma.PoolTransactionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>
+        }
+        update: {
+          args: Prisma.PoolTransactionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>
+        }
+        deleteMany: {
+          args: Prisma.PoolTransactionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PoolTransactionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PoolTransactionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>[]
+        }
+        upsert: {
+          args: Prisma.PoolTransactionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PoolTransactionPayload>
+        }
+        aggregate: {
+          args: Prisma.PoolTransactionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePoolTransaction>
+        }
+        groupBy: {
+          args: Prisma.PoolTransactionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PoolTransactionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PoolTransactionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PoolTransactionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1685,6 +1910,8 @@ export const DocumentScalarFieldEnum = {
   aiExtractedData: 'aiExtractedData',
   aiFraudScore: 'aiFraudScore',
   aiFraudFlags: 'aiFraudFlags',
+  faceMatchScore: 'faceMatchScore',
+  faceMatchPassed: 'faceMatchPassed',
   reviewedBy: 'reviewedBy',
   reviewedAt: 'reviewedAt',
   rejectionReason: 'rejectionReason',
@@ -1858,6 +2085,45 @@ export const SystemConfigScalarFieldEnum = {
 } as const
 
 export type SystemConfigScalarFieldEnum = (typeof SystemConfigScalarFieldEnum)[keyof typeof SystemConfigScalarFieldEnum]
+
+
+export const InvestorDepositScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  amount: 'amount',
+  txHash: 'txHash',
+  status: 'status',
+  poolSharePercent: 'poolSharePercent',
+  createdAt: 'createdAt',
+  withdrawnAt: 'withdrawnAt'
+} as const
+
+export type InvestorDepositScalarFieldEnum = (typeof InvestorDepositScalarFieldEnum)[keyof typeof InvestorDepositScalarFieldEnum]
+
+
+export const LiquidityPoolScalarFieldEnum = {
+  id: 'id',
+  totalLiquidity: 'totalLiquidity',
+  totalBorrowed: 'totalBorrowed',
+  cumulativeYield: 'cumulativeYield',
+  utilizationRate: 'utilizationRate',
+  apy: 'apy',
+  lastUpdated: 'lastUpdated'
+} as const
+
+export type LiquidityPoolScalarFieldEnum = (typeof LiquidityPoolScalarFieldEnum)[keyof typeof LiquidityPoolScalarFieldEnum]
+
+
+export const PoolTransactionScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  amount: 'amount',
+  txHash: 'txHash',
+  userId: 'userId',
+  createdAt: 'createdAt'
+} as const
+
+export type PoolTransactionScalarFieldEnum = (typeof PoolTransactionScalarFieldEnum)[keyof typeof PoolTransactionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2123,6 +2389,34 @@ export type EnumNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<
 export type ListEnumNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationType[]'>
     
 
+
+/**
+ * Reference to a field of type 'DepositStatus'
+ */
+export type EnumDepositStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DepositStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'DepositStatus[]'
+ */
+export type ListEnumDepositStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DepositStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'PoolTransactionType'
+ */
+export type EnumPoolTransactionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PoolTransactionType'>
+    
+
+
+/**
+ * Reference to a field of type 'PoolTransactionType[]'
+ */
+export type ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PoolTransactionType[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -2233,6 +2527,9 @@ export type GlobalOmitConfig = {
   priceHistory?: Prisma.PriceHistoryOmit
   auditLog?: Prisma.AuditLogOmit
   systemConfig?: Prisma.SystemConfigOmit
+  investorDeposit?: Prisma.InvestorDepositOmit
+  liquidityPool?: Prisma.LiquidityPoolOmit
+  poolTransaction?: Prisma.PoolTransactionOmit
 }
 
 /* Types for Logging */

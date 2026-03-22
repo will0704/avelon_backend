@@ -92,3 +92,19 @@ export type AuditLog = Prisma.AuditLogModel
  * 
  */
 export type SystemConfig = Prisma.SystemConfigModel
+/**
+ * Model InvestorDeposit
+ * Records a single investor deposit into the liquidity pool.
+ */
+export type InvestorDeposit = Prisma.InvestorDepositModel
+/**
+ * Model LiquidityPool
+ * Singleton table — one row represents the shared liquidity pool state.
+ * Updated on every deposit, withdrawal, and loan repayment.
+ */
+export type LiquidityPool = Prisma.LiquidityPoolModel
+/**
+ * Model PoolTransaction
+ * Ledger of all pool-level financial events (deposits, withdrawals, yield).
+ */
+export type PoolTransaction = Prisma.PoolTransactionModel

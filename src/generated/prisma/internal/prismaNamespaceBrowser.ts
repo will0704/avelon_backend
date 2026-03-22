@@ -65,7 +65,10 @@ export const ModelName = {
   DeviceToken: 'DeviceToken',
   PriceHistory: 'PriceHistory',
   AuditLog: 'AuditLog',
-  SystemConfig: 'SystemConfig'
+  SystemConfig: 'SystemConfig',
+  InvestorDeposit: 'InvestorDeposit',
+  LiquidityPool: 'LiquidityPool',
+  PoolTransaction: 'PoolTransaction'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -202,6 +205,8 @@ export const DocumentScalarFieldEnum = {
   aiExtractedData: 'aiExtractedData',
   aiFraudScore: 'aiFraudScore',
   aiFraudFlags: 'aiFraudFlags',
+  faceMatchScore: 'faceMatchScore',
+  faceMatchPassed: 'faceMatchPassed',
   reviewedBy: 'reviewedBy',
   reviewedAt: 'reviewedAt',
   rejectionReason: 'rejectionReason',
@@ -375,6 +380,45 @@ export const SystemConfigScalarFieldEnum = {
 } as const
 
 export type SystemConfigScalarFieldEnum = (typeof SystemConfigScalarFieldEnum)[keyof typeof SystemConfigScalarFieldEnum]
+
+
+export const InvestorDepositScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  amount: 'amount',
+  txHash: 'txHash',
+  status: 'status',
+  poolSharePercent: 'poolSharePercent',
+  createdAt: 'createdAt',
+  withdrawnAt: 'withdrawnAt'
+} as const
+
+export type InvestorDepositScalarFieldEnum = (typeof InvestorDepositScalarFieldEnum)[keyof typeof InvestorDepositScalarFieldEnum]
+
+
+export const LiquidityPoolScalarFieldEnum = {
+  id: 'id',
+  totalLiquidity: 'totalLiquidity',
+  totalBorrowed: 'totalBorrowed',
+  cumulativeYield: 'cumulativeYield',
+  utilizationRate: 'utilizationRate',
+  apy: 'apy',
+  lastUpdated: 'lastUpdated'
+} as const
+
+export type LiquidityPoolScalarFieldEnum = (typeof LiquidityPoolScalarFieldEnum)[keyof typeof LiquidityPoolScalarFieldEnum]
+
+
+export const PoolTransactionScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  amount: 'amount',
+  txHash: 'txHash',
+  userId: 'userId',
+  createdAt: 'createdAt'
+} as const
+
+export type PoolTransactionScalarFieldEnum = (typeof PoolTransactionScalarFieldEnum)[keyof typeof PoolTransactionScalarFieldEnum]
 
 
 export const SortOrder = {

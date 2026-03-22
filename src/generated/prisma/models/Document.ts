@@ -30,12 +30,14 @@ export type DocumentAvgAggregateOutputType = {
   fileSize: number | null
   aiConfidence: number | null
   aiFraudScore: number | null
+  faceMatchScore: number | null
 }
 
 export type DocumentSumAggregateOutputType = {
   fileSize: number | null
   aiConfidence: number | null
   aiFraudScore: number | null
+  faceMatchScore: number | null
 }
 
 export type DocumentMinAggregateOutputType = {
@@ -50,6 +52,8 @@ export type DocumentMinAggregateOutputType = {
   aiVerified: boolean | null
   aiConfidence: number | null
   aiFraudScore: number | null
+  faceMatchScore: number | null
+  faceMatchPassed: boolean | null
   reviewedBy: string | null
   reviewedAt: Date | null
   rejectionReason: string | null
@@ -70,6 +74,8 @@ export type DocumentMaxAggregateOutputType = {
   aiVerified: boolean | null
   aiConfidence: number | null
   aiFraudScore: number | null
+  faceMatchScore: number | null
+  faceMatchPassed: boolean | null
   reviewedBy: string | null
   reviewedAt: Date | null
   rejectionReason: string | null
@@ -92,6 +98,8 @@ export type DocumentCountAggregateOutputType = {
   aiExtractedData: number
   aiFraudScore: number
   aiFraudFlags: number
+  faceMatchScore: number
+  faceMatchPassed: number
   reviewedBy: number
   reviewedAt: number
   rejectionReason: number
@@ -106,12 +114,14 @@ export type DocumentAvgAggregateInputType = {
   fileSize?: true
   aiConfidence?: true
   aiFraudScore?: true
+  faceMatchScore?: true
 }
 
 export type DocumentSumAggregateInputType = {
   fileSize?: true
   aiConfidence?: true
   aiFraudScore?: true
+  faceMatchScore?: true
 }
 
 export type DocumentMinAggregateInputType = {
@@ -126,6 +136,8 @@ export type DocumentMinAggregateInputType = {
   aiVerified?: true
   aiConfidence?: true
   aiFraudScore?: true
+  faceMatchScore?: true
+  faceMatchPassed?: true
   reviewedBy?: true
   reviewedAt?: true
   rejectionReason?: true
@@ -146,6 +158,8 @@ export type DocumentMaxAggregateInputType = {
   aiVerified?: true
   aiConfidence?: true
   aiFraudScore?: true
+  faceMatchScore?: true
+  faceMatchPassed?: true
   reviewedBy?: true
   reviewedAt?: true
   rejectionReason?: true
@@ -168,6 +182,8 @@ export type DocumentCountAggregateInputType = {
   aiExtractedData?: true
   aiFraudScore?: true
   aiFraudFlags?: true
+  faceMatchScore?: true
+  faceMatchPassed?: true
   reviewedBy?: true
   reviewedAt?: true
   rejectionReason?: true
@@ -277,6 +293,8 @@ export type DocumentGroupByOutputType = {
   aiExtractedData: runtime.JsonValue | null
   aiFraudScore: number | null
   aiFraudFlags: string[]
+  faceMatchScore: number | null
+  faceMatchPassed: boolean | null
   reviewedBy: string | null
   reviewedAt: Date | null
   rejectionReason: string | null
@@ -322,6 +340,8 @@ export type DocumentWhereInput = {
   aiExtractedData?: Prisma.JsonNullableFilter<"Document">
   aiFraudScore?: Prisma.FloatNullableFilter<"Document"> | number | null
   aiFraudFlags?: Prisma.StringNullableListFilter<"Document">
+  faceMatchScore?: Prisma.FloatNullableFilter<"Document"> | number | null
+  faceMatchPassed?: Prisma.BoolNullableFilter<"Document"> | boolean | null
   reviewedBy?: Prisma.StringNullableFilter<"Document"> | string | null
   reviewedAt?: Prisma.DateTimeNullableFilter<"Document"> | Date | string | null
   rejectionReason?: Prisma.StringNullableFilter<"Document"> | string | null
@@ -345,6 +365,8 @@ export type DocumentOrderByWithRelationInput = {
   aiExtractedData?: Prisma.SortOrderInput | Prisma.SortOrder
   aiFraudScore?: Prisma.SortOrderInput | Prisma.SortOrder
   aiFraudFlags?: Prisma.SortOrder
+  faceMatchScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  faceMatchPassed?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   rejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -371,6 +393,8 @@ export type DocumentWhereUniqueInput = Prisma.AtLeast<{
   aiExtractedData?: Prisma.JsonNullableFilter<"Document">
   aiFraudScore?: Prisma.FloatNullableFilter<"Document"> | number | null
   aiFraudFlags?: Prisma.StringNullableListFilter<"Document">
+  faceMatchScore?: Prisma.FloatNullableFilter<"Document"> | number | null
+  faceMatchPassed?: Prisma.BoolNullableFilter<"Document"> | boolean | null
   reviewedBy?: Prisma.StringNullableFilter<"Document"> | string | null
   reviewedAt?: Prisma.DateTimeNullableFilter<"Document"> | Date | string | null
   rejectionReason?: Prisma.StringNullableFilter<"Document"> | string | null
@@ -394,6 +418,8 @@ export type DocumentOrderByWithAggregationInput = {
   aiExtractedData?: Prisma.SortOrderInput | Prisma.SortOrder
   aiFraudScore?: Prisma.SortOrderInput | Prisma.SortOrder
   aiFraudFlags?: Prisma.SortOrder
+  faceMatchScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  faceMatchPassed?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   rejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -424,6 +450,8 @@ export type DocumentScalarWhereWithAggregatesInput = {
   aiExtractedData?: Prisma.JsonNullableWithAggregatesFilter<"Document">
   aiFraudScore?: Prisma.FloatNullableWithAggregatesFilter<"Document"> | number | null
   aiFraudFlags?: Prisma.StringNullableListFilter<"Document">
+  faceMatchScore?: Prisma.FloatNullableWithAggregatesFilter<"Document"> | number | null
+  faceMatchPassed?: Prisma.BoolNullableWithAggregatesFilter<"Document"> | boolean | null
   reviewedBy?: Prisma.StringNullableWithAggregatesFilter<"Document"> | string | null
   reviewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Document"> | Date | string | null
   rejectionReason?: Prisma.StringNullableWithAggregatesFilter<"Document"> | string | null
@@ -445,6 +473,8 @@ export type DocumentCreateInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: number | null
   aiFraudFlags?: Prisma.DocumentCreateaiFraudFlagsInput | string[]
+  faceMatchScore?: number | null
+  faceMatchPassed?: boolean | null
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   rejectionReason?: string | null
@@ -468,6 +498,8 @@ export type DocumentUncheckedCreateInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: number | null
   aiFraudFlags?: Prisma.DocumentCreateaiFraudFlagsInput | string[]
+  faceMatchScore?: number | null
+  faceMatchPassed?: boolean | null
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   rejectionReason?: string | null
@@ -489,6 +521,8 @@ export type DocumentUpdateInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   aiFraudFlags?: Prisma.DocumentUpdateaiFraudFlagsInput | string[]
+  faceMatchScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  faceMatchPassed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -512,6 +546,8 @@ export type DocumentUncheckedUpdateInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   aiFraudFlags?: Prisma.DocumentUpdateaiFraudFlagsInput | string[]
+  faceMatchScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  faceMatchPassed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -534,6 +570,8 @@ export type DocumentCreateManyInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: number | null
   aiFraudFlags?: Prisma.DocumentCreateaiFraudFlagsInput | string[]
+  faceMatchScore?: number | null
+  faceMatchPassed?: boolean | null
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   rejectionReason?: string | null
@@ -555,6 +593,8 @@ export type DocumentUpdateManyMutationInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   aiFraudFlags?: Prisma.DocumentUpdateaiFraudFlagsInput | string[]
+  faceMatchScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  faceMatchPassed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -577,6 +617,8 @@ export type DocumentUncheckedUpdateManyInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   aiFraudFlags?: Prisma.DocumentUpdateaiFraudFlagsInput | string[]
+  faceMatchScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  faceMatchPassed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -617,6 +659,8 @@ export type DocumentCountOrderByAggregateInput = {
   aiExtractedData?: Prisma.SortOrder
   aiFraudScore?: Prisma.SortOrder
   aiFraudFlags?: Prisma.SortOrder
+  faceMatchScore?: Prisma.SortOrder
+  faceMatchPassed?: Prisma.SortOrder
   reviewedBy?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
@@ -629,6 +673,7 @@ export type DocumentAvgOrderByAggregateInput = {
   fileSize?: Prisma.SortOrder
   aiConfidence?: Prisma.SortOrder
   aiFraudScore?: Prisma.SortOrder
+  faceMatchScore?: Prisma.SortOrder
 }
 
 export type DocumentMaxOrderByAggregateInput = {
@@ -643,6 +688,8 @@ export type DocumentMaxOrderByAggregateInput = {
   aiVerified?: Prisma.SortOrder
   aiConfidence?: Prisma.SortOrder
   aiFraudScore?: Prisma.SortOrder
+  faceMatchScore?: Prisma.SortOrder
+  faceMatchPassed?: Prisma.SortOrder
   reviewedBy?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
@@ -663,6 +710,8 @@ export type DocumentMinOrderByAggregateInput = {
   aiVerified?: Prisma.SortOrder
   aiConfidence?: Prisma.SortOrder
   aiFraudScore?: Prisma.SortOrder
+  faceMatchScore?: Prisma.SortOrder
+  faceMatchPassed?: Prisma.SortOrder
   reviewedBy?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
   rejectionReason?: Prisma.SortOrder
@@ -675,6 +724,7 @@ export type DocumentSumOrderByAggregateInput = {
   fileSize?: Prisma.SortOrder
   aiConfidence?: Prisma.SortOrder
   aiFraudScore?: Prisma.SortOrder
+  faceMatchScore?: Prisma.SortOrder
 }
 
 export type DocumentCreateNestedManyWithoutUserInput = {
@@ -744,6 +794,10 @@ export type DocumentUpdateaiFraudFlagsInput = {
   push?: string | string[]
 }
 
+export type NullableBoolFieldUpdateOperationsInput = {
+  set?: boolean | null
+}
+
 export type DocumentCreateWithoutUserInput = {
   id?: string
   type: $Enums.DocumentType
@@ -757,6 +811,8 @@ export type DocumentCreateWithoutUserInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: number | null
   aiFraudFlags?: Prisma.DocumentCreateaiFraudFlagsInput | string[]
+  faceMatchScore?: number | null
+  faceMatchPassed?: boolean | null
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   rejectionReason?: string | null
@@ -778,6 +834,8 @@ export type DocumentUncheckedCreateWithoutUserInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: number | null
   aiFraudFlags?: Prisma.DocumentCreateaiFraudFlagsInput | string[]
+  faceMatchScore?: number | null
+  faceMatchPassed?: boolean | null
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   rejectionReason?: string | null
@@ -829,6 +887,8 @@ export type DocumentScalarWhereInput = {
   aiExtractedData?: Prisma.JsonNullableFilter<"Document">
   aiFraudScore?: Prisma.FloatNullableFilter<"Document"> | number | null
   aiFraudFlags?: Prisma.StringNullableListFilter<"Document">
+  faceMatchScore?: Prisma.FloatNullableFilter<"Document"> | number | null
+  faceMatchPassed?: Prisma.BoolNullableFilter<"Document"> | boolean | null
   reviewedBy?: Prisma.StringNullableFilter<"Document"> | string | null
   reviewedAt?: Prisma.DateTimeNullableFilter<"Document"> | Date | string | null
   rejectionReason?: Prisma.StringNullableFilter<"Document"> | string | null
@@ -850,6 +910,8 @@ export type DocumentCreateManyUserInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: number | null
   aiFraudFlags?: Prisma.DocumentCreateaiFraudFlagsInput | string[]
+  faceMatchScore?: number | null
+  faceMatchPassed?: boolean | null
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   rejectionReason?: string | null
@@ -871,6 +933,8 @@ export type DocumentUpdateWithoutUserInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   aiFraudFlags?: Prisma.DocumentUpdateaiFraudFlagsInput | string[]
+  faceMatchScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  faceMatchPassed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -892,6 +956,8 @@ export type DocumentUncheckedUpdateWithoutUserInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   aiFraudFlags?: Prisma.DocumentUpdateaiFraudFlagsInput | string[]
+  faceMatchScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  faceMatchPassed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -913,6 +979,8 @@ export type DocumentUncheckedUpdateManyWithoutUserInput = {
   aiExtractedData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   aiFraudScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   aiFraudFlags?: Prisma.DocumentUpdateaiFraudFlagsInput | string[]
+  faceMatchScore?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  faceMatchPassed?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -937,6 +1005,8 @@ export type DocumentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   aiExtractedData?: boolean
   aiFraudScore?: boolean
   aiFraudFlags?: boolean
+  faceMatchScore?: boolean
+  faceMatchPassed?: boolean
   reviewedBy?: boolean
   reviewedAt?: boolean
   rejectionReason?: boolean
@@ -960,6 +1030,8 @@ export type DocumentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   aiExtractedData?: boolean
   aiFraudScore?: boolean
   aiFraudFlags?: boolean
+  faceMatchScore?: boolean
+  faceMatchPassed?: boolean
   reviewedBy?: boolean
   reviewedAt?: boolean
   rejectionReason?: boolean
@@ -983,6 +1055,8 @@ export type DocumentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   aiExtractedData?: boolean
   aiFraudScore?: boolean
   aiFraudFlags?: boolean
+  faceMatchScore?: boolean
+  faceMatchPassed?: boolean
   reviewedBy?: boolean
   reviewedAt?: boolean
   rejectionReason?: boolean
@@ -1006,6 +1080,8 @@ export type DocumentSelectScalar = {
   aiExtractedData?: boolean
   aiFraudScore?: boolean
   aiFraudFlags?: boolean
+  faceMatchScore?: boolean
+  faceMatchPassed?: boolean
   reviewedBy?: boolean
   reviewedAt?: boolean
   rejectionReason?: boolean
@@ -1014,7 +1090,7 @@ export type DocumentSelectScalar = {
   expiresAt?: boolean
 }
 
-export type DocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "type" | "status" | "fileName" | "fileSize" | "mimeType" | "storagePath" | "aiVerified" | "aiConfidence" | "aiExtractedData" | "aiFraudScore" | "aiFraudFlags" | "reviewedBy" | "reviewedAt" | "rejectionReason" | "createdAt" | "updatedAt" | "expiresAt", ExtArgs["result"]["document"]>
+export type DocumentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "type" | "status" | "fileName" | "fileSize" | "mimeType" | "storagePath" | "aiVerified" | "aiConfidence" | "aiExtractedData" | "aiFraudScore" | "aiFraudFlags" | "faceMatchScore" | "faceMatchPassed" | "reviewedBy" | "reviewedAt" | "rejectionReason" | "createdAt" | "updatedAt" | "expiresAt", ExtArgs["result"]["document"]>
 export type DocumentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -1044,6 +1120,8 @@ export type $DocumentPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     aiExtractedData: runtime.JsonValue | null
     aiFraudScore: number | null
     aiFraudFlags: string[]
+    faceMatchScore: number | null
+    faceMatchPassed: boolean | null
     reviewedBy: string | null
     reviewedAt: Date | null
     rejectionReason: string | null
@@ -1487,6 +1565,8 @@ export interface DocumentFieldRefs {
   readonly aiExtractedData: Prisma.FieldRef<"Document", 'Json'>
   readonly aiFraudScore: Prisma.FieldRef<"Document", 'Float'>
   readonly aiFraudFlags: Prisma.FieldRef<"Document", 'String[]'>
+  readonly faceMatchScore: Prisma.FieldRef<"Document", 'Float'>
+  readonly faceMatchPassed: Prisma.FieldRef<"Document", 'Boolean'>
   readonly reviewedBy: Prisma.FieldRef<"Document", 'String'>
   readonly reviewedAt: Prisma.FieldRef<"Document", 'DateTime'>
   readonly rejectionReason: Prisma.FieldRef<"Document", 'String'>
@@ -1689,6 +1769,11 @@ export type DocumentFindManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Skip the first `n` Documents.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Documents.
+   */
   distinct?: Prisma.DocumentScalarFieldEnum | Prisma.DocumentScalarFieldEnum[]
 }
 

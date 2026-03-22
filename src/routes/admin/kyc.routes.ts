@@ -44,6 +44,8 @@ adminKycRoutes.get('/pending', async (c) => {
                         aiConfidence: true,
                         aiFraudScore: true,
                         aiFraudFlags: true,
+                        faceMatchScore: true,
+                        faceMatchPassed: true,
                         createdAt: true,
                     },
                     orderBy: { createdAt: 'desc' },
@@ -66,6 +68,47 @@ adminKycRoutes.get('/pending', async (c) => {
             totalPages: Math.ceil(total / limit),
         },
     });
+});
+
+/**
+ * GET /admin/kyc/:userId
+ * Get KYC documents for a specific user (admin view).
+ * Used by the admin Users modal to show face match score and document status.
+ */
+adminKycRoutes.get('/:userId', async (c) => {
+    const userId = c.req.param('userId');
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            status: true,
+            kycSubmittedAt: true,
+            documents: {
+                select: {
+                    id: true,
+                    type: true,
+                    status: true,
+                    fileName: true,
+                    aiVerified: true,
+                    aiConfidence: true,
+                    aiFraudScore: true,
+                    faceMatchScore: true,
+                    faceMatchPassed: true,
+                    createdAt: true,
+                },
+                orderBy: { createdAt: 'desc' },
+            },
+        },
+    });
+
+    if (!user) {
+        throw new NotFoundError('User not found');
+    }
+
+    return c.json({ success: true, data: user });
 });
 
 // Validation for KYC approval

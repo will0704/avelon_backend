@@ -1,9 +1,25 @@
 import fs from 'fs/promises';
+import path from 'path';
 import { prisma } from '../lib/prisma.js';
 import { env } from '../config/env.js';
 import { UserStatus } from '@avelon_capstone/types';
 import { KYCLevel } from '../generated/prisma/enums.js';
 import { notificationService } from '../services/notification.service.js';
+
+/** Shape returned by the LLM /verify/face endpoint */
+interface AIFaceMatchResult {
+    passed: boolean;
+    score: number;      // Cosine similarity 0-1
+    confidence: number; // Model confidence 0-1
+    message: string | null;
+}
+
+export interface FaceVerifyResult {
+    passed: boolean;
+    score: number;
+    message: string | null;
+    selfieDocumentId: string;
+}
 
 /** Shape returned by the LLM /verify/document endpoint */
 interface AIDocumentResult {
@@ -151,10 +167,63 @@ export async function triggerAIVerification(
         const allPassed = results.every((r) => r.result.valid);
 
         if (allPassed) {
-            const avgConfidence = results.reduce((sum, r) => sum + r.result.confidence, 0) / results.length;
-            const creditScore = Math.round(avgConfidence * 100);
-            const creditTier = deriveTier(creditScore);
             const kycLevel = deriveKycLevel(results.map((r) => r.type));
+
+            // Merge extracted data from all verified documents
+            const mergedExtractedData = results.reduce<Record<string, unknown>>(
+                (acc, r) => ({ ...acc, ...r.result.extracted_data }),
+                {},
+            );
+
+            // Fetch user's primary wallet for richer credit scoring
+            const primaryWallet = await prisma.wallet.findFirst({
+                where: { userId, isPrimary: true, isVerified: true },
+            });
+
+            // Fetch user's loan history for returning users
+            const loanStats = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { totalBorrowed: true, totalRepaid: true, activeLoansCount: true, completedLoansCount: true, defaultCount: true },
+            });
+
+            // Call LLM credit scoring endpoint for an accurate, multi-factor score
+            let creditScore: number;
+            let creditTier: string;
+            try {
+                const scorePayload = {
+                    user_id: userId,
+                    extracted_data: mergedExtractedData,
+                    wallet_address: primaryWallet?.address ?? '0x0000000000000000000000000000000000000000',
+                    loan_history: loanStats
+                        ? {
+                              total_loans: (loanStats.completedLoansCount ?? 0) + (loanStats.activeLoansCount ?? 0),
+                              repaid_loans: loanStats.completedLoansCount ?? 0,
+                              defaulted_loans: loanStats.defaultCount ?? 0,
+                              late_payments: 0, // not tracked separately yet
+                          }
+                        : undefined,
+                };
+
+                const scoreRes = await fetch(`${env.AI_SERVICE_URL}/api/v1/score/calculate`, {
+                    method: 'POST',
+                    headers: { 'X-API-Key': env.AI_API_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(scorePayload),
+                });
+
+                if (scoreRes.ok) {
+                    const scoreData = (await scoreRes.json()) as { score: number; tier: string | null };
+                    creditScore = scoreData.score;
+                    creditTier = scoreData.tier?.toUpperCase() ?? deriveTier(scoreData.score);
+                } else {
+                    throw new Error(`Score endpoint returned HTTP ${scoreRes.status}`);
+                }
+            } catch (scoreErr) {
+                // Fall back to confidence-based score so KYC approval still completes
+                console.warn('[KYC] Credit score endpoint failed, using fallback:', scoreErr);
+                const avgConfidence = results.reduce((sum, r) => sum + r.result.confidence, 0) / results.length;
+                creditScore = Math.round(avgConfidence * 100);
+                creditTier = deriveTier(creditScore);
+            }
 
             await prisma.user.update({
                 where: { id: userId },
@@ -245,4 +314,122 @@ export async function triggerAIVerification(
             console.error('[KYC] CRITICAL: Failed to reject user after AI error. User stuck in PENDING_KYC:', userId, innerErr);
         }
     }
+}
+
+// ─── Face Verification ────────────────────────────────────────────────────────
+
+/**
+ * Compare a selfie against the user's government ID via the AI service.
+ * Stores/updates a SELFIE document record with the result.
+ * Throws if no government ID document exists for the user.
+ */
+export async function verifyFace(
+    userId: string,
+    selfieBuffer: Buffer,
+    selfieFileName: string,
+    selfieStoragePath: string,
+): Promise<FaceVerifyResult> {
+    // Require an existing government ID to compare against
+    const govIdDoc = await prisma.document.findFirst({
+        where: {
+            userId,
+            type: 'GOVERNMENT_ID',
+            status: { in: ['PENDING', 'APPROVED'] },
+        },
+        orderBy: { createdAt: 'desc' },
+    });
+
+    if (!govIdDoc) {
+        throw new Error('GOVERNMENT_ID_REQUIRED');
+    }
+
+    // Read the government ID file from disk
+    const govIdBuffer = await fs.readFile(govIdDoc.storagePath);
+
+    // Build multipart payload for LLM face endpoint
+    const formData = new FormData();
+    const selfieExt = path.extname(selfieFileName).toLowerCase();
+    const selfimeMime = selfieExt === '.png' ? 'image/png' : 'image/jpeg';
+    const govIdExt = path.extname(govIdDoc.fileName).toLowerCase();
+    const govIdMime = govIdExt === '.png' ? 'image/png' : 'image/jpeg';
+
+    formData.append('selfie_file', new Blob([new Uint8Array(selfieBuffer)], { type: selfimeMime }), selfieFileName);
+    formData.append('government_id_file', new Blob([new Uint8Array(govIdBuffer)], { type: govIdMime }), govIdDoc.fileName);
+
+    // Call LLM face matching endpoint
+    const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/face`, {
+        method: 'POST',
+        headers: { 'X-API-Key': env.AI_API_KEY },
+        body: formData,
+    });
+
+    let passed = false;
+    let score = 0;
+    let message: string | null = null;
+
+    if (response.ok) {
+        const result = (await response.json()) as AIFaceMatchResult;
+        passed = result.passed;
+        score = result.score;
+        message = result.message;
+    } else {
+        message = `Face verification service returned HTTP ${response.status}`;
+        console.error(`[KYC] Face match failed for user ${userId}: ${message}`);
+    }
+
+    // Upsert the SELFIE document record (replace any previous one)
+    const existingSelfie = await prisma.document.findFirst({
+        where: { userId, type: 'SELFIE' },
+        orderBy: { createdAt: 'desc' },
+    });
+
+    let selfieDoc;
+    if (existingSelfie && existingSelfie.status !== 'APPROVED') {
+        // Delete old file from disk before overwriting
+        try { await fs.unlink(existingSelfie.storagePath); } catch { /* already gone */ }
+
+        selfieDoc = await prisma.document.update({
+            where: { id: existingSelfie.id },
+            data: {
+                storagePath: selfieStoragePath,
+                fileName: selfieFileName,
+                fileSize: selfieBuffer.length,
+                faceMatchScore: score,
+                faceMatchPassed: passed,
+                status: 'PENDING',
+            },
+        });
+    } else if (!existingSelfie) {
+        selfieDoc = await prisma.document.create({
+            data: {
+                userId,
+                type: 'SELFIE',
+                fileName: selfieFileName,
+                fileSize: selfieBuffer.length,
+                mimeType: selfimeMime,
+                storagePath: selfieStoragePath,
+                status: 'PENDING',
+                faceMatchScore: score,
+                faceMatchPassed: passed,
+            },
+        });
+    } else {
+        // APPROVED selfie — update only the match fields, keep the stored file
+        selfieDoc = await prisma.document.update({
+            where: { id: existingSelfie.id },
+            data: { faceMatchScore: score, faceMatchPassed: passed },
+        });
+    }
+
+    await prisma.auditLog.create({
+        data: {
+            userId,
+            action: 'KYC_FACE_VERIFIED',
+            entity: 'Document',
+            entityId: selfieDoc.id,
+            metadata: { passed, score, message },
+        },
+    });
+
+    return { passed, score, message, selfieDocumentId: selfieDoc.id };
 }

@@ -524,6 +524,8 @@ export type UserWhereInput = {
   notifications?: Prisma.NotificationListRelationFilter
   notificationPrefs?: Prisma.XOR<Prisma.NotificationPreferenceNullableScalarRelationFilter, Prisma.NotificationPreferenceWhereInput> | null
   deviceTokens?: Prisma.DeviceTokenListRelationFilter
+  investorDeposits?: Prisma.InvestorDepositListRelationFilter
+  poolTransactions?: Prisma.PoolTransactionListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
 }
 
@@ -576,6 +578,8 @@ export type UserOrderByWithRelationInput = {
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   notificationPrefs?: Prisma.NotificationPreferenceOrderByWithRelationInput
   deviceTokens?: Prisma.DeviceTokenOrderByRelationAggregateInput
+  investorDeposits?: Prisma.InvestorDepositOrderByRelationAggregateInput
+  poolTransactions?: Prisma.PoolTransactionOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
 }
 
@@ -631,6 +635,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   notifications?: Prisma.NotificationListRelationFilter
   notificationPrefs?: Prisma.XOR<Prisma.NotificationPreferenceNullableScalarRelationFilter, Prisma.NotificationPreferenceWhereInput> | null
   deviceTokens?: Prisma.DeviceTokenListRelationFilter
+  investorDeposits?: Prisma.InvestorDepositListRelationFilter
+  poolTransactions?: Prisma.PoolTransactionListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
 }, "id" | "email">
 
@@ -777,6 +783,8 @@ export type UserCreateInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -829,6 +837,8 @@ export type UserUncheckedCreateInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -881,6 +891,8 @@ export type UserUpdateInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -933,6 +945,8 @@ export type UserUncheckedUpdateInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1402,6 +1416,36 @@ export type UserUpdateOneWithoutAuditLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAuditLogsInput, Prisma.UserUpdateWithoutAuditLogsInput>, Prisma.UserUncheckedUpdateWithoutAuditLogsInput>
 }
 
+export type UserCreateNestedOneWithoutInvestorDepositsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutInvestorDepositsInput, Prisma.UserUncheckedCreateWithoutInvestorDepositsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInvestorDepositsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutInvestorDepositsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutInvestorDepositsInput, Prisma.UserUncheckedCreateWithoutInvestorDepositsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutInvestorDepositsInput
+  upsert?: Prisma.UserUpsertWithoutInvestorDepositsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutInvestorDepositsInput, Prisma.UserUpdateWithoutInvestorDepositsInput>, Prisma.UserUncheckedUpdateWithoutInvestorDepositsInput>
+}
+
+export type UserCreateNestedOneWithoutPoolTransactionsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPoolTransactionsInput, Prisma.UserUncheckedCreateWithoutPoolTransactionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPoolTransactionsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutPoolTransactionsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPoolTransactionsInput, Prisma.UserUncheckedCreateWithoutPoolTransactionsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPoolTransactionsInput
+  upsert?: Prisma.UserUpsertWithoutPoolTransactionsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPoolTransactionsInput, Prisma.UserUpdateWithoutPoolTransactionsInput>, Prisma.UserUncheckedUpdateWithoutPoolTransactionsInput>
+}
+
 export type UserCreateWithoutAccountsInput = {
   id?: string
   email: string
@@ -1450,6 +1494,8 @@ export type UserCreateWithoutAccountsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -1501,6 +1547,8 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1568,6 +1616,8 @@ export type UserUpdateWithoutAccountsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -1619,6 +1669,8 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1670,6 +1722,8 @@ export type UserCreateWithoutSessionsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -1721,6 +1775,8 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1788,6 +1844,8 @@ export type UserUpdateWithoutSessionsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -1839,6 +1897,8 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1890,6 +1950,8 @@ export type UserCreateWithoutWalletsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -1941,6 +2003,8 @@ export type UserUncheckedCreateWithoutWalletsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -2008,6 +2072,8 @@ export type UserUpdateWithoutWalletsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -2059,6 +2125,8 @@ export type UserUncheckedUpdateWithoutWalletsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2110,6 +2178,8 @@ export type UserCreateWithoutDocumentsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -2161,6 +2231,8 @@ export type UserUncheckedCreateWithoutDocumentsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -2228,6 +2300,8 @@ export type UserUpdateWithoutDocumentsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -2279,6 +2353,8 @@ export type UserUncheckedUpdateWithoutDocumentsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2330,6 +2406,8 @@ export type UserCreateWithoutLoansInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -2381,6 +2459,8 @@ export type UserUncheckedCreateWithoutLoansInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -2448,6 +2528,8 @@ export type UserUpdateWithoutLoansInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -2499,6 +2581,8 @@ export type UserUncheckedUpdateWithoutLoansInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2550,6 +2634,8 @@ export type UserCreateWithoutNotificationsInput = {
   loans?: Prisma.LoanCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -2601,6 +2687,8 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   loans?: Prisma.LoanUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -2668,6 +2756,8 @@ export type UserUpdateWithoutNotificationsInput = {
   loans?: Prisma.LoanUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -2719,6 +2809,8 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   loans?: Prisma.LoanUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2770,6 +2862,8 @@ export type UserCreateWithoutNotificationPrefsInput = {
   loans?: Prisma.LoanCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -2821,6 +2915,8 @@ export type UserUncheckedCreateWithoutNotificationPrefsInput = {
   loans?: Prisma.LoanUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -2888,6 +2984,8 @@ export type UserUpdateWithoutNotificationPrefsInput = {
   loans?: Prisma.LoanUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -2939,6 +3037,8 @@ export type UserUncheckedUpdateWithoutNotificationPrefsInput = {
   loans?: Prisma.LoanUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -2990,6 +3090,8 @@ export type UserCreateWithoutDeviceTokensInput = {
   loans?: Prisma.LoanCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
 }
 
@@ -3041,6 +3143,8 @@ export type UserUncheckedCreateWithoutDeviceTokensInput = {
   loans?: Prisma.LoanUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -3108,6 +3212,8 @@ export type UserUpdateWithoutDeviceTokensInput = {
   loans?: Prisma.LoanUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
 }
 
@@ -3159,6 +3265,8 @@ export type UserUncheckedUpdateWithoutDeviceTokensInput = {
   loans?: Prisma.LoanUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -3211,6 +3319,8 @@ export type UserCreateWithoutAuditLogsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -3262,6 +3372,8 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
   deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -3329,6 +3441,8 @@ export type UserUpdateWithoutAuditLogsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -3380,6 +3494,464 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
   deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutInvestorDepositsInput = {
+  id?: string
+  email: string
+  emailVerified?: Date | string | null
+  passwordHash?: string | null
+  name?: string | null
+  phone?: string | null
+  avatar?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  kycLevel?: $Enums.KYCLevel
+  kycSubmittedAt?: Date | string | null
+  kycApprovedAt?: Date | string | null
+  kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
+  idType?: string | null
+  creditScore?: number | null
+  creditTier?: string | null
+  legalName?: string | null
+  birthDate?: string | null
+  address?: string | null
+  monthlyIncome?: string | null
+  employmentType?: string | null
+  totalBorrowed?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalRepaid?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  activeLoansCount?: number
+  completedLoansCount?: number
+  defaultCount?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastLoginAt?: Date | string | null
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  wallets?: Prisma.WalletCreateNestedManyWithoutUserInput
+  documents?: Prisma.DocumentCreateNestedManyWithoutUserInput
+  loans?: Prisma.LoanCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
+  deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutInvestorDepositsInput = {
+  id?: string
+  email: string
+  emailVerified?: Date | string | null
+  passwordHash?: string | null
+  name?: string | null
+  phone?: string | null
+  avatar?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  kycLevel?: $Enums.KYCLevel
+  kycSubmittedAt?: Date | string | null
+  kycApprovedAt?: Date | string | null
+  kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
+  idType?: string | null
+  creditScore?: number | null
+  creditTier?: string | null
+  legalName?: string | null
+  birthDate?: string | null
+  address?: string | null
+  monthlyIncome?: string | null
+  employmentType?: string | null
+  totalBorrowed?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalRepaid?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  activeLoansCount?: number
+  completedLoansCount?: number
+  defaultCount?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastLoginAt?: Date | string | null
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  wallets?: Prisma.WalletUncheckedCreateNestedManyWithoutUserInput
+  documents?: Prisma.DocumentUncheckedCreateNestedManyWithoutUserInput
+  loans?: Prisma.LoanUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+  deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutInvestorDepositsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutInvestorDepositsInput, Prisma.UserUncheckedCreateWithoutInvestorDepositsInput>
+}
+
+export type UserUpsertWithoutInvestorDepositsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutInvestorDepositsInput, Prisma.UserUncheckedUpdateWithoutInvestorDepositsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutInvestorDepositsInput, Prisma.UserUncheckedCreateWithoutInvestorDepositsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutInvestorDepositsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutInvestorDepositsInput, Prisma.UserUncheckedUpdateWithoutInvestorDepositsInput>
+}
+
+export type UserUpdateWithoutInvestorDepositsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  kycLevel?: Prisma.EnumKYCLevelFieldUpdateOperationsInput | $Enums.KYCLevel
+  kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  monthlyIncome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  employmentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totalBorrowed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalRepaid?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  activeLoansCount?: Prisma.IntFieldUpdateOperationsInput | number
+  completedLoansCount?: Prisma.IntFieldUpdateOperationsInput | number
+  defaultCount?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  wallets?: Prisma.WalletUpdateManyWithoutUserNestedInput
+  documents?: Prisma.DocumentUpdateManyWithoutUserNestedInput
+  loans?: Prisma.LoanUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
+  deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutInvestorDepositsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  kycLevel?: Prisma.EnumKYCLevelFieldUpdateOperationsInput | $Enums.KYCLevel
+  kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  monthlyIncome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  employmentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totalBorrowed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalRepaid?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  activeLoansCount?: Prisma.IntFieldUpdateOperationsInput | number
+  completedLoansCount?: Prisma.IntFieldUpdateOperationsInput | number
+  defaultCount?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  wallets?: Prisma.WalletUncheckedUpdateManyWithoutUserNestedInput
+  documents?: Prisma.DocumentUncheckedUpdateManyWithoutUserNestedInput
+  loans?: Prisma.LoanUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+  deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  poolTransactions?: Prisma.PoolTransactionUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutPoolTransactionsInput = {
+  id?: string
+  email: string
+  emailVerified?: Date | string | null
+  passwordHash?: string | null
+  name?: string | null
+  phone?: string | null
+  avatar?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  kycLevel?: $Enums.KYCLevel
+  kycSubmittedAt?: Date | string | null
+  kycApprovedAt?: Date | string | null
+  kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
+  idType?: string | null
+  creditScore?: number | null
+  creditTier?: string | null
+  legalName?: string | null
+  birthDate?: string | null
+  address?: string | null
+  monthlyIncome?: string | null
+  employmentType?: string | null
+  totalBorrowed?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalRepaid?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  activeLoansCount?: number
+  completedLoansCount?: number
+  defaultCount?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastLoginAt?: Date | string | null
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  wallets?: Prisma.WalletCreateNestedManyWithoutUserInput
+  documents?: Prisma.DocumentCreateNestedManyWithoutUserInput
+  loans?: Prisma.LoanCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  notificationPrefs?: Prisma.NotificationPreferenceCreateNestedOneWithoutUserInput
+  deviceTokens?: Prisma.DeviceTokenCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutPoolTransactionsInput = {
+  id?: string
+  email: string
+  emailVerified?: Date | string | null
+  passwordHash?: string | null
+  name?: string | null
+  phone?: string | null
+  avatar?: string | null
+  role?: $Enums.UserRole
+  status?: $Enums.UserStatus
+  kycLevel?: $Enums.KYCLevel
+  kycSubmittedAt?: Date | string | null
+  kycApprovedAt?: Date | string | null
+  kycRejectionReason?: string | null
+  dateOfBirth?: string | null
+  gender?: string | null
+  civilStatus?: string | null
+  educationLevel?: string | null
+  country?: string | null
+  region?: string | null
+  province?: string | null
+  cityTown?: string | null
+  barangay?: string | null
+  contactNumber?: string | null
+  secondaryEmail?: string | null
+  idType?: string | null
+  creditScore?: number | null
+  creditTier?: string | null
+  legalName?: string | null
+  birthDate?: string | null
+  address?: string | null
+  monthlyIncome?: string | null
+  employmentType?: string | null
+  totalBorrowed?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalRepaid?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  activeLoansCount?: number
+  completedLoansCount?: number
+  defaultCount?: number
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lastLoginAt?: Date | string | null
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  wallets?: Prisma.WalletUncheckedCreateNestedManyWithoutUserInput
+  documents?: Prisma.DocumentUncheckedCreateNestedManyWithoutUserInput
+  loans?: Prisma.LoanUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  notificationPrefs?: Prisma.NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+  deviceTokens?: Prisma.DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutPoolTransactionsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutPoolTransactionsInput, Prisma.UserUncheckedCreateWithoutPoolTransactionsInput>
+}
+
+export type UserUpsertWithoutPoolTransactionsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutPoolTransactionsInput, Prisma.UserUncheckedUpdateWithoutPoolTransactionsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutPoolTransactionsInput, Prisma.UserUncheckedCreateWithoutPoolTransactionsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutPoolTransactionsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutPoolTransactionsInput, Prisma.UserUncheckedUpdateWithoutPoolTransactionsInput>
+}
+
+export type UserUpdateWithoutPoolTransactionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  kycLevel?: Prisma.EnumKYCLevelFieldUpdateOperationsInput | $Enums.KYCLevel
+  kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  monthlyIncome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  employmentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totalBorrowed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalRepaid?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  activeLoansCount?: Prisma.IntFieldUpdateOperationsInput | number
+  completedLoansCount?: Prisma.IntFieldUpdateOperationsInput | number
+  defaultCount?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  wallets?: Prisma.WalletUpdateManyWithoutUserNestedInput
+  documents?: Prisma.DocumentUpdateManyWithoutUserNestedInput
+  loans?: Prisma.LoanUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  notificationPrefs?: Prisma.NotificationPreferenceUpdateOneWithoutUserNestedInput
+  deviceTokens?: Prisma.DeviceTokenUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutPoolTransactionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  kycLevel?: Prisma.EnumKYCLevelFieldUpdateOperationsInput | $Enums.KYCLevel
+  kycSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycRejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  gender?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  civilStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  educationLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  country?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  region?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  province?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cityTown?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barangay?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contactNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  secondaryEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  idType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creditScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creditTier?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  legalName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  birthDate?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  monthlyIncome?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  employmentType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totalBorrowed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalRepaid?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  activeLoansCount?: Prisma.IntFieldUpdateOperationsInput | number
+  completedLoansCount?: Prisma.IntFieldUpdateOperationsInput | number
+  defaultCount?: Prisma.IntFieldUpdateOperationsInput | number
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  wallets?: Prisma.WalletUncheckedUpdateManyWithoutUserNestedInput
+  documents?: Prisma.DocumentUncheckedUpdateManyWithoutUserNestedInput
+  loans?: Prisma.LoanUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  notificationPrefs?: Prisma.NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+  deviceTokens?: Prisma.DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+  investorDeposits?: Prisma.InvestorDepositUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -3395,6 +3967,8 @@ export type UserCountOutputType = {
   loans: number
   notifications: number
   deviceTokens: number
+  investorDeposits: number
+  poolTransactions: number
   auditLogs: number
 }
 
@@ -3406,6 +3980,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   loans?: boolean | UserCountOutputTypeCountLoansArgs
   notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
   deviceTokens?: boolean | UserCountOutputTypeCountDeviceTokensArgs
+  investorDeposits?: boolean | UserCountOutputTypeCountInvestorDepositsArgs
+  poolTransactions?: boolean | UserCountOutputTypeCountPoolTransactionsArgs
   auditLogs?: boolean | UserCountOutputTypeCountAuditLogsArgs
 }
 
@@ -3471,6 +4047,20 @@ export type UserCountOutputTypeCountDeviceTokensArgs<ExtArgs extends runtime.Typ
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountInvestorDepositsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.InvestorDepositWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountPoolTransactionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PoolTransactionWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountAuditLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AuditLogWhereInput
 }
@@ -3525,6 +4115,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   notificationPrefs?: boolean | Prisma.User$notificationPrefsArgs<ExtArgs>
   deviceTokens?: boolean | Prisma.User$deviceTokensArgs<ExtArgs>
+  investorDeposits?: boolean | Prisma.User$investorDepositsArgs<ExtArgs>
+  poolTransactions?: boolean | Prisma.User$poolTransactionsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
@@ -3668,6 +4260,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   notificationPrefs?: boolean | Prisma.User$notificationPrefsArgs<ExtArgs>
   deviceTokens?: boolean | Prisma.User$deviceTokensArgs<ExtArgs>
+  investorDeposits?: boolean | Prisma.User$investorDepositsArgs<ExtArgs>
+  poolTransactions?: boolean | Prisma.User$poolTransactionsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -3685,6 +4279,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     notificationPrefs: Prisma.$NotificationPreferencePayload<ExtArgs> | null
     deviceTokens: Prisma.$DeviceTokenPayload<ExtArgs>[]
+    investorDeposits: Prisma.$InvestorDepositPayload<ExtArgs>[]
+    poolTransactions: Prisma.$PoolTransactionPayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -4142,6 +4738,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notificationPrefs<T extends Prisma.User$notificationPrefsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationPrefsArgs<ExtArgs>>): Prisma.Prisma__NotificationPreferenceClient<runtime.Types.Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   deviceTokens<T extends Prisma.User$deviceTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$deviceTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DeviceTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  investorDeposits<T extends Prisma.User$investorDepositsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$investorDepositsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvestorDepositPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  poolTransactions<T extends Prisma.User$poolTransactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$poolTransactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PoolTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.User$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -4408,6 +5006,11 @@ export type UserFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Skip the first `n` Users.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Users.
+   */
   distinct?: Prisma.UserScalarFieldEnum | Prisma.UserScalarFieldEnum[]
 }
 
@@ -4784,6 +5387,54 @@ export type User$deviceTokensArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.DeviceTokenScalarFieldEnum | Prisma.DeviceTokenScalarFieldEnum[]
+}
+
+/**
+ * User.investorDeposits
+ */
+export type User$investorDepositsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the InvestorDeposit
+   */
+  select?: Prisma.InvestorDepositSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the InvestorDeposit
+   */
+  omit?: Prisma.InvestorDepositOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InvestorDepositInclude<ExtArgs> | null
+  where?: Prisma.InvestorDepositWhereInput
+  orderBy?: Prisma.InvestorDepositOrderByWithRelationInput | Prisma.InvestorDepositOrderByWithRelationInput[]
+  cursor?: Prisma.InvestorDepositWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.InvestorDepositScalarFieldEnum | Prisma.InvestorDepositScalarFieldEnum[]
+}
+
+/**
+ * User.poolTransactions
+ */
+export type User$poolTransactionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PoolTransaction
+   */
+  select?: Prisma.PoolTransactionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PoolTransaction
+   */
+  omit?: Prisma.PoolTransactionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PoolTransactionInclude<ExtArgs> | null
+  where?: Prisma.PoolTransactionWhereInput
+  orderBy?: Prisma.PoolTransactionOrderByWithRelationInput | Prisma.PoolTransactionOrderByWithRelationInput[]
+  cursor?: Prisma.PoolTransactionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PoolTransactionScalarFieldEnum | Prisma.PoolTransactionScalarFieldEnum[]
 }
 
 /**

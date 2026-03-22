@@ -2784,6 +2784,11 @@ export type LoanFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Skip the first `n` Loans.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Loans.
+   */
   distinct?: Prisma.LoanScalarFieldEnum | Prisma.LoanScalarFieldEnum[]
 }
 

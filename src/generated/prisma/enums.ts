@@ -11,7 +11,8 @@
 
 export const UserRole = {
   ADMIN: 'ADMIN',
-  BORROWER: 'BORROWER'
+  BORROWER: 'BORROWER',
+  INVESTOR: 'INVESTOR'
 } as const
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
@@ -121,3 +122,22 @@ export const InterestType = {
 } as const
 
 export type InterestType = (typeof InterestType)[keyof typeof InterestType]
+
+
+export const DepositStatus = {
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  WITHDRAWN: 'WITHDRAWN'
+} as const
+
+export type DepositStatus = (typeof DepositStatus)[keyof typeof DepositStatus]
+
+
+export const PoolTransactionType = {
+  DEPOSIT: 'DEPOSIT',
+  WITHDRAWAL: 'WITHDRAWAL',
+  YIELD_EARNED: 'YIELD_EARNED',
+  FEE_COLLECTED: 'FEE_COLLECTED'
+} as const
+
+export type PoolTransactionType = (typeof PoolTransactionType)[keyof typeof PoolTransactionType]

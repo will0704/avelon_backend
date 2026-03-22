@@ -317,6 +317,15 @@ export class LoanService {
             },
         });
 
+        // Track borrowed amount in pool
+        try {
+            await prisma.liquidityPool.updateMany({
+                data: { totalBorrowed: { increment: loan.principal } },
+            });
+        } catch (err) {
+            console.error('[LoanService] Failed to update pool totalBorrowed on disbursal:', err);
+        }
+
         // Notify: loan disbursed
         await notificationService.notify(loan.userId, {
             type: 'LOAN_DISBURSED',
@@ -386,6 +395,9 @@ export class LoanService {
         let newInterestOwed = loan.interestOwed;
         let newPrincipalOwed = loan.principalOwed;
 
+        // Track how much interest is paid in this repayment (for revenue split)
+        const interestOwedBefore = loan.interestOwed;
+
         // Pay fees
         if (remaining.gt(0) && newFeesOwed.gt(0)) {
             const feePaid = PrismaDecimal.min(remaining, newFeesOwed);
@@ -394,8 +406,9 @@ export class LoanService {
         }
 
         // Pay interest
+        let interestPaid = new PrismaDecimal(0);
         if (remaining.gt(0) && newInterestOwed.gt(0)) {
-            const interestPaid = PrismaDecimal.min(remaining, newInterestOwed);
+            interestPaid = PrismaDecimal.min(remaining, newInterestOwed);
             newInterestOwed = newInterestOwed.sub(interestPaid);
             remaining = remaining.sub(interestPaid);
         }
@@ -443,6 +456,41 @@ export class LoanService {
                     totalRepaid: { increment: loan.principal },
                 },
             });
+        }
+
+        // Revenue split: 90% of interest goes to liquidity pool, 10% to Avelon (treasury)
+        // This happens whenever interest is paid, not just on full repayment
+        if (interestPaid.gt(0)) {
+            const poolShare = interestPaid.mul(0.9).toDecimalPlaces(18);
+            try {
+                // Update pool cumulative yield and liquidity
+                await prisma.liquidityPool.updateMany({
+                    data: {
+                        cumulativeYield: { increment: poolShare },
+                        totalBorrowed: isFullyRepaid ? { decrement: loan.principal } : undefined,
+                    },
+                });
+                // Record yield event in pool transaction ledger
+                await prisma.poolTransaction.create({
+                    data: {
+                        type: 'YIELD_EARNED',
+                        amount: poolShare,
+                        txHash,
+                    },
+                });
+            } catch (err) {
+                // Non-fatal: log but don't block repayment
+                console.error('[LoanService] Failed to distribute yield to pool:', err);
+            }
+        } else if (isFullyRepaid) {
+            // Even if no interest was paid in this repayment, reduce totalBorrowed on full repayment
+            try {
+                await prisma.liquidityPool.updateMany({
+                    data: { totalBorrowed: { decrement: loan.principal } },
+                });
+            } catch (err) {
+                console.error('[LoanService] Failed to update pool totalBorrowed:', err);
+            }
         }
 
         // Log audit

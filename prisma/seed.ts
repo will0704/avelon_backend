@@ -16,7 +16,11 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
     console.log('🌱 Seeding database...\n');
 
-    // Create admin user
+    // =====================================================
+    // USERS
+    // =====================================================
+
+    // Admin
     const adminPassword = await hash('Admin@123', 12);
     const admin = await prisma.user.upsert({
         where: { email: 'admin@avelon.finance' },
@@ -33,17 +37,17 @@ async function main() {
             creditTier: 'VIP',
         },
     });
-    console.log('✅ Created admin user:', admin.email);
+    console.log('✅ Created admin:', admin.email);
 
-    // Create test borrower
-    const borrowerPassword = await hash('Test@123', 12);
-    const borrower = await prisma.user.upsert({
+    // Borrower 1
+    const borrower1Password = await hash('Borrower@123', 12);
+    const borrower1 = await prisma.user.upsert({
         where: { email: 'borrower@test.com' },
         update: {},
         create: {
             email: 'borrower@test.com',
-            passwordHash: borrowerPassword,
-            name: 'Test Borrower',
+            passwordHash: borrower1Password,
+            name: 'Juan Dela Cruz',
             role: 'BORROWER',
             status: 'APPROVED',
             emailVerified: new Date(),
@@ -56,16 +60,17 @@ async function main() {
             employmentType: 'EMPLOYED',
         },
     });
-    console.log('✅ Created test borrower:', borrower.email);
+    console.log('✅ Created borrower 1:', borrower1.email);
 
-    const borrower2Password = await hash('Test2@123', 12);
+    // Borrower 2
+    const borrower2Password = await hash('Borrower2@123', 12);
     const borrower2 = await prisma.user.upsert({
         where: { email: 'borrower2@gmail.com' },
         update: {},
         create: {
             email: 'borrower2@gmail.com',
             passwordHash: borrower2Password,
-            name: 'Test Borrower 2',
+            name: 'Maria Santos',
             role: 'BORROWER',
             status: 'APPROVED',
             emailVerified: new Date(),
@@ -78,9 +83,31 @@ async function main() {
             employmentType: 'EMPLOYED',
         },
     });
-    console.log('✅ Created test borrower 2:', borrower2.email);
+    console.log('✅ Created borrower 2:', borrower2.email);
 
-    // Create loan plans
+    // Investor
+    const investorPassword = await hash('Investor@123', 12);
+    const investor = await prisma.user.upsert({
+        where: { email: 'investor@test.com' },
+        update: {},
+        create: {
+            email: 'investor@test.com',
+            passwordHash: investorPassword,
+            name: 'Demo Investor',
+            role: 'INVESTOR',
+            status: 'APPROVED',
+            emailVerified: new Date(),
+            kycLevel: 'ENHANCED',
+            creditScore: 90,
+            creditTier: 'PREMIUM',
+        },
+    });
+    console.log('✅ Created investor:', investor.email);
+
+    // =====================================================
+    // LOAN PLANS
+    // =====================================================
+
     const plans = [
         {
             name: 'Starter',
@@ -152,16 +179,40 @@ async function main() {
         console.log('✅ Created loan plan:', plan.name);
     }
 
-    // Create initial price history
+    // =====================================================
+    // LIQUIDITY POOL (singleton — initialize if not present)
+    // =====================================================
+
+    const poolCount = await prisma.liquidityPool.count();
+    if (poolCount === 0) {
+        await prisma.liquidityPool.create({
+            data: {
+                totalLiquidity: 2.0,   // 2 ETH demo liquidity
+                totalBorrowed: 0,
+                cumulativeYield: 0,
+                utilizationRate: 0,
+                apy: 0,
+            },
+        });
+        console.log('✅ Initialized liquidity pool (2 ETH)');
+    }
+
+    // =====================================================
+    // PRICE HISTORY
+    // =====================================================
+
     await prisma.priceHistory.create({
         data: {
             ethPricePHP: 150000,
             source: 'manual',
         },
     });
-    console.log('✅ Created initial price history');
+    console.log('✅ Created initial price history (1 ETH = ₱150,000)');
 
-    // Create system configs
+    // =====================================================
+    // SYSTEM CONFIGS
+    // =====================================================
+
     const configs = [
         { key: 'ETH_PHP_RATE', value: '150000', description: 'Current ETH/PHP exchange rate' },
         { key: 'MIN_COLLATERAL_RATIO', value: '120', description: 'Minimum collateral ratio before liquidation' },
@@ -170,20 +221,29 @@ async function main() {
         { key: 'LIQUIDATION_PENALTY_PERCENT', value: '5', description: 'Penalty percentage for liquidation' },
     ];
 
-    for (const config of configs) {
+    for (const cfg of configs) {
         await prisma.systemConfig.upsert({
-            where: { key: config.key },
+            where: { key: cfg.key },
             update: {},
-            create: config,
+            create: cfg,
         });
-        console.log('✅ Created system config:', config.key);
+        console.log('✅ Created system config:', cfg.key);
     }
 
-    console.log('\n🎉 Seeding completed!');
-    console.log('\n📝 Test Credentials:');
-    console.log('   Admin: admin@avelon.finance / Admin@123');
-    console.log('   Borrower: borrower@test.com / Test@123');
-    console.log('   Borrower: borrower2@gmail.com / Test@123');
+    // =====================================================
+    // SUMMARY
+    // =====================================================
+
+    console.log('\n🎉 Seeding completed!\n');
+    console.log('📝 Demo Accounts:');
+    console.log('┌─────────────────────────────────────────────────────┐');
+    console.log('│  Role      │ Email                  │ Password       │');
+    console.log('├─────────────────────────────────────────────────────┤');
+    console.log('│  ADMIN     │ admin@avelon.finance    │ Admin@123      │');
+    console.log('│  BORROWER  │ borrower@test.com       │ Borrower@123   │');
+    console.log('│  BORROWER  │ borrower2@gmail.com     │ Borrower2@123  │');
+    console.log('│  INVESTOR  │ investor@test.com       │ Investor@123   │');
+    console.log('└─────────────────────────────────────────────────────┘');
 }
 
 main()

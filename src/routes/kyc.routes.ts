@@ -9,7 +9,7 @@ import { UserStatus } from '@avelon_capstone/types';
 import path from 'path';
 import fs from 'fs/promises';
 import { notificationService } from '../services/notification.service.js';
-import { triggerAIVerification } from '../services/kyc-verification.service.js';
+import { triggerAIVerification, verifyFace } from '../services/kyc-verification.service.js';
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js';
 
 const kycRoutes = new Hono();
@@ -69,6 +69,8 @@ kycRoutes.get('/status', async (c) => {
             fileName: true,
             aiVerified: true,
             aiConfidence: true,
+            faceMatchScore: true,
+            faceMatchPassed: true,
             rejectionReason: true,
             createdAt: true,
         },
@@ -456,6 +458,64 @@ kycRoutes.delete('/documents/:id', async (c) => {
     });
 });
 
+/**
+ * POST /kyc/verify/face
+ * Upload a selfie and compare it against the user's government ID via AI face matching.
+ * Must be called after uploading a GOVERNMENT_ID document and before /kyc/submit.
+ */
+kycRoutes.post('/verify/face', kycUploadRateLimiter, async (c) => {
+    const userId = c.get('userId');
+
+    const body = await c.req.parseBody();
+    const file = body['file'];
+
+    if (!file || !(file instanceof File)) {
+        throw new ValidationError('Selfie file is required. Send as multipart/form-data with field name "file".');
+    }
+
+    const ext = path.extname(file.name).toLowerCase();
+    if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+        throw new ValidationError('Selfie must be an image file (jpg, png, webp).');
+    }
+
+    if (!file.type.startsWith('image/')) {
+        throw new ValidationError('Selfie must be an image file.');
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+        throw new ValidationError(`Selfie too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
+    }
+
+    // Save selfie to disk
+    const uploadDir = await ensureUploadDir(userId);
+    const safeFileName = `SELFIE_${Date.now()}${ext}`;
+    const filePath = path.join(uploadDir, safeFileName);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await fs.writeFile(filePath, buffer);
+
+    try {
+        const result = await verifyFace(userId, buffer, safeFileName, filePath);
+
+        return c.json({
+            success: true,
+            data: {
+                passed: result.passed,
+                score: result.score,
+                message: result.message,
+                selfieDocumentId: result.selfieDocumentId,
+            },
+        });
+    } catch (err: unknown) {
+        // Clean up saved selfie on failure before rethrowing
+        try { await fs.unlink(filePath); } catch { /* ignore */ }
+
+        if (err instanceof Error && err.message === 'GOVERNMENT_ID_REQUIRED') {
+            throw new ValidationError('You must upload a government ID before completing face verification.');
+        }
+        throw err;
+    }
+});
+
 // Validation for KYC submission
 const submitKycSchema = z.object({
     documentIds: z.array(z.string()).min(1, 'At least one document ID is required').optional(),
@@ -505,6 +565,17 @@ kycRoutes.post('/submit', zValidator('json', submitKycSchema), async (c) => {
     const hasGovId = documents.some((d: { type: string }) => d.type === 'GOVERNMENT_ID');
     if (!hasGovId) {
         throw new ValidationError('A government ID document is required for KYC submission');
+    }
+
+    // Require completed and passed face verification
+    const selfieDoc = await prisma.document.findFirst({
+        where: { userId, type: 'SELFIE' },
+        orderBy: { createdAt: 'desc' },
+        select: { faceMatchPassed: true },
+    });
+
+    if (!selfieDoc || selfieDoc.faceMatchPassed !== true) {
+        throw new ValidationError('Face verification must be completed and passed before submitting KYC');
     }
 
     // Update user status to pending KYC

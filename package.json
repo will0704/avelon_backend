@@ -43,7 +43,7 @@
   },
   "homepage": "https://github.com/will0704/avelon_backend#readme",
   "dependencies": {
-    "@avelon_capstone/types": "^1.0.0",
+    "@avelon_capstone/types": "file:../avelon_types",
     "@hono/node-server": "^1.19.9",
     "@hono/zod-validator": "^0.7.6",
     "@prisma/adapter-pg": "^7.2.0",

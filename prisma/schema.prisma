@@ -22,6 +22,7 @@ datasource db {
 enum UserRole {
   ADMIN
   BORROWER
+  INVESTOR
 }
 
 enum UserStatus {
@@ -173,6 +174,8 @@ model User {
   notifications       Notification[]
   notificationPrefs   NotificationPreference?
   deviceTokens        DeviceToken[]
+  investorDeposits    InvestorDeposit[]
+  poolTransactions    PoolTransaction[]
   auditLogs           AuditLog[]
 
   @@index([email])
@@ -266,6 +269,10 @@ model Document {
   aiExtractedData Json?          // Extracted fields
   aiFraudScore    Float?         // 0-1 fraud probability
   aiFraudFlags    String[]       // List of fraud indicators
+
+  // Face Matching (SELFIE documents only)
+  faceMatchScore  Float?         // Cosine similarity 0-1 vs government ID
+  faceMatchPassed Boolean?       // true = face matches ID photo
 
   // Manual Review
   reviewedBy      String?        // Admin ID
@@ -513,4 +520,81 @@ model SystemConfig {
 
   updatedAt   DateTime @updatedAt
   updatedBy   String?  // Admin ID
+}
+
+// =====================================================
+// INVESTOR / LIQUIDITY POOL
+// =====================================================
+
+enum DepositStatus {
+  PENDING    // Tx submitted, not yet confirmed on-chain
+  CONFIRMED  // Confirmed — liquidity is in the pool
+  WITHDRAWN  // Fully withdrawn
+}
+
+enum PoolTransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  YIELD_EARNED
+  FEE_COLLECTED
+}
+
+/// Records a single investor deposit into the liquidity pool.
+model InvestorDeposit {
+  id               String        @id @default(cuid())
+  userId           String
+
+  // Deposit details
+  amount           Decimal       // ETH amount deposited
+  txHash           String        @unique
+  status           DepositStatus @default(PENDING)
+  poolSharePercent Float?        // Pool share at time of deposit (0–100)
+
+  // Timestamps
+  createdAt        DateTime      @default(now())
+  withdrawnAt      DateTime?
+
+  user             User          @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+/// Singleton table — one row represents the shared liquidity pool state.
+/// Updated on every deposit, withdrawal, and loan repayment.
+model LiquidityPool {
+  id               String   @id @default(cuid())
+
+  // Pool financials (ETH)
+  totalLiquidity   Decimal  @default(0)  // Total deposited (active)
+  totalBorrowed    Decimal  @default(0)  // Currently lent out
+  cumulativeYield  Decimal  @default(0)  // Total yield ever distributed
+
+  // Computed metrics (cached, recomputed on relevant events)
+  utilizationRate  Float    @default(0)  // totalBorrowed / totalLiquidity (0–1)
+  apy              Float    @default(0)  // Annualised yield rate (0–1)
+
+  lastUpdated      DateTime @default(now()) @updatedAt
+}
+
+/// Ledger of all pool-level financial events (deposits, withdrawals, yield).
+model PoolTransaction {
+  id        String              @id @default(cuid())
+  type      PoolTransactionType
+
+  // Amount in ETH
+  amount    Decimal
+
+  // On-chain reference (null for internal yield events)
+  txHash    String?
+
+  // Associated user (null for pool-aggregate events like FEE_COLLECTED)
+  userId    String?
+  user      User?               @relation(fields: [userId], references: [id])
+
+  createdAt DateTime            @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
 }

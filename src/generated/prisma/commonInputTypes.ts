@@ -329,6 +329,11 @@ export type JsonNullableFilterBase<$PrismaModel = never> = {
   not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
 }
 
+export type BoolNullableFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedBoolNullableFilter<$PrismaModel> | boolean | null
+}
+
 export type EnumDocumentTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.DocumentType | Prisma.EnumDocumentTypeFieldRefInput<$PrismaModel>
   in?: $Enums.DocumentType[] | Prisma.ListEnumDocumentTypeFieldRefInput<$PrismaModel>
@@ -390,6 +395,14 @@ export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedJsonNullableFilter<$PrismaModel>
   _max?: Prisma.NestedJsonNullableFilter<$PrismaModel>
+}
+
+export type BoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedBoolNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedBoolNullableFilter<$PrismaModel>
 }
 
 export type FloatFilter<$PrismaModel = never> = {
@@ -512,6 +525,40 @@ export type EnumNotificationTypeWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumNotificationTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumNotificationTypeFilter<$PrismaModel>
+}
+
+export type EnumDepositStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.DepositStatus | Prisma.EnumDepositStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DepositStatus[] | Prisma.ListEnumDepositStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DepositStatus[] | Prisma.ListEnumDepositStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDepositStatusFilter<$PrismaModel> | $Enums.DepositStatus
+}
+
+export type EnumDepositStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DepositStatus | Prisma.EnumDepositStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DepositStatus[] | Prisma.ListEnumDepositStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DepositStatus[] | Prisma.ListEnumDepositStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDepositStatusWithAggregatesFilter<$PrismaModel> | $Enums.DepositStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDepositStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDepositStatusFilter<$PrismaModel>
+}
+
+export type EnumPoolTransactionTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.PoolTransactionType | Prisma.EnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.PoolTransactionType[] | Prisma.ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PoolTransactionType[] | Prisma.ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPoolTransactionTypeFilter<$PrismaModel> | $Enums.PoolTransactionType
+}
+
+export type EnumPoolTransactionTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PoolTransactionType | Prisma.EnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.PoolTransactionType[] | Prisma.ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PoolTransactionType[] | Prisma.ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPoolTransactionTypeWithAggregatesFilter<$PrismaModel> | $Enums.PoolTransactionType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPoolTransactionTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPoolTransactionTypeFilter<$PrismaModel>
 }
 
 export type NestedStringFilter<$PrismaModel = never> = {
@@ -807,6 +854,11 @@ export type NestedEnumDocumentStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumDocumentStatusFilter<$PrismaModel> | $Enums.DocumentStatus
 }
 
+export type NestedBoolNullableFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedBoolNullableFilter<$PrismaModel> | boolean | null
+}
+
 export type NestedEnumDocumentTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.DocumentType | Prisma.EnumDocumentTypeFieldRefInput<$PrismaModel>
   in?: $Enums.DocumentType[] | Prisma.ListEnumDocumentTypeFieldRefInput<$PrismaModel>
@@ -865,6 +917,14 @@ export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
   gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
   gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
   not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+}
+
+export type NestedBoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedBoolNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedBoolNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumInterestTypeFilter<$PrismaModel = never> = {
@@ -976,6 +1036,40 @@ export type NestedEnumNotificationTypeWithAggregatesFilter<$PrismaModel = never>
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumNotificationTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumNotificationTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumDepositStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.DepositStatus | Prisma.EnumDepositStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DepositStatus[] | Prisma.ListEnumDepositStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DepositStatus[] | Prisma.ListEnumDepositStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDepositStatusFilter<$PrismaModel> | $Enums.DepositStatus
+}
+
+export type NestedEnumDepositStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DepositStatus | Prisma.EnumDepositStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DepositStatus[] | Prisma.ListEnumDepositStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DepositStatus[] | Prisma.ListEnumDepositStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDepositStatusWithAggregatesFilter<$PrismaModel> | $Enums.DepositStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDepositStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDepositStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumPoolTransactionTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.PoolTransactionType | Prisma.EnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.PoolTransactionType[] | Prisma.ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PoolTransactionType[] | Prisma.ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPoolTransactionTypeFilter<$PrismaModel> | $Enums.PoolTransactionType
+}
+
+export type NestedEnumPoolTransactionTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PoolTransactionType | Prisma.EnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.PoolTransactionType[] | Prisma.ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PoolTransactionType[] | Prisma.ListEnumPoolTransactionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPoolTransactionTypeWithAggregatesFilter<$PrismaModel> | $Enums.PoolTransactionType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPoolTransactionTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPoolTransactionTypeFilter<$PrismaModel>
 }
 
 

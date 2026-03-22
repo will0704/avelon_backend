@@ -128,3 +128,21 @@ export const approvedMiddleware = createMiddleware(async (c, next) => {
 
     await next();
 });
+
+/**
+ * Investor-only middleware
+ * Must be used after authMiddleware
+ */
+export const investorMiddleware = createMiddleware(async (c, next) => {
+    const user = c.get('user');
+
+    if (!user) {
+        throw new UnauthorizedError('Authentication required');
+    }
+
+    if (user.role !== UserRole.INVESTOR) {
+        throw new ForbiddenError('Investor access required');
+    }
+
+    await next();
+});

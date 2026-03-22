@@ -982,6 +982,11 @@ export type SystemConfigFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Skip the first `n` SystemConfigs.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of SystemConfigs.
+   */
   distinct?: Prisma.SystemConfigScalarFieldEnum | Prisma.SystemConfigScalarFieldEnum[]
 }
 

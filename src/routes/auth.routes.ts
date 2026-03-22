@@ -9,6 +9,7 @@ import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { emailService } from '../services/email.service.js';
 import type { TokenPayload } from '@avelon_capstone/types';
+import { UserRole } from '@avelon_capstone/types';
 
 const { verify } = jwt;
 
@@ -25,6 +26,7 @@ const registerSchema = z.object({
         .regex(/[0-9]/, 'Password must contain at least one number')
         .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
     name: z.string().min(2).optional(),
+    role: z.enum([UserRole.BORROWER, UserRole.INVESTOR]).optional().default(UserRole.BORROWER),
 });
 
 const loginSchema = z.object({

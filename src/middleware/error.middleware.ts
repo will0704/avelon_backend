@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { ZodError, ZodIssue } from 'zod';
 import { env } from '../config/env.js';
-import { ErrorCode } from '@/types/index.js';
+import { ErrorCode } from '../types/index.js';
 
 // Custom error classes
 export class AppError extends Error {

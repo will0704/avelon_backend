@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, NotFoundError, ValidationError } from '../middleware/error.middleware.js';
-import { UserStatus, LoanStatus } from '@/types/index.js';
+import { UserStatus, LoanStatus } from '../types/index.js';
 
 export class WalletService {
     /**

@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
-import { UserStatus, LoanStatus } from '@/types/index.js';
+import { UserStatus, LoanStatus } from '../types/index.js';
 
 const userRoutes = new Hono();
 

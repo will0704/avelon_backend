@@ -335,6 +335,8 @@ export class LoanService {
                 type: LoanTransactionType.LOAN_DISBURSEMENT,
                 amount: loan.principal,
                 txHash: disbursementTxHash,
+                confirmed: true,
+                confirmedAt: new Date(),
             },
         });
 

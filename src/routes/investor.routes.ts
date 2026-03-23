@@ -100,13 +100,23 @@ investorRoutes.post('/deposit/:txHash/confirm', async (c) => {
 
 /**
  * POST /investor/withdraw/:depositId
- * Withdraw a confirmed deposit from the pool
+ * Withdraw a confirmed deposit from the pool (sends ETH on-chain)
  */
-investorRoutes.post('/withdraw/:depositId', async (c) => {
-    const userId = c.get('userId');
-    const depositId = c.req.param('depositId');
-    const deposit = await investorService.withdraw(userId, depositId);
-    return c.json({ success: true, data: deposit });
-});
+investorRoutes.post(
+    '/withdraw/:depositId',
+    zValidator(
+        'json',
+        z.object({
+            walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address'),
+        }),
+    ),
+    async (c) => {
+        const userId = c.get('userId');
+        const depositId = c.req.param('depositId');
+        const { walletAddress } = c.req.valid('json');
+        const deposit = await investorService.withdraw(userId, depositId, walletAddress);
+        return c.json({ success: true, data: deposit });
+    },
+);
 
 export { investorRoutes };

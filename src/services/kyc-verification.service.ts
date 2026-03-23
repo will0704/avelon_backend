@@ -129,6 +129,14 @@ export async function triggerAIVerification(
 
             const result = (await response.json()) as AIDocumentResult;
 
+            console.log(`[KYC] AI result for ${doc.type} (doc ${doc.id}):`, {
+                valid: result.valid,
+                confidence: result.confidence,
+                fraudProbability: result.fraud_probability,
+                fraudIndicators: result.fraud_indicators,
+                message: result.message,
+            });
+
             // Persist AI results on the document record
             await prisma.document.update({
                 where: { id: doc.id },
@@ -165,6 +173,12 @@ export async function triggerAIVerification(
         }
 
         const allPassed = results.every((r) => r.result.valid);
+
+        console.log(`[KYC] Verification summary for user ${userId}:`, {
+            totalDocs: results.length,
+            allPassed,
+            perDoc: results.map((r) => ({ type: r.type, valid: r.result.valid, confidence: r.result.confidence, message: r.result.message })),
+        });
 
         if (allPassed) {
             const kycLevel = deriveKycLevel(results.map((r) => r.type));

@@ -512,6 +512,23 @@ kycRoutes.post('/verify/face', kycUploadRateLimiter, async (c) => {
         if (err instanceof Error && err.message === 'GOVERNMENT_ID_REQUIRED') {
             throw new ValidationError('You must upload a government ID before completing face verification.');
         }
+
+        // Handle file-not-found (e.g. Render ephemeral disk wiped the uploaded ID)
+        if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+            console.error('[KYC] Face verify: file not found on disk —', (err as Error).message);
+            throw new ValidationError(
+                'Your previously uploaded government ID could not be found. Please re-upload your ID and try again.'
+            );
+        }
+
+        // Handle AI service / network errors with a descriptive message
+        if (err instanceof Error && (err.message.includes('fetch') || err.message.includes('ECONNREFUSED') || err.message.includes('network'))) {
+            console.error('[KYC] Face verify: AI service unreachable —', err.message);
+            throw new AppError(502, 'AI_SERVICE_ERROR', 'Face verification service is currently unavailable. Please try again later.');
+        }
+
+        // Log and rethrow with more context
+        console.error('[KYC] Face verify unexpected error:', err);
         throw err;
     }
 });

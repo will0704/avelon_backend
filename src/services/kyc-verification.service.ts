@@ -60,7 +60,7 @@ function deriveKycLevel(docTypes: string[]): KYCLevel {
 // E_SIGNATURE is skipped — it's a user-drawn signature, not a verifiable document.
 const DOC_TYPE_TO_AI: Record<string, string | null> = {
     GOVERNMENT_ID:      'government_id',
-    GOVERNMENT_ID_BACK: 'government_id',   // back of same ID — verify as government_id
+    GOVERNMENT_ID_BACK: 'government_id_back',  // dedicated back-of-ID processing
     E_SIGNATURE:        null,              // skip — not a verifiable document
     PROOF_OF_INCOME:    'proof_of_income',
     PROOF_OF_ADDRESS:   'proof_of_address',

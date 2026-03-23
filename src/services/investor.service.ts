@@ -18,6 +18,9 @@ export class InvestorService {
     // ============================================
 
     async getPoolStats() {
+        console.log('[InvestorService] getPoolStats called');
+        console.log('[InvestorService] COLLATERAL_MANAGER_ADDRESS env:', process.env.COLLATERAL_MANAGER_ADDRESS);
+
         const pool = await this._getOrCreatePool();
 
         // Count active investors (users with at least one CONFIRMED deposit and no withdrawal)
@@ -32,7 +35,7 @@ export class InvestorService {
             where: { status: { in: ['ACTIVE', 'COLLATERAL_DEPOSITED'] } },
         });
 
-        return {
+        const result = {
             tvl: Number(pool.totalLiquidity),
             totalBorrowed: Number(pool.totalBorrowed),
             utilizationRate: pool.utilizationRate,
@@ -40,7 +43,10 @@ export class InvestorService {
             totalInvestors: totalInvestors.length,
             activeLoans,
             lastUpdated: pool.lastUpdated,
+            depositAddress: process.env.COLLATERAL_MANAGER_ADDRESS || null,
         };
+        console.log('[InvestorService] getPoolStats result:', JSON.stringify(result, null, 2));
+        return result;
     }
 
     // ============================================
@@ -121,9 +127,12 @@ export class InvestorService {
     }
 
     async recordDeposit(userId: string, txHash: string, amount: string) {
+        console.log('[InvestorService] recordDeposit called', { userId, txHash, amount });
+
         // Validate amount
         const amountDecimal = new PrismaDecimal(amount);
         if (amountDecimal.lte(0)) {
+            console.error('[InvestorService] ❌ amount <= 0');
             throw new ValidationError('Deposit amount must be greater than 0');
         }
 
@@ -132,6 +141,7 @@ export class InvestorService {
             where: { txHash },
         });
         if (existing) {
+            console.error('[InvestorService] ❌ duplicate txHash:', txHash);
             throw new ValidationError('Transaction already recorded');
         }
 
@@ -139,6 +149,7 @@ export class InvestorService {
         const pool = await this._getOrCreatePool();
         const poolTotalAfter = Number(pool.totalLiquidity) + Number(amount);
         const sharePercent = poolTotalAfter > 0 ? (Number(amount) / poolTotalAfter) * 100 : 100;
+        console.log('[InvestorService] pool share calc:', { poolTotalAfter, sharePercent });
 
         const deposit = await prisma.investorDeposit.create({
             data: {
@@ -150,6 +161,7 @@ export class InvestorService {
             },
         });
 
+        console.log('[InvestorService] ✅ deposit created:', deposit.id);
         return deposit;
     }
 

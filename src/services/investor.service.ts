@@ -2,6 +2,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import { prisma } from '../lib/prisma.js';
 import { NotFoundError, ValidationError } from '../middleware/error.middleware.js';
 import { DepositStatus } from '../types/index.js';
+import { blockchainService } from './blockchain.service.js';
 
 // For Decimal type annotations
 const PrismaDecimal = Prisma.Decimal;
@@ -209,7 +210,9 @@ export class InvestorService {
     // WITHDRAWALS
     // ============================================
 
-    async withdraw(userId: string, depositId: string) {
+    async withdraw(userId: string, depositId: string, walletAddress: string) {
+        console.log('[InvestorService] withdraw called', { userId, depositId, walletAddress });
+
         const deposit = await prisma.investorDeposit.findUnique({
             where: { id: depositId },
         });
@@ -222,13 +225,27 @@ export class InvestorService {
             throw new ValidationError('Only confirmed deposits can be withdrawn');
         }
 
+        // Validate wallet address
+        if (!blockchainService.isValidAddress(walletAddress)) {
+            throw new ValidationError('Invalid wallet address');
+        }
+
         // Check pool has enough liquidity
         const pool = await this._getOrCreatePool();
         const available = Number(pool.totalLiquidity) - Number(pool.totalBorrowed);
-        if (available < Number(deposit.amount)) {
+        const withdrawAmount = Number(deposit.amount);
+        console.log('[InvestorService] pool liquidity check', { available, withdrawAmount });
+
+        if (available < withdrawAmount) {
             throw new ValidationError('Insufficient pool liquidity for withdrawal. Try again later.');
         }
 
+        // Send ETH on-chain from platform wallet to investor wallet
+        console.log('[InvestorService] sending ETH on-chain...', { to: walletAddress, amount: withdrawAmount.toString() });
+        const txResult = await blockchainService.sendEth(walletAddress, withdrawAmount.toString());
+        console.log('[InvestorService] ✅ ETH sent', txResult);
+
+        // Update DB records with tx hash
         const [updatedDeposit] = await prisma.$transaction([
             prisma.investorDeposit.update({
                 where: { id: depositId },
@@ -246,6 +263,7 @@ export class InvestorService {
                 data: {
                     type: 'WITHDRAWAL',
                     amount: deposit.amount,
+                    txHash: txResult.txHash,
                     userId,
                 },
             }),
@@ -253,7 +271,8 @@ export class InvestorService {
 
         await this._recalculatePool();
 
-        return updatedDeposit;
+        console.log('[InvestorService] ✅ withdrawal complete', { depositId, txHash: txResult.txHash });
+        return { ...updatedDeposit, txHash: txResult.txHash };
     }
 
     // ============================================

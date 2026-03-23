@@ -179,6 +179,12 @@ export class InvestorService {
             throw new ValidationError('Deposit is not in PENDING state');
         }
 
+        // Verify the transaction exists and is confirmed on-chain
+        const txResult = await blockchainService.verifyTransaction(txHash);
+        if (!txResult.valid) {
+            throw new ValidationError('Transaction not confirmed on-chain');
+        }
+
         const [updatedDeposit] = await prisma.$transaction([
             prisma.investorDeposit.update({
                 where: { txHash },

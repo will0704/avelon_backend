@@ -400,10 +400,11 @@ export class LoanService {
             throw new ValidationError('Transaction not confirmed on blockchain');
         }
 
-        const repaymentAmount = new PrismaDecimal(amount);
         const totalOwed = loan.principalOwed.add(loan.interestOwed).add(loan.feesOwed);
+        // Cap at totalOwed to handle minor floating-point rounding from client
+        const repaymentAmount = PrismaDecimal.min(new PrismaDecimal(amount), totalOwed);
 
-        if (repaymentAmount.gt(totalOwed)) {
+        if (new PrismaDecimal(amount).gt(totalOwed.mul(1.001))) {
             throw new ValidationError('Repayment amount exceeds total owed');
         }
 

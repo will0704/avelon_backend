@@ -153,6 +153,7 @@ loanRoutes.get('/blockchain/status', authMiddleware, async (c) => {
                     avelonLending: process.env.AVELON_LENDING_ADDRESS || null,
                     collateralManager: process.env.COLLATERAL_MANAGER_ADDRESS || null,
                     repaymentSchedule: process.env.REPAYMENT_SCHEDULE_ADDRESS || null,
+                    treasury: process.env.TREASURY_ADDRESS || null,
                 },
             },
         });

@@ -401,7 +401,7 @@ export type LoanGroupByOutputType = {
   _max: LoanMaxAggregateOutputType | null
 }
 
-type GetLoanGroupByPayload<T extends LoanGroupByArgs> = Prisma.PrismaPromise<
+export type GetLoanGroupByPayload<T extends LoanGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<LoanGroupByOutputType, T['by']> &
       {

@@ -217,7 +217,7 @@ export type InvestorDepositGroupByOutputType = {
   _max: InvestorDepositMaxAggregateOutputType | null
 }
 
-type GetInvestorDepositGroupByPayload<T extends InvestorDepositGroupByArgs> = Prisma.PrismaPromise<
+export type GetInvestorDepositGroupByPayload<T extends InvestorDepositGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<InvestorDepositGroupByOutputType, T['by']> &
       {

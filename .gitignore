@@ -54,3 +54,7 @@ contracts/typechain-types/
 bruno/
 
 docs
+
+# Claude Code
+CLAUDE.md
+.claude/

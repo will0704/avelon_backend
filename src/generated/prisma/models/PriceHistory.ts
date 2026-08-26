@@ -185,7 +185,7 @@ export type PriceHistoryGroupByOutputType = {
   _max: PriceHistoryMaxAggregateOutputType | null
 }
 
-type GetPriceHistoryGroupByPayload<T extends PriceHistoryGroupByArgs> = Prisma.PrismaPromise<
+export type GetPriceHistoryGroupByPayload<T extends PriceHistoryGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<PriceHistoryGroupByOutputType, T['by']> &
       {

@@ -223,7 +223,7 @@ export type LiquidityPoolGroupByOutputType = {
   _max: LiquidityPoolMaxAggregateOutputType | null
 }
 
-type GetLiquidityPoolGroupByPayload<T extends LiquidityPoolGroupByArgs> = Prisma.PrismaPromise<
+export type GetLiquidityPoolGroupByPayload<T extends LiquidityPoolGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<LiquidityPoolGroupByOutputType, T['by']> &
       {

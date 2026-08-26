@@ -172,7 +172,7 @@ export type DeviceTokenGroupByOutputType = {
   _max: DeviceTokenMaxAggregateOutputType | null
 }
 
-type GetDeviceTokenGroupByPayload<T extends DeviceTokenGroupByArgs> = Prisma.PrismaPromise<
+export type GetDeviceTokenGroupByPayload<T extends DeviceTokenGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<DeviceTokenGroupByOutputType, T['by']> &
       {

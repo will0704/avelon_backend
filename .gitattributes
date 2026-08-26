@@ -1,0 +1,4 @@
+# Every text file is LF in the repository and in every working tree.
+# eol=lf overrides each machine's core.autocrlf, so the macOS and Windows
+# checkouts commit identical bytes instead of fighting over line endings.
+* text=auto eol=lf

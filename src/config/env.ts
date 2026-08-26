@@ -10,6 +10,13 @@ const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     PORT: z.coerce.number().default(3001),
 
+    // How many proxies sit in front of this server. Each one appends an entry to
+    // X-Forwarded-For, so this says how many trailing entries are trustworthy.
+    // 0 (default) means the socket address is used and the header is ignored —
+    // anything else lets a client forge its own rate-limit identity.
+    // Render puts exactly one load balancer in front, so set this to 1 there.
+    TRUSTED_PROXY_COUNT: z.coerce.number().int().min(0).default(0),
+
     // Database
     DATABASE_URL: z.string().url(),
 

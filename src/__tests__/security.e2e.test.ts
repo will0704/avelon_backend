@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import './prisma.mock.js';
 
 import { app } from '../app.js';
+import { resolveClientIp } from '../middleware/rate-limit.middleware.js';
 
 // =====================================================
 // HELPERS
@@ -132,6 +133,43 @@ describe('A04 — Insecure Design', () => {
             expect(res.status).toBe(413);
             const data = await res.json();
             expect(data.error.code).toBe('PAYLOAD_TOO_LARGE');
+        });
+    });
+
+    describe('Rate-limit client identity', () => {
+        // X-Forwarded-For is caller-supplied. Trusting it outright let a client
+        // mint a new counter per request and skip the limits entirely.
+        it('ignores X-Forwarded-For when no proxy is trusted', () => {
+            expect(resolveClientIp('1.1.1.1', '203.0.113.9', 0)).toBe('203.0.113.9');
+        });
+
+        it('rotating a forged X-Forwarded-For cannot change the key', () => {
+            const keys = ['9.9.9.1', '9.9.9.2', '9.9.9.3'].map((forged) =>
+                resolveClientIp(forged, '203.0.113.9', 0)
+            );
+            expect(new Set(keys).size).toBe(1);
+        });
+
+        it('uses the proxy-appended entry behind one trusted proxy', () => {
+            expect(resolveClientIp('203.0.113.9', undefined, 1)).toBe('203.0.113.9');
+        });
+
+        it('ignores entries the caller prepended to X-Forwarded-For', () => {
+            expect(resolveClientIp('1.1.1.1, 203.0.113.9', undefined, 1)).toBe('203.0.113.9');
+            expect(resolveClientIp('a, b, 203.0.113.9', undefined, 1)).toBe('203.0.113.9');
+        });
+
+        it('steps left one entry per additional trusted proxy', () => {
+            expect(resolveClientIp('1.1.1.1, 203.0.113.9, 10.0.0.1', undefined, 2)).toBe('203.0.113.9');
+        });
+
+        it('falls back to the socket address when the header is absent', () => {
+            expect(resolveClientIp(undefined, '203.0.113.9', 1)).toBe('203.0.113.9');
+        });
+
+        it('never returns an empty key', () => {
+            expect(resolveClientIp(undefined, undefined, 0)).toBe('unknown');
+            expect(resolveClientIp('   ', undefined, 1)).toBe('unknown');
         });
     });
 });

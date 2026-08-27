@@ -1,5 +1,6 @@
 import { ethers, Contract, JsonRpcProvider, Wallet, ContractTransactionResponse } from 'ethers';
 import { BlockchainError } from '../middleware/error.middleware.js';
+import { chain } from '../config/env.js';
 
 // ============================================
 // INLINE ABIs — no filesystem dependency
@@ -30,13 +31,13 @@ const AVELON_LENDING_ABI = [
 const COLLATERAL_MANAGER_ABI = [
     // Mutating (owner)
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'releaseCollateral', outputs: [], stateMutability: 'nonpayable', type: 'function' },
-    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'liquidate', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint8', name: 'reason', type: 'uint8' }, { internalType: 'uint16', name: 'observedRatioBps', type: 'uint16' }], name: 'liquidate', outputs: [], stateMutability: 'nonpayable', type: 'function' },
     // Mutating (borrower — payable)
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'depositCollateral', outputs: [], stateMutability: 'payable', type: 'function' },
     // View
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'getCollateral', outputs: [{ internalType: 'uint128', name: '', type: 'uint128' }], stateMutability: 'view', type: 'function' },
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'getCollateralRatio', outputs: [{ internalType: 'uint256', name: 'ratio', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'isAtRisk', outputs: [{ internalType: 'bool', name: 'warning', type: 'bool' }, { internalType: 'bool', name: 'liquidatable', type: 'bool' }], stateMutability: 'view', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint16', name: 'observedRatioBps', type: 'uint16' }], name: 'isAtRisk', outputs: [{ internalType: 'bool', name: 'warning', type: 'bool' }, { internalType: 'bool', name: 'liquidatable', type: 'bool' }], stateMutability: 'view', type: 'function' },
     { inputs: [], name: 'getBalance', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
     // Events
     { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { indexed: true, internalType: 'address', name: 'depositor', type: 'address' }, { internalType: 'uint128', name: 'amount', type: 'uint128' }], name: 'CollateralDeposited', type: 'event' },
@@ -72,15 +73,14 @@ export class BlockchainService {
     private _repaymentSchedule: Contract | null = null;
 
     constructor() {
-        // Use Sepolia RPC (production/testnet) with fallback to local
-        const rpcUrl = process.env.SEPOLIA_RPC_URL || process.env.GANACHE_URL || 'http://127.0.0.1:8545';
-        this.privateKey = process.env.SEPOLIA_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
+        // Resolved in config/env.ts, newest var name first
+        this.privateKey = chain.privateKey;
 
         if (!this.privateKey) {
-            console.warn('⚠️ No blockchain private key set (SEPOLIA_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY) - signing operations will fail');
+            console.warn('⚠️ No blockchain private key set (CHAIN_PRIVATE_KEY) - signing operations will fail');
         }
 
-        this.provider = new ethers.JsonRpcProvider(rpcUrl);
+        this.provider = new ethers.JsonRpcProvider(chain.rpcUrl, chain.id);
     }
 
     /**
@@ -98,7 +98,7 @@ export class BlockchainService {
 
         if (!this.privateKey) {
             throw new BlockchainError(
-                'No signing key configured. Set SEPOLIA_PRIVATE_KEY in the backend .env.'
+                'No signing key configured. Set CHAIN_PRIVATE_KEY in the backend .env.'
             );
         }
 
@@ -107,7 +107,7 @@ export class BlockchainService {
         } catch {
             // Don't surface the underlying ethers message — it can echo the key.
             throw new BlockchainError(
-                'SEPOLIA_PRIVATE_KEY is not a valid private key (expected 32 bytes hex, optionally 0x-prefixed).'
+                'CHAIN_PRIVATE_KEY is not a valid private key (expected 32 bytes hex, optionally 0x-prefixed).'
             );
         }
 

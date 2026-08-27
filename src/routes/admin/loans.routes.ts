@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { prisma } from '../../lib/prisma.js';
 import { notificationService } from '../../services/notification.service.js';
+import { contractService, LiquidationReason } from '../../services/contract.service.js';
 import { NotFoundError, ValidationError } from '../../middleware/error.middleware.js';
 
 const adminLoansRoutes = new Hono();
@@ -183,6 +184,27 @@ adminLoansRoutes.post('/:id/liquidate', async (c) => {
         throw new ValidationError('Only active loans can be liquidated');
     }
 
+    if (loan.contractLoanId === null) {
+        throw new ValidationError('Loan has no on-chain counterpart and cannot be liquidated');
+    }
+
+    const body = await c.req.json().catch(() => ({}));
+    const reason = body?.reason === 'SHORTFALL'
+        ? LiquidationReason.Shortfall
+        : LiquidationReason.Default;
+    const observedRatioBps = reason === LiquidationReason.Shortfall
+        ? Number(body?.observedRatioBps ?? 0)
+        : 0;
+
+    // Seize on-chain first. A failure here must abort the status change — the DB
+    // used to be flipped on its own, which left it claiming a liquidation that
+    // never happened. The contract re-checks the due date for a Default.
+    const txHash = await contractService.liquidateLoan(
+        loan.contractLoanId,
+        reason,
+        observedRatioBps
+    );
+
     await prisma.loan.update({
         where: { id },
         data: {
@@ -198,7 +220,13 @@ adminLoansRoutes.post('/:id/liquidate', async (c) => {
             action: 'LOAN_LIQUIDATED',
             entity: 'Loan',
             entityId: id,
-            metadata: { borrowerId: loan.userId, principal: loan.principal?.toString() },
+            metadata: {
+                borrowerId: loan.userId,
+                principal: loan.principal?.toString(),
+                reason: LiquidationReason[reason],
+                observedRatioBps,
+                txHash,
+            },
         },
     });
 
@@ -206,13 +234,14 @@ adminLoansRoutes.post('/:id/liquidate', async (c) => {
     await notificationService.notify(loan.userId, {
         type: 'LOAN_LIQUIDATED',
         title: '⚠️ Loan Liquidated',
-        message: 'Your loan has been liquidated due to insufficient collateral coverage. Your collateral has been seized.',
-        metadata: { loanId: id },
+        message: 'Your loan has been liquidated and your stake has been seized.',
+        metadata: { loanId: id, txHash },
     });
 
     return c.json({
         success: true,
         message: 'Liquidation triggered',
+        data: { txHash },
     });
 });
 

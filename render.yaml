@@ -32,8 +32,9 @@ services:
       # Set these manually in the Render dashboard:
       # GMAIL_USER
       # GMAIL_APP_PASSWORD
-      # SEPOLIA_RPC_URL
-      # SEPOLIA_PRIVATE_KEY
+      # CHAIN_ID              — 84532 for Base Sepolia
+      # CHAIN_RPC_URL         — SEPOLIA_RPC_URL still works as a fallback
+      # CHAIN_PRIVATE_KEY     — SEPOLIA_PRIVATE_KEY still works as a fallback
       # TREASURY_ADDRESS
       # AVELON_LENDING_ADDRESS
       # COLLATERAL_MANAGER_ADDRESS

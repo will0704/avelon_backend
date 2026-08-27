@@ -1,8 +1,38 @@
 import { Hono } from 'hono';
-import { env } from '../config/env.js';
+import { ethers } from 'ethers';
+import { env, chain } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
+import { blockchainService } from '../services/blockchain.service.js';
 
 const marketRoutes = new Hono();
+
+/**
+ * Gas per action, measured from the contract test suite
+ * (`npm run hardhat:test -- --gas-stats`), median values.
+ *
+ * paidBy is the answer to revision 2: user-signed actions are paid by the member,
+ * everything the backend signs is an operating cost AVELON absorbs.
+ */
+const ACTION_GAS = [
+    { action: 'COLLATERAL_DEPOSIT', label: 'Lock your stake', paidBy: 'USER', gasUnits: 118181 },
+    { action: 'ADD_COLLATERAL', label: 'Top up your stake', paidBy: 'USER', gasUnits: 118181 },
+    { action: 'REPAYMENT', label: 'Make a repayment', paidBy: 'USER', gasUnits: 21000 },
+    { action: 'INVESTOR_DEPOSIT', label: 'Deposit into the pool', paidBy: 'USER', gasUnits: 21000 },
+    { action: 'LOAN_CREATION', label: 'Record the loan on-chain', paidBy: 'PLATFORM', gasUnits: 144287 },
+    { action: 'DISBURSEMENT', label: 'Release the loan', paidBy: 'PLATFORM', gasUnits: 21000 },
+    { action: 'REPAYMENT_RECORD', label: 'Record the repayment', paidBy: 'PLATFORM', gasUnits: 41782 },
+    { action: 'COLLATERAL_RELEASE', label: 'Return the stake', paidBy: 'PLATFORM', gasUnits: 48618 },
+    { action: 'LIQUIDATION', label: 'Seize the stake', paidBy: 'PLATFORM', gasUnits: 86086 },
+    { action: 'INVESTOR_WITHDRAWAL', label: 'Pay out a withdrawal', paidBy: 'PLATFORM', gasUnits: 21000 },
+] as const;
+
+/** ETH/PHP from SystemConfig, falling back to the env default. */
+async function getEthPhpRate(): Promise<number> {
+    const configRate = await prisma.systemConfig.findUnique({
+        where: { key: 'ETH_PHP_RATE' },
+    });
+    return configRate ? parseFloat(configRate.value) : env.ETH_PHP_RATE;
+}
 
 /**
  * GET /market/price
@@ -79,6 +109,49 @@ marketRoutes.get('/price/history', async (c) => {
         meta: {
             days,
             total: data.length,
+        },
+    });
+});
+
+/**
+ * GET /market/gas
+ * Current gas price and what each action costs, split by who pays.
+ */
+marketRoutes.get('/gas', async (c) => {
+    const ethPricePHP = await getEthPhpRate();
+
+    let gasPriceWei: bigint | null = null;
+    try {
+        gasPriceWei = await blockchainService.getGasPrice();
+    } catch {
+        // RPC down — still return the gas units so the UI can render the split
+        gasPriceWei = null;
+    }
+
+    const actions = ACTION_GAS.map((a) => {
+        if (gasPriceWei === null) {
+            return { ...a, feeEth: null, feePHP: null };
+        }
+        const feeWei = gasPriceWei * BigInt(a.gasUnits);
+        const feeEth = ethers.formatEther(feeWei);
+        return {
+            ...a,
+            feeEth,
+            feePHP: parseFloat((parseFloat(feeEth) * ethPricePHP).toFixed(4)),
+        };
+    });
+
+    return c.json({
+        success: true,
+        data: {
+            chainId: chain.id,
+            explorerUrl: chain.explorerUrl,
+            gasPriceWei: gasPriceWei?.toString() ?? null,
+            gasPriceGwei: gasPriceWei === null ? null : parseFloat(ethers.formatUnits(gasPriceWei, 'gwei')),
+            ethPricePHP,
+            // On an L2 the posted gas price excludes the L1 data fee, so real cost
+            // runs a little above these figures.
+            actions,
         },
     });
 });

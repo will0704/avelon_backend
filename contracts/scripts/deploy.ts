@@ -20,7 +20,7 @@ interface DeployedContracts {
     timestamp: string;
 }
 
-type NetworkName = "ganache" | "sepolia" | "hardhat";
+type NetworkName = "ganache" | "sepolia" | "baseSepolia" | "hardhat";
 
 interface NetworkConfig {
     rpcUrl: string;
@@ -34,6 +34,17 @@ function getNetworkConfig(): { network: NetworkName; config: NetworkConfig } {
     const network = (networkArg || process.env.DEPLOY_NETWORK || "ganache") as NetworkName;
 
     switch (network) {
+        case "baseSepolia": {
+            const rpcUrl = process.env.BASE_SEPOLIA_RPC_URL;
+            // Same EOA works on both chains, so fall back to the Sepolia key
+            const privateKey = process.env.BASE_SEPOLIA_PRIVATE_KEY || process.env.SEPOLIA_PRIVATE_KEY;
+            if (!rpcUrl) throw new Error("BASE_SEPOLIA_RPC_URL is required for Base Sepolia deployment");
+            if (!privateKey) throw new Error("BASE_SEPOLIA_PRIVATE_KEY or SEPOLIA_PRIVATE_KEY is required");
+            return {
+                network,
+                config: { rpcUrl, privateKey, expectedChainId: 84532 },
+            };
+        }
         case "sepolia": {
             const rpcUrl = process.env.SEPOLIA_RPC_URL;
             const privateKey = process.env.SEPOLIA_PRIVATE_KEY;
@@ -69,6 +80,49 @@ function getNetworkConfig(): { network: NetworkName; config: NetworkConfig } {
     }
 }
 
+/**
+ * Wait until the RPC actually reports code at an address.
+ *
+ * A deployment receipt is not enough: providers load-balance across nodes, and a
+ * node that has not seen the deployment yet estimates a call to that address as if
+ * it were an empty account (~22k). The link tx then goes out with a gas limit far
+ * below the ~30k it needs and reverts out of gas.
+ */
+async function waitForCode(
+    provider: ethers.JsonRpcProvider,
+    address: string,
+    label: string,
+    attempts = 30
+): Promise<void> {
+    for (let i = 0; i < attempts; i++) {
+        const code = await provider.getCode(address);
+        if (code && code !== "0x") return;
+        await new Promise((r) => setTimeout(r, 2000));
+    }
+    throw new Error(`${label} has no code at ${address} after ${attempts * 2}s — RPC never caught up`);
+}
+
+/**
+ * Poll an address-returning getter until it reports the expected value.
+ *
+ * Same lag as waitForCode, on the read side: a mined link tx can still read back
+ * as the zero address from a node that has not caught up yet.
+ */
+async function waitForLink(
+    read: () => Promise<string>,
+    expected: string,
+    label: string,
+    attempts = 20
+): Promise<void> {
+    let last = "";
+    for (let i = 0; i < attempts; i++) {
+        last = await read();
+        if (last.toLowerCase() === expected.toLowerCase()) return;
+        await new Promise((r) => setTimeout(r, 2000));
+    }
+    throw new Error(`${label} is ${last}, expected ${expected} after ${attempts * 2}s`);
+}
+
 async function main() {
     // Get network configuration
     const { network: networkName, config: netConfig } = getNetworkConfig();
@@ -102,16 +156,22 @@ async function main() {
     const balance = await provider.getBalance(deployer);
     console.log(`Balance: ${ethers.formatEther(balance)} ETH\n`);
 
+    const FAUCETS: Record<string, string> = {
+        sepolia: "https://cloud.google.com/application/web3/faucet/ethereum/sepolia",
+        baseSepolia: "https://portal.cdp.coinbase.com/products/faucet",
+    };
+
     if (balance === BigInt(0)) {
         throw new Error(
             `Deployer account has no ETH on ${networkName}.\n` +
-            (networkName === "sepolia"
-                ? "Get free Sepolia ETH from: https://cloud.google.com/application/web3/faucet/ethereum/sepolia"
+            (FAUCETS[networkName]
+                ? `Get free testnet ETH from: ${FAUCETS[networkName]}`
                 : "Run 'npx ganache --chain.chainId 1337' and copy a private key from the output.")
         );
     }
 
-    const minBalance = networkName === "sepolia" ? ethers.parseEther("0.01") : BigInt(0);
+    // L2 gas is far cheaper, but the deploy still has to clear three contracts
+    const minBalance = FAUCETS[networkName] ? ethers.parseEther("0.01") : BigInt(0);
     if (balance < minBalance) {
         console.warn(`⚠ WARNING: Low balance (${ethers.formatEther(balance)} ETH). Deployment may fail due to gas costs.`);
     }
@@ -188,6 +248,10 @@ async function main() {
     // Link contracts
     console.log("\nLinking contracts...");
 
+    // Both addresses must be visible to the RPC before any gas estimate is made
+    await waitForCode(provider, avelonLendingAddress, "AvelonLending");
+    await waitForCode(provider, collateralManagerAddress, "CollateralManager");
+
     // Set CollateralManager's lending contract reference
     const cmContract = new ethers.Contract(
         collateralManagerAddress,
@@ -195,7 +259,8 @@ async function main() {
         wallet
     );
     const tx1 = await cmContract.setLendingContract(avelonLendingAddress);
-    await tx1.wait();
+    const rcpt1 = await tx1.wait();
+    if (rcpt1?.status !== 1) throw new Error("setLendingContract reverted");
     console.log("  [OK] CollateralManager -> AvelonLending linked");
 
     // Set AvelonLending's collateral manager reference
@@ -205,8 +270,23 @@ async function main() {
         wallet
     );
     const tx2 = await alContract.setCollateralManager(collateralManagerAddress);
-    await tx2.wait();
+    const rcpt2 = await tx2.wait();
+    if (rcpt2?.status !== 1) throw new Error("setCollateralManager reverted");
     console.log("  [OK] AvelonLending -> CollateralManager linked");
+
+    // Read the links back. A mined tx is not proof the state changed, and an
+    // unlinked pair fails later at the first collateral deposit, not here.
+    await waitForLink(
+        () => cmContract.lendingContract(),
+        avelonLendingAddress,
+        "CollateralManager.lendingContract"
+    );
+    await waitForLink(
+        () => alContract.collateralManager(),
+        collateralManagerAddress,
+        "AvelonLending.collateralManager"
+    );
+    console.log("  [OK] Links verified on-chain");
 
     // Save deployment info
     const deploymentInfo: DeployedContracts = {

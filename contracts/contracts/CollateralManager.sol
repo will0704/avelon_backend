@@ -12,6 +12,9 @@ interface IAvelonLending {
     function getLoanBorrowerAndStatus(uint32 loanId) external view returns (address borrower, uint8 status);
     function getLoanCollateralRequired(uint32 loanId) external view returns (uint128);
     function getLoanOwed(uint32 loanId) external view returns (uint128 principalOwed, uint128 interestOwed);
+
+    function isOverdue(uint32 loanId) external view returns (bool);
+    function treasury() external view returns (address);
 }
 
 /**
@@ -20,6 +23,10 @@ interface IAvelonLending {
  * Gas-optimized with state packing and custom errors
  */
 contract CollateralManager is Ownable, ReentrancyGuard {
+    // Why a loan was liquidated. Default is checked on-chain; Shortfall is judged
+    // off-chain against a fiat rate and recorded here for the audit trail.
+    enum LiquidationReason { Default, Shortfall }
+
     // ============================================
     // CUSTOM ERRORS
     // ============================================
@@ -35,6 +42,7 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     error InsufficientCollateral();
     error NoCollateralLocked();
     error CollateralRatioHealthy();
+    error LoanNotOverdue();
     error PenaltyTooHigh();
     error InsufficientBalance();
     error TransferFailed();
@@ -45,10 +53,12 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     // STATE VARIABLES
     // ============================================
 
+    // These two are now the borrower's own stake, not full security for the debt.
+    // A loan is deliberately under-secured; the credit score prices the rest.
     // Slot 1: address(20) + uint16(2) + uint16(2) + uint16(2) = 26 bytes — packed!
     IAvelonLending public lendingContract;
-    uint16 public minCollateralRatio = 12000;       // 120% in basis points
-    uint16 public warningCollateralRatio = 13000;   // 130% in basis points
+    uint16 public minCollateralRatio = 3500;        // 35% in basis points
+    uint16 public warningCollateralRatio = 4000;    // 40% in basis points
     uint16 public liquidationPenalty = 500;          // 5% in basis points
 
     // Loan ID => Collateral deposited (in wei)
@@ -64,7 +74,13 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     event CollateralDeposited(uint32 indexed loanId, address indexed depositor, uint128 amount);
     event CollateralAdded(uint32 indexed loanId, address indexed depositor, uint128 amount);
     event CollateralReleased(uint32 indexed loanId, address indexed recipient, uint128 amount);
-    event CollateralLiquidated(uint32 indexed loanId, uint128 amount, uint128 penalty);
+    event CollateralLiquidated(
+        uint32 indexed loanId,
+        uint128 amount,
+        uint128 penalty,
+        LiquidationReason reason,
+        uint16 observedRatioBps
+    );
     event LendingContractUpdated(address indexed oldContract, address indexed newContract);
     event CollateralRatiosUpdated(uint16 minRatio, uint16 warningRatio);
 
@@ -95,7 +111,8 @@ contract CollateralManager is Ownable, ReentrancyGuard {
         uint16 _minRatio,
         uint16 _warningRatio
     ) external onlyOwner {
-        if (_minRatio < 10000) revert MinRatioTooLow();
+        // 10% floor — catches a fat-fingered zero, still allows a 35% stake
+        if (_minRatio < 1000) revert MinRatioTooLow();
         if (_warningRatio <= _minRatio) revert WarningMustExceedMin();
         minCollateralRatio = _minRatio;
         warningCollateralRatio = _warningRatio;
@@ -180,36 +197,57 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Liquidate collateral for an undercollateralized or overdue loan
+     * @dev Seize the borrower's stake on default or on a collateral value shortfall.
      * @param loanId The loan ID
+     * @param reason Default is verified here; Shortfall is asserted by the owner
+     * @param observedRatioBps Stake as a share of the debt in fiat terms, basis
+     *        points. Only read for Shortfall; pass 0 for Default.
+     *
+     * The old ratio check could never fire: stake and debt are both denominated in
+     * ETH, and the debt only shrinks as the borrower repays, so the ratio only ever
+     * climbed away from the threshold. Price risk is only visible in fiat terms, and
+     * that needs an off-chain rate.
      */
-    function liquidate(uint32 loanId) external nonReentrant onlyOwner {
+    function liquidate(
+        uint32 loanId,
+        LiquidationReason reason,
+        uint16 observedRatioBps
+    ) external nonReentrant onlyOwner {
         if (!isCollateralLocked[loanId]) revert NoCollateralLocked();
 
-        (uint128 principalOwed, uint128 interestOwed) = lendingContract.getLoanOwed(loanId);
         (, uint8 status) = lendingContract.getLoanBorrowerAndStatus(loanId);
-
         if (status != 1) revert LoanNotActive(); // Active = 1
 
+        if (reason == LiquidationReason.Default) {
+            // Verified on-chain — the backend cannot fake a missed due date
+            if (!lendingContract.isOverdue(loanId)) revert LoanNotOverdue();
+        } else {
+            if (observedRatioBps >= minCollateralRatio) revert CollateralRatioHealthy();
+        }
+
         uint128 collateral = collateralDeposits[loanId];
-        uint256 totalOwed = uint256(principalOwed) + interestOwed;
 
-        // Calculate collateral ratio
-        uint256 currentRatio = (uint256(collateral) * 10000) / totalOwed;
-        if (currentRatio >= minCollateralRatio) revert CollateralRatioHealthy();
-
-        // Calculate penalty
+        // Split is recorded, not transferred: both halves go to the treasury and the
+        // pool/platform attribution happens off-chain, same as the interest split.
         uint128 penalty = uint128((uint256(collateral) * liquidationPenalty) / 10000);
         uint128 amountAfterPenalty = collateral - penalty;
 
-        // Clear collateral
+        // Clear collateral before any external call
         collateralDeposits[loanId] = 0;
         isCollateralLocked[loanId] = false;
 
         // Notify lending contract
         lendingContract.liquidateLoan(loanId);
 
-        emit CollateralLiquidated(loanId, amountAfterPenalty, penalty);
+        // Seized stake used to stay stranded in this contract, reachable only through
+        // emergencyWithdraw. It belongs to the pool the loan was paid out of.
+        address treasuryAddr = lendingContract.treasury();
+        if (treasuryAddr == address(0)) revert InvalidAddress();
+
+        (bool success, ) = treasuryAddr.call{value: collateral}("");
+        if (!success) revert TransferFailed();
+
+        emit CollateralLiquidated(loanId, amountAfterPenalty, penalty, reason, observedRatioBps);
     }
 
     // ============================================
@@ -226,6 +264,9 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     /**
      * @dev Calculate current collateral ratio for a loan
      * @return ratio Collateral ratio in basis points (10000 = 100%)
+     *
+     * ETH stake over ETH debt, so this does not move with the ETH price. Informational
+     * only — it is not what liquidation keys off. See liquidate().
      */
     function getCollateralRatio(uint32 loanId) external view returns (uint256 ratio) {
         uint128 collateral = collateralDeposits[loanId];
@@ -241,11 +282,17 @@ contract CollateralManager is Ownable, ReentrancyGuard {
 
     /**
      * @dev Check if a loan is at risk of liquidation
+     * @param observedRatioBps Stake as a share of the debt in fiat terms, basis points.
+     *        Caller supplies it because the on-chain ETH ratio carries no price signal.
      */
-    function isAtRisk(uint32 loanId) external view returns (bool warning, bool liquidatable) {
-        uint256 ratio = this.getCollateralRatio(loanId);
-        warning = ratio < warningCollateralRatio && ratio >= minCollateralRatio;
-        liquidatable = ratio < minCollateralRatio;
+    function isAtRisk(
+        uint32 loanId,
+        uint16 observedRatioBps
+    ) external view returns (bool warning, bool liquidatable) {
+        if (!isCollateralLocked[loanId]) return (false, false);
+
+        liquidatable = lendingContract.isOverdue(loanId) || observedRatioBps < minCollateralRatio;
+        warning = !liquidatable && observedRatioBps < warningCollateralRatio;
     }
 
     /**

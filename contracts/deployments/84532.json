@@ -1,0 +1,9 @@
+{
+  "avelonLending": "0xB73C0024231978A618117029B9dBa9DFf1BC5E45",
+  "collateralManager": "0xdf1d60eb1163195e4C1B8a098f8767166d55d488",
+  "repaymentSchedule": "0x4CFf8B5c2f7378EFcC3cD6Aab4f813c08Cf9358e",
+  "deployer": "0x38f00aD0B7f04CF4772A60349Bcfff7035082cd4",
+  "network": "baseSepolia",
+  "chainId": 84532,
+  "timestamp": "2026-08-27T07:50:32.104878Z"
+}

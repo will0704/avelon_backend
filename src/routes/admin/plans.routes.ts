@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
+import { env } from '../../config/env.js';
 
 const adminPlansRoutes = new Hono();
 
@@ -39,7 +40,9 @@ const createPlanSchema = z.object({
     durationOptions: z.array(z.number().int().positive()),
     interestRate: z.number().positive(),
     interestType: z.enum(['FLAT', 'COMPOUND']).default('FLAT'),
-    collateralRatio: z.number().positive(),
+    // Borrower's own stake, floored at the platform minimum (revision 5). Above
+    // 100 is allowed — that is a fully secured plan, not a mistake.
+    collateralRatio: z.number().min(env.MIN_COLLATERAL_RATIO).max(200),
     originationFee: z.number().min(0),
     latePenaltyRate: z.number().min(0).default(0.5),
     gracePeriodDays: z.number().int().min(0).default(3),

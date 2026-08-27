@@ -307,7 +307,7 @@ model LoanPlan {
   interestType     InterestType @default(FLAT)
 
   // Collateral
-  collateralRatio  Float        // e.g., 150 = 150%
+  collateralRatio  Float        // borrower's own stake as % of principal, e.g. 35 = 35%
 
   // Fees
   originationFee   Float        // Percentage

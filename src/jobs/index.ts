@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { pollPendingDeposits } from './deposit-poller.job.js';
+import { flagOverdueLoans } from './overdue-loans.job.js';
 
 export function startJobs() {
     // Poll pending investor deposits every 60 seconds
@@ -11,5 +12,14 @@ export function startJobs() {
         }
     });
 
-    console.log('[Jobs] Deposit poller scheduled (every 60s)');
+    // Hourly is enough — a due date moves once a day, not once a minute
+    cron.schedule('0 0 * * * *', async () => {
+        try {
+            await flagOverdueLoans();
+        } catch (err) {
+            console.error('[Jobs] Overdue loan sweep error:', err);
+        }
+    });
+
+    console.log('[Jobs] Deposit poller scheduled (every 60s), overdue loan sweep (hourly)');
 }

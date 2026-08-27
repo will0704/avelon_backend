@@ -30,12 +30,19 @@ const config: HardhatUserConfig = {
             url: configVariable("GANACHE_URL"),
             accounts: [configVariable("DEPLOYER_PRIVATE_KEY")],
         },
-        // Sepolia testnet
+        // Sepolia testnet — the old deployment, kept for the gas-cost comparison
         sepolia: {
             type: "http",
             chainType: "l1",
             url: configVariable("SEPOLIA_RPC_URL"),
             accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+        },
+        // Base Sepolia — current target. OP Stack L2, gas is still ETH.
+        baseSepolia: {
+            type: "http",
+            chainType: "l1",
+            url: configVariable("BASE_SEPOLIA_RPC_URL"),
+            accounts: [configVariable("BASE_SEPOLIA_PRIVATE_KEY")],
         },
     },
     test: {

@@ -34,7 +34,14 @@ const envSchema = z.object({
     GMAIL_REFRESH_TOKEN: z.string().optional(),
     GMAIL_USER: z.string().email().optional(),
 
-    // Blockchain (Sepolia)
+    // Blockchain — chain-neutral names. The deployment target is Base Sepolia
+    // (84532); the SEPOLIA_* names below are the old ones and still work as a
+    // fallback so Render and the Windows checkouts keep booting.
+    CHAIN_ID: z.coerce.number().optional(),
+    CHAIN_RPC_URL: z.string().url().optional(),
+    CHAIN_PRIVATE_KEY: z.string().optional(),
+
+    // Blockchain (Sepolia — superseded, kept as a fallback)
     SEPOLIA_RPC_URL: z.string().url().optional(),
     SEPOLIA_PRIVATE_KEY: z.string().optional(),
     TREASURY_ADDRESS: z.string().optional(),
@@ -64,8 +71,10 @@ const envSchema = z.object({
 
     // App Config
     ETH_PHP_RATE: z.coerce.number().default(150000),
-    MIN_COLLATERAL_RATIO: z.coerce.number().default(120),
-    WARNING_COLLATERAL_RATIO: z.coerce.number().default(130),
+    // Borrower's own stake as a percent of principal, not full security for the
+    // debt. 35 is the panel's floor (revision 5).
+    MIN_COLLATERAL_RATIO: z.coerce.number().default(35),
+    WARNING_COLLATERAL_RATIO: z.coerce.number().default(40),
     GRACE_PERIOD_HOURS: z.coerce.number().default(24),
     LIQUIDATION_PENALTY_PERCENT: z.coerce.number().default(5),
 });
@@ -84,6 +93,33 @@ const parseEnv = () => {
 };
 
 export const env = parseEnv();
+
+// Block explorers, by chain id
+const EXPLORERS: Record<number, string> = {
+    84532: 'https://sepolia.basescan.org',
+    11155111: 'https://sepolia.etherscan.io',
+};
+
+const BASE_SEPOLIA = 84532;
+const ETH_SEPOLIA = 11155111;
+
+// Falling back to SEPOLIA_RPC_URL has to fall back to its chain id too, or we
+// declare Base Sepolia while pointing at Ethereum Sepolia and every call fails
+// on a network mismatch.
+const usingLegacySepolia = !env.CHAIN_RPC_URL && !!env.SEPOLIA_RPC_URL;
+
+/**
+ * Chain settings resolved once, newest name first. Everything that talks to the
+ * chain should read this rather than the raw SEPOLIA_* vars.
+ */
+const chainId = env.CHAIN_ID ?? (usingLegacySepolia ? ETH_SEPOLIA : BASE_SEPOLIA);
+
+export const chain = {
+    id: chainId,
+    rpcUrl: env.CHAIN_RPC_URL ?? env.SEPOLIA_RPC_URL ?? env.GANACHE_URL ?? 'http://127.0.0.1:8545',
+    privateKey: env.CHAIN_PRIVATE_KEY ?? env.SEPOLIA_PRIVATE_KEY ?? env.DEPLOYER_PRIVATE_KEY,
+    explorerUrl: EXPLORERS[chainId] ?? null,
+} as const;
 
 // Export types
 export type Env = z.infer<typeof envSchema>;

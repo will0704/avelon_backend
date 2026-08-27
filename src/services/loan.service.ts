@@ -112,7 +112,8 @@ export class LoanService {
             throw new ForbiddenError('Credit score too low for this plan');
         }
 
-        // Calculate collateral required
+        // The borrower's own stake, not security for the whole debt — the arithmetic
+        // is unchanged from the over-collateralised model, only the meaning moved.
         const collateralRatio = new PrismaDecimal(plan.collateralRatio).div(100);
         const collateralRequired = principal.mul(collateralRatio);
 

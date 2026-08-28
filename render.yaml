@@ -17,10 +17,10 @@ services:
       # trailing X-Forwarded-For entry is trustworthy. Rate limiting keys on it.
       - key: TRUSTED_PROXY_COUNT
         value: 1
+      # Neon connection string, set in the dashboard. Render's own free Postgres is
+      # deleted 30 days after creation — that is what killed the last deployment.
       - key: DATABASE_URL
-        fromDatabase:
-          name: avelon-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_ACCESS_EXPIRY
@@ -43,10 +43,5 @@ services:
       # FIREBASE_PRIVATE_KEY
       # FIREBASE_CLIENT_EMAIL
       # ENCRYPTION_KEY
-      # AI_SERVICE_URL
-
-databases:
-  - name: avelon-db
-    databaseName: avelon_db
-    region: singapore
-    plan: free
+      # AI_SERVICE_URL      — the Cloud Run URL
+      # AI_API_KEY

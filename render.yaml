@@ -27,8 +27,10 @@ services:
         value: 15m
       - key: JWT_REFRESH_EXPIRY
         value: 7d
-      # PRISMA_FIELD_ENCRYPTION_KEY — set manually in dashboard
-      # Generate with: npx @47ng/cloak generate
+      # PRISMA_FIELD_ENCRYPTION_KEY — set manually in dashboard.
+      # Any string of 32+ chars. src/lib/prisma.ts sha256-hashes it into the AES key,
+      # so the cloak/k1 format is not required — that extension was replaced.
+      # Generate with: openssl rand -base64 48
       # Set these manually in the Render dashboard:
       # GMAIL_USER
       # GMAIL_APP_PASSWORD

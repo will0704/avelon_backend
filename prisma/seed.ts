@@ -108,6 +108,9 @@ async function main() {
     // LOAN PLANS
     // =====================================================
 
+    // collateralRatio is the borrower's own stake, not security for the whole debt.
+    // An unproven borrower stakes more; a proven one drops to the 35% floor and the
+    // credit score carries the rest of the risk.
     const plans = [
         {
             name: 'Starter',
@@ -117,7 +120,7 @@ async function main() {
             maxAmount: 0.1,
             durationOptions: [7, 14, 30],
             interestRate: 8,
-            collateralRatio: 200,
+            collateralRatio: 60,
             originationFee: 2,
             latePenaltyRate: 0.5,
             gracePeriodDays: 3,
@@ -131,7 +134,7 @@ async function main() {
             maxAmount: 0.5,
             durationOptions: [14, 30, 60, 90],
             interestRate: 5,
-            collateralRatio: 150,
+            collateralRatio: 50,
             originationFee: 1.5,
             latePenaltyRate: 0.5,
             gracePeriodDays: 3,
@@ -145,7 +148,7 @@ async function main() {
             maxAmount: 1.0,
             durationOptions: [30, 60, 90, 180],
             interestRate: 3,
-            collateralRatio: 130,
+            collateralRatio: 40,
             originationFee: 1,
             latePenaltyRate: 0.5,
             gracePeriodDays: 5,
@@ -159,7 +162,7 @@ async function main() {
             maxAmount: 2.0,
             durationOptions: [30, 60, 90, 180, 365],
             interestRate: 2,
-            collateralRatio: 120,
+            collateralRatio: 35,
             originationFee: 0.5,
             latePenaltyRate: 0.3,
             gracePeriodDays: 7,

@@ -2,6 +2,15 @@ import { ethers } from 'ethers';
 import { blockchainService } from './blockchain.service.js';
 
 /**
+ * Mirrors the LiquidationReason enum in CollateralManager.sol — the ordinals are
+ * what go on the wire, so these must stay in the same order as the Solidity enum.
+ */
+export enum LiquidationReason {
+    Default = 0,
+    Shortfall = 1,
+}
+
+/**
  * ContractService
  * High-level service for interacting with deployed smart contracts
  * Updated for gas-optimized contract ABIs (packed structs, uint32/uint128/uint48 types)
@@ -155,10 +164,16 @@ export class ContractService {
 
     /**
      * Check if loan is at risk
+     * @param observedRatioBps Stake as a share of the debt in fiat terms, basis
+     *        points. The contract cannot work this out — stake and debt are both
+     *        in ETH, so the on-chain ratio does not move with the ETH price.
      */
-    async isLoanAtRisk(loanId: number): Promise<{ warning: boolean; liquidatable: boolean }> {
+    async isLoanAtRisk(
+        loanId: number,
+        observedRatioBps: number
+    ): Promise<{ warning: boolean; liquidatable: boolean }> {
         const contract = blockchainService.getCollateralManager();
-        const [warning, liquidatable] = await contract.isAtRisk(loanId);
+        const [warning, liquidatable] = await contract.isAtRisk(loanId, observedRatioBps);
         return { warning, liquidatable };
     }
 
@@ -209,11 +224,18 @@ export class ContractService {
     }
 
     /**
-     * Liquidate undercollateralized loan
+     * Seize the borrower's stake and send it to the treasury.
+     * @param reason Default is re-checked on-chain against the due date;
+     *        Shortfall is asserted here and recorded in the event.
+     * @param observedRatioBps Only read for Shortfall.
      */
-    async liquidateLoan(loanId: number): Promise<string> {
+    async liquidateLoan(
+        loanId: number,
+        reason: LiquidationReason = LiquidationReason.Default,
+        observedRatioBps = 0
+    ): Promise<string> {
         const contract = blockchainService.getCollateralManager();
-        const tx = await contract.liquidate(loanId);
+        const tx = await contract.liquidate(loanId, reason, observedRatioBps);
         const receipt = await tx.wait();
         return receipt.hash;
     }

@@ -53,25 +53,10 @@ app.use('*', secureHeaders({
     referrerPolicy: 'strict-origin-when-cross-origin',
 }));
 
-// Request body size limit (OWASP A04 — prevent DoS)
-app.use('*', bodySizeLimiter);
-
-// Content-Type enforcement (OWASP A08)
-app.use('*', enforceContentType);
-
-// Admin rate limiter (500 req/15min per IP — admin dashboards are chatty)
-app.use('/api/v1/admin/*', adminRateLimiter);
-
-// Global rate limiter (OWASP A04 — 100 req/15min per IP)
-// Scoped to /api/* to exclude health check endpoints
-app.use('/api/*', globalRateLimiter);
-
-// Auth-specific rate limiter (OWASP A07 — 5 req/15min per IP)
-app.use('/api/v1/auth/login', authRateLimiter);
-app.use('/api/v1/auth/register', authRateLimiter);
-app.use('/api/v1/auth/forgot-password', authRateLimiter);
-
-// CORS
+// CORS runs before anything that can reject a request. The rate limiters,
+// the body size limit and the content-type check all short-circuit, and a
+// response missing these headers reaches the browser as an opaque network
+// error instead of the real status.
 app.use('*', cors({
     origin: (origin) => {
         // Allow all origins in development for mobile testing
@@ -99,6 +84,24 @@ app.use('*', cors({
     credentials: true,
     maxAge: 86400,
 }));
+
+// Request body size limit (OWASP A04 — prevent DoS)
+app.use('*', bodySizeLimiter);
+
+// Content-Type enforcement (OWASP A08)
+app.use('*', enforceContentType);
+
+// Admin rate limiter (500 req/15min per IP — admin dashboards are chatty)
+app.use('/api/v1/admin/*', adminRateLimiter);
+
+// Global rate limiter (OWASP A04 — 100 req/15min per IP)
+// Scoped to /api/* to exclude health check endpoints
+app.use('/api/*', globalRateLimiter);
+
+// Auth-specific rate limiter (OWASP A07 — 5 req/15min per IP)
+app.use('/api/v1/auth/login', authRateLimiter);
+app.use('/api/v1/auth/register', authRateLimiter);
+app.use('/api/v1/auth/forgot-password', authRateLimiter);
 
 // Error handler
 app.onError(errorHandler);

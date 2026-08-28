@@ -109,7 +109,7 @@ loanRoutes.post(
             data: {
                 ...loan,
                 depositAddress: collateralManagerAddress,
-                instruction: `Send ${loan.collateralRequired} ETH to ${collateralManagerAddress} to activate your loan`,
+                instruction: `Send your ${loan.collateralRequired} ETH stake to ${collateralManagerAddress} to activate your loan. It is returned in full when you finish repaying.`,
             },
         }, 201);
     }

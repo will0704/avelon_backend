@@ -1,6 +1,9 @@
 import { createMiddleware } from 'hono/factory';
+import { getConnInfo } from '@hono/node-server/conninfo';
+import type { Context } from 'hono';
 import { RateLimitError } from './error.middleware.js';
 import { securityLogger } from '../lib/security.logger.js';
+import { env } from '../config/env.js';
 import { Redis } from 'ioredis';
 
 // =====================================================
@@ -90,6 +93,52 @@ async function getTTL(key: string, windowMs: number): Promise<number> {
     return Math.max(0, Math.ceil((entry.resetAt - Date.now()) / 1000));
 }
 
+// ─── Client identity ─────────────────────────────────
+
+/**
+ * Pick the address to rate-limit on.
+ *
+ * `X-Forwarded-For` is a request header, so a client can set it freely. Reading
+ * it directly meant a different value per request produced a fresh counter every
+ * time and the limits never applied at all. It is consulted here only for as
+ * many trailing entries as there are proxies we actually sit behind — each proxy
+ * appends the address it saw, so those entries are the ones the caller could not
+ * write. Everything to their left is caller-supplied and ignored.
+ *
+ * With no proxy configured the socket address is used, which cannot be forged.
+ *
+ * Pure and exported so the trust boundary can be tested without a live socket.
+ */
+export function resolveClientIp(
+    forwarded: string | undefined,
+    socketAddress: string | undefined,
+    trustedProxyCount: number
+): string {
+    if (trustedProxyCount > 0 && forwarded) {
+        const hops = forwarded.split(',').map((p) => p.trim()).filter(Boolean);
+        // The nearest proxy appended the last entry; step left one per hop.
+        const clientIp = hops[Math.max(0, hops.length - trustedProxyCount)];
+        if (clientIp) return clientIp;
+    }
+
+    return socketAddress || 'unknown';
+}
+
+function getClientIp(c: Context): string {
+    let socketAddress: string | undefined;
+    try {
+        socketAddress = getConnInfo(c).remote.address;
+    } catch {
+        // Non-node adapter (tests call app.request()) — no socket to read.
+    }
+
+    return resolveClientIp(
+        c.req.header('x-forwarded-for'),
+        socketAddress,
+        env.TRUSTED_PROXY_COUNT
+    );
+}
+
 // ─── Rate-limiter factory ────────────────────────────
 
 interface RateLimitConfig {
@@ -102,9 +151,7 @@ export function createRateLimiter(config: RateLimitConfig) {
     const { windowMs, maxRequests, keyPrefix = 'global' } = config;
 
     return createMiddleware(async (c, next) => {
-        const ip = c.req.header('x-forwarded-for')
-            || c.req.header('x-real-ip')
-            || 'unknown';
+        const ip = getClientIp(c);
 
         const key = `rl:${keyPrefix}:${ip}`;
         const count = await incrementCounter(key, windowMs);

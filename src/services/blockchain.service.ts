@@ -1,4 +1,6 @@
 import { ethers, Contract, JsonRpcProvider, Wallet, ContractTransactionResponse } from 'ethers';
+import { BlockchainError } from '../middleware/error.middleware.js';
+import { chain } from '../config/env.js';
 
 // ============================================
 // INLINE ABIs — no filesystem dependency
@@ -29,13 +31,13 @@ const AVELON_LENDING_ABI = [
 const COLLATERAL_MANAGER_ABI = [
     // Mutating (owner)
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'releaseCollateral', outputs: [], stateMutability: 'nonpayable', type: 'function' },
-    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'liquidate', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint8', name: 'reason', type: 'uint8' }, { internalType: 'uint16', name: 'observedRatioBps', type: 'uint16' }], name: 'liquidate', outputs: [], stateMutability: 'nonpayable', type: 'function' },
     // Mutating (borrower — payable)
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'depositCollateral', outputs: [], stateMutability: 'payable', type: 'function' },
     // View
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'getCollateral', outputs: [{ internalType: 'uint128', name: '', type: 'uint128' }], stateMutability: 'view', type: 'function' },
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'getCollateralRatio', outputs: [{ internalType: 'uint256', name: 'ratio', type: 'uint256' }], stateMutability: 'view', type: 'function' },
-    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'isAtRisk', outputs: [{ internalType: 'bool', name: 'warning', type: 'bool' }, { internalType: 'bool', name: 'liquidatable', type: 'bool' }], stateMutability: 'view', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint16', name: 'observedRatioBps', type: 'uint16' }], name: 'isAtRisk', outputs: [{ internalType: 'bool', name: 'warning', type: 'bool' }, { internalType: 'bool', name: 'liquidatable', type: 'bool' }], stateMutability: 'view', type: 'function' },
     { inputs: [], name: 'getBalance', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
     // Events
     { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { indexed: true, internalType: 'address', name: 'depositor', type: 'address' }, { internalType: 'uint128', name: 'amount', type: 'uint128' }], name: 'CollateralDeposited', type: 'event' },
@@ -62,7 +64,8 @@ const REPAYMENT_SCHEDULE_ABI = [
  */
 export class BlockchainService {
     private provider: JsonRpcProvider;
-    private wallet: Wallet;
+    private readonly privateKey?: string;
+    private _wallet: Wallet | null = null;
 
     // Contract instances (lazy loaded)
     private _avelonLending: Contract | null = null;
@@ -70,16 +73,58 @@ export class BlockchainService {
     private _repaymentSchedule: Contract | null = null;
 
     constructor() {
-        // Use Sepolia RPC (production/testnet) with fallback to local
-        const rpcUrl = process.env.SEPOLIA_RPC_URL || process.env.GANACHE_URL || 'http://127.0.0.1:8545';
-        const privateKey = process.env.SEPOLIA_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY;
+        // Resolved in config/env.ts, newest var name first
+        this.privateKey = chain.privateKey;
 
-        if (!privateKey) {
-            console.warn('⚠️ No blockchain private key set (SEPOLIA_PRIVATE_KEY or DEPLOYER_PRIVATE_KEY) - blockchain operations will fail');
+        if (!this.privateKey) {
+            console.warn('⚠️ No blockchain private key set (CHAIN_PRIVATE_KEY) - signing operations will fail');
         }
 
-        this.provider = new ethers.JsonRpcProvider(rpcUrl);
-        this.wallet = new ethers.Wallet(privateKey || '', this.provider);
+        this.provider = new ethers.JsonRpcProvider(chain.rpcUrl, chain.id);
+    }
+
+    /**
+     * Build the signer on first use.
+     *
+     * This is deliberately not done in the constructor. The service is
+     * instantiated at module scope, so a missing or malformed key used to throw
+     * from `new ethers.Wallet()` during import and kill the whole process at
+     * boot. Deferring it means the API still starts and every read-only chain
+     * call keeps working; only signing fails, and it fails with a message that
+     * names the variable to set.
+     */
+    private getWallet(): Wallet {
+        if (this._wallet) return this._wallet;
+
+        if (!this.privateKey) {
+            throw new BlockchainError(
+                'No signing key configured. Set CHAIN_PRIVATE_KEY in the backend .env.'
+            );
+        }
+
+        try {
+            this._wallet = new ethers.Wallet(this.privateKey, this.provider);
+        } catch {
+            // Don't surface the underlying ethers message — it can echo the key.
+            throw new BlockchainError(
+                'CHAIN_PRIVATE_KEY is not a valid private key (expected 32 bytes hex, optionally 0x-prefixed).'
+            );
+        }
+
+        return this._wallet;
+    }
+
+    /**
+     * Whether a usable signing key is configured. Lets callers and health
+     * checks report the degraded state instead of triggering a throw.
+     */
+    hasSigner(): boolean {
+        try {
+            this.getWallet();
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     // ============================================
@@ -97,14 +142,14 @@ export class BlockchainService {
      * Get the signer wallet
      */
     getSigner(): Wallet {
-        return this.wallet;
+        return this.getWallet();
     }
 
     /**
      * Get deployer/admin address
      */
     async getDeployerAddress(): Promise<string> {
-        return this.wallet.getAddress();
+        return this.getWallet().getAddress();
     }
 
     /**
@@ -181,7 +226,7 @@ export class BlockchainService {
         if (!abi) {
             throw new Error(`Unknown contract: ${contractName}. Supported: ${Object.keys(BlockchainService.CONTRACT_ABIS).join(', ')}`);
         }
-        const runner = useSigner ? this.wallet : this.provider;
+        const runner = useSigner ? this.getWallet() : this.provider;
         return new ethers.Contract(address, abi as any[], runner);
     }
 
@@ -281,7 +326,7 @@ export class BlockchainService {
         blockNumber: number;
         gasUsed: string;
     }> {
-        const tx = await this.wallet.sendTransaction({
+        const tx = await this.getWallet().sendTransaction({
             to,
             value: ethers.parseEther(amountEth),
         });

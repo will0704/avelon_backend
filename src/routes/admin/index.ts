@@ -15,6 +15,7 @@ import { prisma } from '../../lib/prisma.js';
 import { blockchainService } from '../../services/blockchain.service.js';
 import { NotificationType } from '../../generated/prisma/enums.js';
 import { contractService } from '../../services/contract.service.js';
+import { env } from '../../config/env.js';
 
 const adminRoutes = new Hono();
 
@@ -533,6 +534,93 @@ adminRoutes.get('/pool', async (c) => {
     } catch (err) {
         console.error('[admin/pool] error:', err);
         return c.json({ success: false, message: 'Failed to fetch pool data' }, 500);
+    }
+});
+
+/**
+ * GET /admin/volatility
+ * ETH volatility forecast from the LLM service, resolved against every active
+ * loan plan's stake ratio so admins can see which tiers are exposed.
+ */
+adminRoutes.get('/volatility', async (c) => {
+    const horizonDays = Math.min(30, Math.max(1, Number(c.req.query('horizon') ?? 7)));
+
+    try {
+        const plans = await prisma.loanPlan.findMany({
+            where: { isActive: true },
+            select: { id: true, name: true, collateralRatio: true },
+            orderBy: { collateralRatio: 'desc' },
+        });
+
+        // minCollateralRatio in CollateralManager.sol, in basis points.
+        const minRatioBps = 3500;
+
+        const call = async (stakeRatioBps: number) => {
+            const url = new URL(`${env.AI_SERVICE_URL}/api/v1/predict/volatility`);
+            url.searchParams.set('horizon_days', String(horizonDays));
+            url.searchParams.set('stake_ratio_bps', String(stakeRatioBps));
+            url.searchParams.set('min_ratio_bps', String(minRatioBps));
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 15000);
+            try {
+                const res = await fetch(url, {
+                    headers: { 'X-API-Key': env.AI_API_KEY },
+                    signal: controller.signal,
+                });
+                if (!res.ok) throw new Error(`AI service returned ${res.status}`);
+                return await res.json() as Record<string, any>;
+            } finally {
+                clearTimeout(timeout);
+            }
+        };
+
+        // The forecast itself is identical across plans; only the liquidation maths
+        // differs. The LLM caches prices for 15 minutes, so the extra calls are cheap
+        // and the threshold formula stays in one place instead of being re-derived here.
+        const baseline = await call(Math.round(Number(plans[0]?.collateralRatio ?? 40) * 100));
+        const perPlan = await Promise.all(
+            plans.map(async (plan) => {
+                const stakeRatioBps = Math.round(Number(plan.collateralRatio) * 100);
+                const result = await call(stakeRatioBps);
+                return {
+                    planId: plan.id,
+                    planName: plan.name,
+                    collateralRatio: Number(plan.collateralRatio),
+                    stakeRatioBps,
+                    priceDropToLiquidation: result.liquidation.price_drop_to_liquidation,
+                    probability: result.liquidation.probability,
+                };
+            })
+        );
+
+        return c.json({
+            success: true,
+            data: {
+                online: true,
+                horizonDays,
+                minRatioBps,
+                currentPricePHP: baseline.current_price_php,
+                priceSource: baseline.price_source,
+                model: baseline.model,
+                predictedVolatility: baseline.predicted_volatility,
+                realizedVolatility24h: baseline.realized_volatility_24h,
+                horizonVolatility: baseline.horizon_volatility,
+                riskLevel: baseline.risk_level,
+                priceRange68: baseline.price_range_68,
+                priceRange95: baseline.price_range_95,
+                recentPrices: baseline.recent_prices,
+                modelMetadata: baseline.model_metadata,
+                plans: perPlan,
+            },
+        });
+    } catch (err) {
+        console.error('[admin/volatility] error:', err);
+        // The AI service being down must not blank the page — the UI shows a banner.
+        return c.json({
+            success: true,
+            data: { online: false, horizonDays, plans: [] },
+        });
     }
 });
 

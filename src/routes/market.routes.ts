@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { env, chain } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { blockchainService } from '../services/blockchain.service.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const marketRoutes = new Hono();
 
@@ -117,7 +118,7 @@ marketRoutes.get('/price/history', async (c) => {
  * GET /market/gas
  * Current gas price and what each action costs, split by who pays.
  */
-marketRoutes.get('/gas', async (c) => {
+marketRoutes.get('/gas', authMiddleware, async (c) => {
     const ethPricePHP = await getEthPhpRate();
 
     let gasPriceWei: bigint | null = null;

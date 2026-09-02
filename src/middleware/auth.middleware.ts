@@ -1,9 +1,10 @@
 import { createMiddleware } from 'hono/factory';
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
+import { corsAllowedOrigins, env } from '../config/env.js';
 import { UnauthorizedError, ForbiddenError } from './error.middleware.js';
 import { prisma } from '../lib/prisma.js';
 import { UserRole, UserStatus, type TokenPayload } from '../types/index.js';
+import { getCookie } from 'hono/cookie';
 
 const { verify } = jwt;
 
@@ -33,15 +34,38 @@ type JWTPayload = TokenPayload;
  */
 export const authMiddleware = createMiddleware(async (c, next) => {
     const authHeader = c.req.header('Authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const cookieToken = getCookie(c, 'accessToken');
+    const token = bearerToken ?? cookieToken;
+    if (!token) throw new UnauthorizedError('Missing authentication token');
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw new UnauthorizedError('Missing or invalid authorization header');
+    // HttpOnly-cookie sessions need an origin check on state-changing requests
+    // because production cookies use SameSite=None for the separate web/API hosts.
+    if (!bearerToken && cookieToken && !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
+        const origin = c.req.header('Origin');
+        if (!origin || !corsAllowedOrigins.includes(origin)) {
+            throw new ForbiddenError('Untrusted request origin');
+        }
     }
-
-    const token = authHeader.substring(7);
 
     try {
         const payload = verify(token, env.JWT_SECRET) as JWTPayload;
+
+        if (payload.type !== 'access' || !payload.jti) {
+            throw new UnauthorizedError('Invalid access token');
+        }
+
+        const session = await prisma.session.findFirst({
+            where: {
+                userId: payload.userId,
+                sessionToken: payload.jti,
+                expires: { gt: new Date() },
+            },
+            select: { id: true },
+        });
+        if (!session) {
+            throw new UnauthorizedError('Session expired or revoked');
+        }
 
         // Fetch user from database
         const user = await prisma.user.findUnique({

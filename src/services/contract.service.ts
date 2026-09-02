@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { blockchainService } from './blockchain.service.js';
+import { chain } from '../config/env.js';
 
 /**
  * Mirrors the LiquidationReason enum in CollateralManager.sol — the ordinals are
@@ -46,8 +47,14 @@ export class ContractService {
         const event = receipt.logs.find(
             (log: any) => log.fragment?.name === 'LoanCreated'
         );
+        if (!event) {
+            throw new Error(`LoanCreated event missing from transaction ${receipt.hash}`);
+        }
 
-        const loanId = event ? Number(event.args[0]) : 0;
+        const loanId = Number(event.args[0]);
+        if (!Number.isSafeInteger(loanId) || loanId <= 0) {
+            throw new Error(`Invalid on-chain loan ID in transaction ${receipt.hash}`);
+        }
 
         return {
             loanId,
@@ -182,28 +189,62 @@ export class ContractService {
      */
     async verifyCollateralDeposit(
         loanId: number,
-        txHash: string
-    ): Promise<{ verified: boolean; amount?: string; error?: string }> {
+        txHash: string,
+        borrowerAddress: string,
+        minimumAmount: string,
+    ): Promise<{
+        verified: boolean;
+        amount?: string;
+        blockNumber?: number;
+        gasUsed?: string;
+        error?: string;
+    }> {
         try {
-            // Get transaction details
             const txInfo = await blockchainService.verifyTransaction(txHash);
 
             if (!txInfo.valid) {
-                return { verified: false, error: 'Transaction not confirmed' };
+                return {
+                    verified: false,
+                    error: `Transaction is not successful or lacks ${chain.minConfirmations} confirmation(s)`,
+                };
+            }
+            if (txInfo.chainId !== chain.id) {
+                return { verified: false, error: `Transaction is on chain ${txInfo.chainId}, expected ${chain.id}` };
+            }
+            if (txInfo.from?.toLowerCase() !== borrowerAddress.toLowerCase()) {
+                return { verified: false, error: 'Transaction sender is not the verified borrower wallet' };
             }
 
-            // Check if tx was sent to CollateralManager
             const cmAddress = process.env.COLLATERAL_MANAGER_ADDRESS;
-            if (txInfo.to?.toLowerCase() !== cmAddress?.toLowerCase()) {
+            if (!cmAddress || txInfo.to?.toLowerCase() !== cmAddress.toLowerCase()) {
                 return { verified: false, error: 'Transaction not sent to CollateralManager' };
             }
+            if (!txInfo.data || blockchainService.decodeCollateralDeposit(txInfo.data) !== loanId) {
+                return { verified: false, error: 'Transaction did not call depositCollateral for this loan' };
+            }
 
-            // Get current collateral amount
-            const collateral = await this.getCollateral(loanId);
+            const event = await blockchainService.findCollateralDepositEvent(
+                txHash,
+                cmAddress,
+                loanId,
+                borrowerAddress,
+            );
+            if (!event) {
+                return { verified: false, error: 'Expected CollateralDeposited event was not emitted' };
+            }
+
+            if (ethers.parseEther(event.amount) < ethers.parseEther(minimumAmount)) {
+                return { verified: false, error: 'Deposited collateral is below the required amount' };
+            }
+            if (txInfo.value !== event.amount) {
+                return { verified: false, error: 'Transaction value does not match the collateral event' };
+            }
 
             return {
                 verified: true,
-                amount: collateral,
+                amount: event.amount,
+                blockNumber: txInfo.blockNumber,
+                gasUsed: txInfo.gasUsed,
             };
         } catch (error) {
             return {

@@ -50,6 +50,7 @@ export type LiquidityPoolMinAggregateOutputType = {
   cumulativeYield: runtime.Decimal | null
   utilizationRate: number | null
   apy: number | null
+  poolAddress: string | null
   lastUpdated: Date | null
 }
 
@@ -60,6 +61,7 @@ export type LiquidityPoolMaxAggregateOutputType = {
   cumulativeYield: runtime.Decimal | null
   utilizationRate: number | null
   apy: number | null
+  poolAddress: string | null
   lastUpdated: Date | null
 }
 
@@ -70,6 +72,7 @@ export type LiquidityPoolCountAggregateOutputType = {
   cumulativeYield: number
   utilizationRate: number
   apy: number
+  poolAddress: number
   lastUpdated: number
   _all: number
 }
@@ -98,6 +101,7 @@ export type LiquidityPoolMinAggregateInputType = {
   cumulativeYield?: true
   utilizationRate?: true
   apy?: true
+  poolAddress?: true
   lastUpdated?: true
 }
 
@@ -108,6 +112,7 @@ export type LiquidityPoolMaxAggregateInputType = {
   cumulativeYield?: true
   utilizationRate?: true
   apy?: true
+  poolAddress?: true
   lastUpdated?: true
 }
 
@@ -118,6 +123,7 @@ export type LiquidityPoolCountAggregateInputType = {
   cumulativeYield?: true
   utilizationRate?: true
   apy?: true
+  poolAddress?: true
   lastUpdated?: true
   _all?: true
 }
@@ -215,6 +221,7 @@ export type LiquidityPoolGroupByOutputType = {
   cumulativeYield: runtime.Decimal
   utilizationRate: number
   apy: number
+  poolAddress: string | null
   lastUpdated: Date
   _count: LiquidityPoolCountAggregateOutputType | null
   _avg: LiquidityPoolAvgAggregateOutputType | null
@@ -248,6 +255,7 @@ export type LiquidityPoolWhereInput = {
   cumulativeYield?: Prisma.DecimalFilter<"LiquidityPool"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: Prisma.FloatFilter<"LiquidityPool"> | number
   apy?: Prisma.FloatFilter<"LiquidityPool"> | number
+  poolAddress?: Prisma.StringNullableFilter<"LiquidityPool"> | string | null
   lastUpdated?: Prisma.DateTimeFilter<"LiquidityPool"> | Date | string
 }
 
@@ -258,6 +266,7 @@ export type LiquidityPoolOrderByWithRelationInput = {
   cumulativeYield?: Prisma.SortOrder
   utilizationRate?: Prisma.SortOrder
   apy?: Prisma.SortOrder
+  poolAddress?: Prisma.SortOrderInput | Prisma.SortOrder
   lastUpdated?: Prisma.SortOrder
 }
 
@@ -271,6 +280,7 @@ export type LiquidityPoolWhereUniqueInput = Prisma.AtLeast<{
   cumulativeYield?: Prisma.DecimalFilter<"LiquidityPool"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: Prisma.FloatFilter<"LiquidityPool"> | number
   apy?: Prisma.FloatFilter<"LiquidityPool"> | number
+  poolAddress?: Prisma.StringNullableFilter<"LiquidityPool"> | string | null
   lastUpdated?: Prisma.DateTimeFilter<"LiquidityPool"> | Date | string
 }, "id">
 
@@ -281,6 +291,7 @@ export type LiquidityPoolOrderByWithAggregationInput = {
   cumulativeYield?: Prisma.SortOrder
   utilizationRate?: Prisma.SortOrder
   apy?: Prisma.SortOrder
+  poolAddress?: Prisma.SortOrderInput | Prisma.SortOrder
   lastUpdated?: Prisma.SortOrder
   _count?: Prisma.LiquidityPoolCountOrderByAggregateInput
   _avg?: Prisma.LiquidityPoolAvgOrderByAggregateInput
@@ -299,6 +310,7 @@ export type LiquidityPoolScalarWhereWithAggregatesInput = {
   cumulativeYield?: Prisma.DecimalWithAggregatesFilter<"LiquidityPool"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: Prisma.FloatWithAggregatesFilter<"LiquidityPool"> | number
   apy?: Prisma.FloatWithAggregatesFilter<"LiquidityPool"> | number
+  poolAddress?: Prisma.StringNullableWithAggregatesFilter<"LiquidityPool"> | string | null
   lastUpdated?: Prisma.DateTimeWithAggregatesFilter<"LiquidityPool"> | Date | string
 }
 
@@ -309,6 +321,7 @@ export type LiquidityPoolCreateInput = {
   cumulativeYield?: runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: number
   apy?: number
+  poolAddress?: string | null
   lastUpdated?: Date | string
 }
 
@@ -319,6 +332,7 @@ export type LiquidityPoolUncheckedCreateInput = {
   cumulativeYield?: runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: number
   apy?: number
+  poolAddress?: string | null
   lastUpdated?: Date | string
 }
 
@@ -329,6 +343,7 @@ export type LiquidityPoolUpdateInput = {
   cumulativeYield?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: Prisma.FloatFieldUpdateOperationsInput | number
   apy?: Prisma.FloatFieldUpdateOperationsInput | number
+  poolAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastUpdated?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -339,6 +354,7 @@ export type LiquidityPoolUncheckedUpdateInput = {
   cumulativeYield?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: Prisma.FloatFieldUpdateOperationsInput | number
   apy?: Prisma.FloatFieldUpdateOperationsInput | number
+  poolAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastUpdated?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -349,6 +365,7 @@ export type LiquidityPoolCreateManyInput = {
   cumulativeYield?: runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: number
   apy?: number
+  poolAddress?: string | null
   lastUpdated?: Date | string
 }
 
@@ -359,6 +376,7 @@ export type LiquidityPoolUpdateManyMutationInput = {
   cumulativeYield?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: Prisma.FloatFieldUpdateOperationsInput | number
   apy?: Prisma.FloatFieldUpdateOperationsInput | number
+  poolAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastUpdated?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -369,6 +387,7 @@ export type LiquidityPoolUncheckedUpdateManyInput = {
   cumulativeYield?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   utilizationRate?: Prisma.FloatFieldUpdateOperationsInput | number
   apy?: Prisma.FloatFieldUpdateOperationsInput | number
+  poolAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastUpdated?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -379,6 +398,7 @@ export type LiquidityPoolCountOrderByAggregateInput = {
   cumulativeYield?: Prisma.SortOrder
   utilizationRate?: Prisma.SortOrder
   apy?: Prisma.SortOrder
+  poolAddress?: Prisma.SortOrder
   lastUpdated?: Prisma.SortOrder
 }
 
@@ -397,6 +417,7 @@ export type LiquidityPoolMaxOrderByAggregateInput = {
   cumulativeYield?: Prisma.SortOrder
   utilizationRate?: Prisma.SortOrder
   apy?: Prisma.SortOrder
+  poolAddress?: Prisma.SortOrder
   lastUpdated?: Prisma.SortOrder
 }
 
@@ -407,6 +428,7 @@ export type LiquidityPoolMinOrderByAggregateInput = {
   cumulativeYield?: Prisma.SortOrder
   utilizationRate?: Prisma.SortOrder
   apy?: Prisma.SortOrder
+  poolAddress?: Prisma.SortOrder
   lastUpdated?: Prisma.SortOrder
 }
 
@@ -427,6 +449,7 @@ export type LiquidityPoolSelect<ExtArgs extends runtime.Types.Extensions.Interna
   cumulativeYield?: boolean
   utilizationRate?: boolean
   apy?: boolean
+  poolAddress?: boolean
   lastUpdated?: boolean
 }, ExtArgs["result"]["liquidityPool"]>
 
@@ -437,6 +460,7 @@ export type LiquidityPoolSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   cumulativeYield?: boolean
   utilizationRate?: boolean
   apy?: boolean
+  poolAddress?: boolean
   lastUpdated?: boolean
 }, ExtArgs["result"]["liquidityPool"]>
 
@@ -447,6 +471,7 @@ export type LiquidityPoolSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   cumulativeYield?: boolean
   utilizationRate?: boolean
   apy?: boolean
+  poolAddress?: boolean
   lastUpdated?: boolean
 }, ExtArgs["result"]["liquidityPool"]>
 
@@ -457,10 +482,11 @@ export type LiquidityPoolSelectScalar = {
   cumulativeYield?: boolean
   utilizationRate?: boolean
   apy?: boolean
+  poolAddress?: boolean
   lastUpdated?: boolean
 }
 
-export type LiquidityPoolOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "totalLiquidity" | "totalBorrowed" | "cumulativeYield" | "utilizationRate" | "apy" | "lastUpdated", ExtArgs["result"]["liquidityPool"]>
+export type LiquidityPoolOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "totalLiquidity" | "totalBorrowed" | "cumulativeYield" | "utilizationRate" | "apy" | "poolAddress" | "lastUpdated", ExtArgs["result"]["liquidityPool"]>
 
 export type $LiquidityPoolPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "LiquidityPool"
@@ -472,6 +498,7 @@ export type $LiquidityPoolPayload<ExtArgs extends runtime.Types.Extensions.Inter
     cumulativeYield: runtime.Decimal
     utilizationRate: number
     apy: number
+    poolAddress: string | null
     lastUpdated: Date
   }, ExtArgs["result"]["liquidityPool"]>
   composites: {}
@@ -902,6 +929,7 @@ export interface LiquidityPoolFieldRefs {
   readonly cumulativeYield: Prisma.FieldRef<"LiquidityPool", 'Decimal'>
   readonly utilizationRate: Prisma.FieldRef<"LiquidityPool", 'Float'>
   readonly apy: Prisma.FieldRef<"LiquidityPool", 'Float'>
+  readonly poolAddress: Prisma.FieldRef<"LiquidityPool", 'String'>
   readonly lastUpdated: Prisma.FieldRef<"LiquidityPool", 'DateTime'>
 }
     

@@ -5,7 +5,7 @@
  *
  * C-1: register() returns verificationToken; service does NOT self-send email
  * C-2: forgotPassword() returns token; service does NOT self-send email
- * C-3: POST /auth/login response sets an HttpOnly + SameSite=Strict cookie
+ * C-3: POST /auth/login response sets HttpOnly browser cookies
  * C-4: POST /loans returns 500 before touching DB when COLLATERAL_MANAGER_ADDRESS unset
  * C-5: KYC upload rejects files with disallowed extensions (.exe, .pdf.exe, etc.)
  */
@@ -46,6 +46,7 @@ vi.mock('../services/email.service.js', () => ({
 }));
 
 vi.mock('../config/env.js', () => ({
+    corsAllowedOrigins: ['http://localhost'],
     env: {
         JWT_SECRET: 'test-secret-vitest-critical',
         JWT_ACCESS_EXPIRY: '15m',
@@ -55,6 +56,8 @@ vi.mock('../config/env.js', () => ({
         AVELON_LENDING_ADDRESS: '0xLending',
         COLLATERAL_MANAGER_ADDRESS: '0xCollateral',
         REPAYMENT_SCHEDULE_ADDRESS: '0xRepayment',
+        KYC_STORAGE_MODE: 'local',
+        STORAGE_PATH: './uploads-test',
     },
 }));
 
@@ -126,10 +129,11 @@ const mockApprovedUser = {
 function authHeader(): Record<string, string> {
     const token = jwt.sign(
         {
-            sub: mockApprovedUser.id,
+            userId: mockApprovedUser.id,
             email: mockApprovedUser.email,
             role: mockApprovedUser.role,
             type: 'access',
+            jti: 'session-jti',
         },
         JWT_SECRET,
         { expiresIn: '1h' }
@@ -255,7 +259,7 @@ describe('C-3 — Login sets HttpOnly cookie', () => {
         expect(cookie.toLowerCase()).toContain('httponly');
     });
 
-    it('Set-Cookie header includes SameSite=Strict', async () => {
+    it('Set-Cookie header includes a SameSite policy', async () => {
         const res = await app.request('/api/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -263,7 +267,7 @@ describe('C-3 — Login sets HttpOnly cookie', () => {
         });
 
         const cookie = res.headers.get('set-cookie') ?? '';
-        expect(cookie.toLowerCase()).toContain('samesite=strict');
+        expect(cookie.toLowerCase()).toContain('samesite=lax');
     });
 });
 
@@ -273,6 +277,7 @@ describe('C-4 — Missing COLLATERAL_MANAGER_ADDRESS env var', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockPrismaClient.user.findUnique.mockResolvedValue(mockApprovedUser);
+        mockPrismaClient.session.findFirst.mockResolvedValue({ id: 'session-001' });
     });
 
     afterEach(() => {
@@ -290,6 +295,7 @@ describe('C-4 — Missing COLLATERAL_MANAGER_ADDRESS env var', () => {
                 amount: '0.5',
                 duration: 30,
                 walletId: 'wallet-abc',
+                purpose: 'Working capital',
             }),
         });
 
@@ -311,6 +317,7 @@ describe('C-4 — Missing COLLATERAL_MANAGER_ADDRESS env var', () => {
                 amount: '0.5',
                 duration: 30,
                 walletId: 'wallet-abc',
+                purpose: 'Working capital',
             }),
         });
 
@@ -320,10 +327,42 @@ describe('C-4 — Missing COLLATERAL_MANAGER_ADDRESS env var', () => {
 
 // ── C-5: KYC upload rejects disallowed extensions ────────────────────────────
 
+describe('C-4b — Cookie-authenticated mutations enforce trusted origins', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockPrismaClient.session.findFirst.mockResolvedValue({ id: 'session-001' });
+        mockPrismaClient.user.findUnique.mockResolvedValue(mockApprovedUser);
+    });
+
+    it('rejects a cross-site mutation before invoking the loan service', async () => {
+        const token = authHeader().Authorization.replace('Bearer ', '');
+        const res = await app.request('/api/v1/loans', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: `accessToken=${token}`,
+                Origin: 'https://attacker.example',
+            },
+            body: JSON.stringify({
+                planId: 'plan-abc',
+                amount: '0.5',
+                duration: 30,
+                walletId: 'wallet-abc',
+                purpose: 'Working capital',
+            }),
+        });
+
+        expect(res.status).toBe(403);
+        const { loanService } = await import('../services/loan.service.js');
+        expect(loanService.createLoan).not.toHaveBeenCalled();
+    });
+});
+
 describe('C-5 — File extension whitelist', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockPrismaClient.user.findUnique.mockResolvedValue(mockApprovedUser);
+        mockPrismaClient.session.findFirst.mockResolvedValue({ id: 'session-001' });
         mockPrismaClient.document.findFirst.mockResolvedValue(null);
     });
 
@@ -361,7 +400,7 @@ describe('C-5 — File extension whitelist', () => {
     });
 
     it('accepts a legitimate .jpg file without rejecting', async () => {
-        const file = new File(['fake-jpeg-data'], 'passport.jpg', { type: 'image/jpeg' });
+        const file = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], 'passport.jpg', { type: 'image/jpeg' });
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', 'GOVERNMENT_ID');
@@ -376,7 +415,7 @@ describe('C-5 — File extension whitelist', () => {
         expect(res.status).not.toBe(400);
     });
 
-    it('accepts a legitimate .pdf file without rejecting', async () => {
+    it('rejects PDF documents because only inspectable image formats are supported', async () => {
         const file = new File(['%PDF-1.4 fake'], 'income_proof.pdf', {
             type: 'application/pdf',
         });
@@ -390,6 +429,6 @@ describe('C-5 — File extension whitelist', () => {
             body: formData,
         });
 
-        expect(res.status).not.toBe(400);
+        expect(res.status).toBe(400);
     });
 });

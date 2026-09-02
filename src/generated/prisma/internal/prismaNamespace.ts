@@ -1970,6 +1970,7 @@ export const LoanScalarFieldEnum = {
   contractAddress: 'contractAddress',
   contractLoanId: 'contractLoanId',
   principal: 'principal',
+  purpose: 'purpose',
   collateralRequired: 'collateralRequired',
   collateralDeposited: 'collateralDeposited',
   duration: 'duration',
@@ -1979,6 +1980,11 @@ export const LoanScalarFieldEnum = {
   interestOwed: 'interestOwed',
   feesOwed: 'feesOwed',
   status: 'status',
+  approvedAt: 'approvedAt',
+  approvedBy: 'approvedBy',
+  rejectedAt: 'rejectedAt',
+  rejectedBy: 'rejectedBy',
+  rejectionReason: 'rejectionReason',
   createdAt: 'createdAt',
   collateralDepositedAt: 'collateralDepositedAt',
   disbursedAt: 'disbursedAt',
@@ -2107,6 +2113,8 @@ export const InvestorDepositScalarFieldEnum = {
   txHash: 'txHash',
   status: 'status',
   poolSharePercent: 'poolSharePercent',
+  sharesMinted: 'sharesMinted',
+  blockNumber: 'blockNumber',
   createdAt: 'createdAt',
   withdrawnAt: 'withdrawnAt'
 } as const
@@ -2121,6 +2129,7 @@ export const LiquidityPoolScalarFieldEnum = {
   cumulativeYield: 'cumulativeYield',
   utilizationRate: 'utilizationRate',
   apy: 'apy',
+  poolAddress: 'poolAddress',
   lastUpdated: 'lastUpdated'
 } as const
 
@@ -2132,6 +2141,7 @@ export const PoolTransactionScalarFieldEnum = {
   type: 'type',
   amount: 'amount',
   txHash: 'txHash',
+  sharesDelta: 'sharesDelta',
   userId: 'userId',
   createdAt: 'createdAt'
 } as const

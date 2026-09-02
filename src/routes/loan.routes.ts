@@ -19,6 +19,7 @@ const createLoanSchema = z.object({
     amount: z.string().regex(/^\d+\.?\d*$/, 'Invalid amount format'),
     duration: z.number().int().positive('Duration must be a positive integer'),
     walletId: z.string().min(1, 'Wallet ID is required'),
+    purpose: z.string().trim().min(3, 'Loan purpose is required').max(500),
 });
 
 const recordCollateralSchema = z.object({
@@ -93,6 +94,7 @@ loanRoutes.post(
             planId: body.planId,
             amount: body.amount,
             duration: body.duration,
+            purpose: body.purpose,
         });
 
         // Notify: loan application submitted
@@ -153,6 +155,9 @@ loanRoutes.get('/blockchain/status', authMiddleware, async (c) => {
                     avelonLending: process.env.AVELON_LENDING_ADDRESS || null,
                     collateralManager: process.env.COLLATERAL_MANAGER_ADDRESS || null,
                     repaymentSchedule: process.env.REPAYMENT_SCHEDULE_ADDRESS || null,
+                    // Repayments go here, not to the treasury — the pool credits the
+                    // investors who funded the loan.
+                    liquidityPool: process.env.LIQUIDITY_POOL_ADDRESS || null,
                     treasury: process.env.TREASURY_ADDRESS || null,
                 },
             },

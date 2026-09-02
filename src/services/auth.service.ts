@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 // @ts-ignore -- bcrypt types resolved via @types/bcrypt in deps
 import bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, UnauthorizedError, ValidationError } from '../middleware/error.middleware.js';
@@ -50,7 +50,7 @@ export class AuthService {
         });
 
         // Create verification token (6-digit OTP)
-        const token = Math.floor(100000 + Math.random() * 900000).toString();
+        const token = randomInt(100000, 1_000_000).toString();
         await prisma.verificationToken.create({
             data: {
                 identifier: user.email,
@@ -231,16 +231,16 @@ export class AuthService {
         // Delete any existing reset tokens
         await prisma.verificationToken.deleteMany({
             where: {
-                identifier: email,
+                identifier: email.toLowerCase(),
                 type: 'PASSWORD_RESET',
             },
         });
 
         // Create new reset token (6-digit OTP)
-        const token = Math.floor(100000 + Math.random() * 900000).toString();
+        const token = randomInt(100000, 1_000_000).toString();
         await prisma.verificationToken.create({
             data: {
-                identifier: email,
+                identifier: email.toLowerCase(),
                 token,
                 type: 'PASSWORD_RESET',
                 expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
@@ -299,6 +299,21 @@ export class AuthService {
         return { success: true };
     }
 
+    async validatePasswordResetToken(token: string) {
+        const resetToken = await prisma.verificationToken.findFirst({
+            where: {
+                token,
+                type: 'PASSWORD_RESET',
+                expires: { gt: new Date() },
+            },
+            select: { identifier: true, expires: true },
+        });
+        if (!resetToken) {
+            throw new ValidationError('Invalid or expired reset code');
+        }
+        return { valid: true, email: resetToken.identifier, expires: resetToken.expires };
+    }
+
     /**
      * Refresh access token
      */
@@ -333,7 +348,8 @@ export class AuthService {
             const accessToken = this.generateAccessToken(
                 payload.sub,
                 payload.email,
-                payload.role
+                payload.role,
+                payload.jti,
             );
 
             return { accessToken };
@@ -368,8 +384,8 @@ export class AuthService {
      * Generate JWT tokens
      */
     private generateTokens(userId: string, email: string, role: string): TokenPair & { jti: string } {
-        const accessToken = this.generateAccessToken(userId, email, role);
         const { token: refreshToken, jti } = this.generateRefreshToken(userId, email, role);
+        const accessToken = this.generateAccessToken(userId, email, role, jti);
         return { accessToken, refreshToken, jti };
     }
 
@@ -418,13 +434,15 @@ export class AuthService {
             data: { passwordHash },
         });
 
+        await prisma.session.deleteMany({ where: { userId } });
+
         return { message: 'Password changed successfully' };
     }
 
-    private generateAccessToken(userId: string, email: string, role: string): string {
+    private generateAccessToken(userId: string, email: string, role: string, jti: string): string {
         const expiresIn = this.parseDuration(env.JWT_ACCESS_EXPIRY);
         return sign(
-            { userId, email, role, type: 'access' },
+            { userId, email, role, type: 'access', jti },
             env.JWT_SECRET,
             { expiresIn }
         );

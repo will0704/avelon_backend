@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { authMiddleware, verifiedMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
 import { walletService } from '../services/wallet.service.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -10,13 +10,14 @@ const walletRoutes = new Hono();
 // Validation schemas
 const connectWalletSchema = z.object({
     address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
-    chainId: z.number().optional().default(1337),
+    chainId: z.number().int().positive(),
 });
 
 const verifyWalletSchema = z.object({
     address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
     signature: z.string().min(1, 'Signature is required'),
     message: z.string().min(1, 'Message is required'),
+    chainId: z.number().int().positive(),
 });
 
 /**
@@ -38,17 +39,18 @@ walletRoutes.get('/', authMiddleware, async (c) => {
  * POST /wallets/connect
  * Initiate wallet connection - returns message to sign
  */
-walletRoutes.post('/connect', authMiddleware, verifiedMiddleware, zValidator('json', connectWalletSchema), async (c) => {
+walletRoutes.post('/connect', authMiddleware, approvedMiddleware, zValidator('json', connectWalletSchema), async (c) => {
     const userId = c.get('userId');
-    const { address } = c.req.valid('json');
+    const { address, chainId } = c.req.valid('json');
 
-    const message = await walletService.generateAndStoreNonce(userId, address);
+    const message = await walletService.generateAndStoreNonce(userId, address, chainId);
 
     return c.json({
         success: true,
         data: {
             message,
             address,
+            chainId,
         },
     });
 });
@@ -57,33 +59,15 @@ walletRoutes.post('/connect', authMiddleware, verifiedMiddleware, zValidator('js
  * POST /wallets/verify
  * Verify wallet signature
  */
-walletRoutes.post('/verify', authMiddleware, verifiedMiddleware, zValidator('json', verifyWalletSchema), async (c) => {
+walletRoutes.post('/verify', authMiddleware, approvedMiddleware, zValidator('json', verifyWalletSchema), async (c) => {
     const userId = c.get('userId');
-    const { address, signature, message } = c.req.valid('json');
+    const { address, signature, message, chainId } = c.req.valid('json');
 
-    const wallet = await walletService.verifySignature(userId, address, signature, message);
+    const wallet = await walletService.verifySignature(userId, address, chainId, signature, message);
 
     return c.json({
         success: true,
         message: 'Wallet verified successfully',
-        data: wallet,
-    });
-});
-
-/**
- * POST /wallets/connect-direct
- * Connect and verify wallet in one step (mobile flow)
- * DEV/STAGING ONLY — skips signature verification; blocked in production.
- */
-walletRoutes.post('/connect-direct', authMiddleware, verifiedMiddleware, zValidator('json', connectWalletSchema), async (c) => {
-    const userId = c.get('userId');
-    const { address } = c.req.valid('json');
-
-    const wallet = await walletService.connectDirect(userId, address);
-
-    return c.json({
-        success: true,
-        message: 'Wallet connected and verified',
         data: wallet,
     });
 });
@@ -256,4 +240,3 @@ walletRoutes.get('/:id/analysis', authMiddleware, async (c) => {
 });
 
 export { walletRoutes };
-

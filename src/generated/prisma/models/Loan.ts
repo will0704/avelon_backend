@@ -66,6 +66,7 @@ export type LoanMinAggregateOutputType = {
   contractAddress: string | null
   contractLoanId: number | null
   principal: runtime.Decimal | null
+  purpose: string | null
   collateralRequired: runtime.Decimal | null
   collateralDeposited: runtime.Decimal | null
   duration: number | null
@@ -75,6 +76,11 @@ export type LoanMinAggregateOutputType = {
   interestOwed: runtime.Decimal | null
   feesOwed: runtime.Decimal | null
   status: $Enums.LoanStatus | null
+  approvedAt: Date | null
+  approvedBy: string | null
+  rejectedAt: Date | null
+  rejectedBy: string | null
+  rejectionReason: string | null
   createdAt: Date | null
   collateralDepositedAt: Date | null
   disbursedAt: Date | null
@@ -97,6 +103,7 @@ export type LoanMaxAggregateOutputType = {
   contractAddress: string | null
   contractLoanId: number | null
   principal: runtime.Decimal | null
+  purpose: string | null
   collateralRequired: runtime.Decimal | null
   collateralDeposited: runtime.Decimal | null
   duration: number | null
@@ -106,6 +113,11 @@ export type LoanMaxAggregateOutputType = {
   interestOwed: runtime.Decimal | null
   feesOwed: runtime.Decimal | null
   status: $Enums.LoanStatus | null
+  approvedAt: Date | null
+  approvedBy: string | null
+  rejectedAt: Date | null
+  rejectedBy: string | null
+  rejectionReason: string | null
   createdAt: Date | null
   collateralDepositedAt: Date | null
   disbursedAt: Date | null
@@ -128,6 +140,7 @@ export type LoanCountAggregateOutputType = {
   contractAddress: number
   contractLoanId: number
   principal: number
+  purpose: number
   collateralRequired: number
   collateralDeposited: number
   duration: number
@@ -137,6 +150,11 @@ export type LoanCountAggregateOutputType = {
   interestOwed: number
   feesOwed: number
   status: number
+  approvedAt: number
+  approvedBy: number
+  rejectedAt: number
+  rejectedBy: number
+  rejectionReason: number
   createdAt: number
   collateralDepositedAt: number
   disbursedAt: number
@@ -193,6 +211,7 @@ export type LoanMinAggregateInputType = {
   contractAddress?: true
   contractLoanId?: true
   principal?: true
+  purpose?: true
   collateralRequired?: true
   collateralDeposited?: true
   duration?: true
@@ -202,6 +221,11 @@ export type LoanMinAggregateInputType = {
   interestOwed?: true
   feesOwed?: true
   status?: true
+  approvedAt?: true
+  approvedBy?: true
+  rejectedAt?: true
+  rejectedBy?: true
+  rejectionReason?: true
   createdAt?: true
   collateralDepositedAt?: true
   disbursedAt?: true
@@ -224,6 +248,7 @@ export type LoanMaxAggregateInputType = {
   contractAddress?: true
   contractLoanId?: true
   principal?: true
+  purpose?: true
   collateralRequired?: true
   collateralDeposited?: true
   duration?: true
@@ -233,6 +258,11 @@ export type LoanMaxAggregateInputType = {
   interestOwed?: true
   feesOwed?: true
   status?: true
+  approvedAt?: true
+  approvedBy?: true
+  rejectedAt?: true
+  rejectedBy?: true
+  rejectionReason?: true
   createdAt?: true
   collateralDepositedAt?: true
   disbursedAt?: true
@@ -255,6 +285,7 @@ export type LoanCountAggregateInputType = {
   contractAddress?: true
   contractLoanId?: true
   principal?: true
+  purpose?: true
   collateralRequired?: true
   collateralDeposited?: true
   duration?: true
@@ -264,6 +295,11 @@ export type LoanCountAggregateInputType = {
   interestOwed?: true
   feesOwed?: true
   status?: true
+  approvedAt?: true
+  approvedBy?: true
+  rejectedAt?: true
+  rejectedBy?: true
+  rejectionReason?: true
   createdAt?: true
   collateralDepositedAt?: true
   disbursedAt?: true
@@ -373,6 +409,7 @@ export type LoanGroupByOutputType = {
   contractAddress: string | null
   contractLoanId: number | null
   principal: runtime.Decimal
+  purpose: string
   collateralRequired: runtime.Decimal
   collateralDeposited: runtime.Decimal
   duration: number
@@ -382,6 +419,11 @@ export type LoanGroupByOutputType = {
   interestOwed: runtime.Decimal
   feesOwed: runtime.Decimal
   status: $Enums.LoanStatus
+  approvedAt: Date | null
+  approvedBy: string | null
+  rejectedAt: Date | null
+  rejectedBy: string | null
+  rejectionReason: string | null
   createdAt: Date
   collateralDepositedAt: Date | null
   disbursedAt: Date | null
@@ -427,6 +469,7 @@ export type LoanWhereInput = {
   contractAddress?: Prisma.StringNullableFilter<"Loan"> | string | null
   contractLoanId?: Prisma.IntNullableFilter<"Loan"> | number | null
   principal?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFilter<"Loan"> | string
   collateralRequired?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFilter<"Loan"> | number
@@ -436,6 +479,11 @@ export type LoanWhereInput = {
   interestOwed?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFilter<"Loan"> | $Enums.LoanStatus
+  approvedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  approvedBy?: Prisma.StringNullableFilter<"Loan"> | string | null
+  rejectedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  rejectedBy?: Prisma.StringNullableFilter<"Loan"> | string | null
+  rejectionReason?: Prisma.StringNullableFilter<"Loan"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Loan"> | Date | string
   collateralDepositedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   disbursedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
@@ -462,6 +510,7 @@ export type LoanOrderByWithRelationInput = {
   contractAddress?: Prisma.SortOrderInput | Prisma.SortOrder
   contractLoanId?: Prisma.SortOrderInput | Prisma.SortOrder
   principal?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   collateralRequired?: Prisma.SortOrder
   collateralDeposited?: Prisma.SortOrder
   duration?: Prisma.SortOrder
@@ -471,6 +520,11 @@ export type LoanOrderByWithRelationInput = {
   interestOwed?: Prisma.SortOrder
   feesOwed?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  approvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  approvedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  rejectedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  rejectedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  rejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   collateralDepositedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   disbursedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -500,6 +554,7 @@ export type LoanWhereUniqueInput = Prisma.AtLeast<{
   planId?: Prisma.StringFilter<"Loan"> | string
   contractLoanId?: Prisma.IntNullableFilter<"Loan"> | number | null
   principal?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFilter<"Loan"> | string
   collateralRequired?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFilter<"Loan"> | number
@@ -509,6 +564,11 @@ export type LoanWhereUniqueInput = Prisma.AtLeast<{
   interestOwed?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFilter<"Loan"> | $Enums.LoanStatus
+  approvedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  approvedBy?: Prisma.StringNullableFilter<"Loan"> | string | null
+  rejectedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  rejectedBy?: Prisma.StringNullableFilter<"Loan"> | string | null
+  rejectionReason?: Prisma.StringNullableFilter<"Loan"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Loan"> | Date | string
   collateralDepositedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   disbursedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
@@ -535,6 +595,7 @@ export type LoanOrderByWithAggregationInput = {
   contractAddress?: Prisma.SortOrderInput | Prisma.SortOrder
   contractLoanId?: Prisma.SortOrderInput | Prisma.SortOrder
   principal?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   collateralRequired?: Prisma.SortOrder
   collateralDeposited?: Prisma.SortOrder
   duration?: Prisma.SortOrder
@@ -544,6 +605,11 @@ export type LoanOrderByWithAggregationInput = {
   interestOwed?: Prisma.SortOrder
   feesOwed?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  approvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  approvedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  rejectedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  rejectedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  rejectionReason?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   collateralDepositedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   disbursedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -574,6 +640,7 @@ export type LoanScalarWhereWithAggregatesInput = {
   contractAddress?: Prisma.StringNullableWithAggregatesFilter<"Loan"> | string | null
   contractLoanId?: Prisma.IntNullableWithAggregatesFilter<"Loan"> | number | null
   principal?: Prisma.DecimalWithAggregatesFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringWithAggregatesFilter<"Loan"> | string
   collateralRequired?: Prisma.DecimalWithAggregatesFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalWithAggregatesFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntWithAggregatesFilter<"Loan"> | number
@@ -583,6 +650,11 @@ export type LoanScalarWhereWithAggregatesInput = {
   interestOwed?: Prisma.DecimalWithAggregatesFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalWithAggregatesFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusWithAggregatesFilter<"Loan"> | $Enums.LoanStatus
+  approvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
+  approvedBy?: Prisma.StringNullableWithAggregatesFilter<"Loan"> | string | null
+  rejectedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
+  rejectedBy?: Prisma.StringNullableWithAggregatesFilter<"Loan"> | string | null
+  rejectionReason?: Prisma.StringNullableWithAggregatesFilter<"Loan"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Loan"> | Date | string
   collateralDepositedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
   disbursedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
@@ -602,6 +674,7 @@ export type LoanCreateInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -611,6 +684,11 @@ export type LoanCreateInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -637,6 +715,7 @@ export type LoanUncheckedCreateInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -646,6 +725,11 @@ export type LoanUncheckedCreateInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -666,6 +750,7 @@ export type LoanUpdateInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -675,6 +760,11 @@ export type LoanUpdateInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -701,6 +791,7 @@ export type LoanUncheckedUpdateInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -710,6 +801,11 @@ export type LoanUncheckedUpdateInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -733,6 +829,7 @@ export type LoanCreateManyInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -742,6 +839,11 @@ export type LoanCreateManyInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -761,6 +863,7 @@ export type LoanUpdateManyMutationInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -770,6 +873,11 @@ export type LoanUpdateManyMutationInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -792,6 +900,7 @@ export type LoanUncheckedUpdateManyInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -801,6 +910,11 @@ export type LoanUncheckedUpdateManyInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -833,6 +947,7 @@ export type LoanCountOrderByAggregateInput = {
   contractAddress?: Prisma.SortOrder
   contractLoanId?: Prisma.SortOrder
   principal?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   collateralRequired?: Prisma.SortOrder
   collateralDeposited?: Prisma.SortOrder
   duration?: Prisma.SortOrder
@@ -842,6 +957,11 @@ export type LoanCountOrderByAggregateInput = {
   interestOwed?: Prisma.SortOrder
   feesOwed?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  approvedAt?: Prisma.SortOrder
+  approvedBy?: Prisma.SortOrder
+  rejectedAt?: Prisma.SortOrder
+  rejectedBy?: Prisma.SortOrder
+  rejectionReason?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   collateralDepositedAt?: Prisma.SortOrder
   disbursedAt?: Prisma.SortOrder
@@ -880,6 +1000,7 @@ export type LoanMaxOrderByAggregateInput = {
   contractAddress?: Prisma.SortOrder
   contractLoanId?: Prisma.SortOrder
   principal?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   collateralRequired?: Prisma.SortOrder
   collateralDeposited?: Prisma.SortOrder
   duration?: Prisma.SortOrder
@@ -889,6 +1010,11 @@ export type LoanMaxOrderByAggregateInput = {
   interestOwed?: Prisma.SortOrder
   feesOwed?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  approvedAt?: Prisma.SortOrder
+  approvedBy?: Prisma.SortOrder
+  rejectedAt?: Prisma.SortOrder
+  rejectedBy?: Prisma.SortOrder
+  rejectionReason?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   collateralDepositedAt?: Prisma.SortOrder
   disbursedAt?: Prisma.SortOrder
@@ -911,6 +1037,7 @@ export type LoanMinOrderByAggregateInput = {
   contractAddress?: Prisma.SortOrder
   contractLoanId?: Prisma.SortOrder
   principal?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   collateralRequired?: Prisma.SortOrder
   collateralDeposited?: Prisma.SortOrder
   duration?: Prisma.SortOrder
@@ -920,6 +1047,11 @@ export type LoanMinOrderByAggregateInput = {
   interestOwed?: Prisma.SortOrder
   feesOwed?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  approvedAt?: Prisma.SortOrder
+  approvedBy?: Prisma.SortOrder
+  rejectedAt?: Prisma.SortOrder
+  rejectedBy?: Prisma.SortOrder
+  rejectionReason?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   collateralDepositedAt?: Prisma.SortOrder
   disbursedAt?: Prisma.SortOrder
@@ -1112,6 +1244,7 @@ export type LoanCreateWithoutUserInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1121,6 +1254,11 @@ export type LoanCreateWithoutUserInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1145,6 +1283,7 @@ export type LoanUncheckedCreateWithoutUserInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1154,6 +1293,11 @@ export type LoanUncheckedCreateWithoutUserInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1206,6 +1350,7 @@ export type LoanScalarWhereInput = {
   contractAddress?: Prisma.StringNullableFilter<"Loan"> | string | null
   contractLoanId?: Prisma.IntNullableFilter<"Loan"> | number | null
   principal?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFilter<"Loan"> | string
   collateralRequired?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFilter<"Loan"> | number
@@ -1215,6 +1360,11 @@ export type LoanScalarWhereInput = {
   interestOwed?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFilter<"Loan"> | $Enums.LoanStatus
+  approvedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  approvedBy?: Prisma.StringNullableFilter<"Loan"> | string | null
+  rejectedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  rejectedBy?: Prisma.StringNullableFilter<"Loan"> | string | null
+  rejectionReason?: Prisma.StringNullableFilter<"Loan"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Loan"> | Date | string
   collateralDepositedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   disbursedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
@@ -1234,6 +1384,7 @@ export type LoanCreateWithoutWalletInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1243,6 +1394,11 @@ export type LoanCreateWithoutWalletInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1267,6 +1423,7 @@ export type LoanUncheckedCreateWithoutWalletInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1276,6 +1433,11 @@ export type LoanUncheckedCreateWithoutWalletInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1322,6 +1484,7 @@ export type LoanCreateWithoutPlanInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1331,6 +1494,11 @@ export type LoanCreateWithoutPlanInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1355,6 +1523,7 @@ export type LoanUncheckedCreateWithoutPlanInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1364,6 +1533,11 @@ export type LoanUncheckedCreateWithoutPlanInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1410,6 +1584,7 @@ export type LoanCreateWithoutTransactionsInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1419,6 +1594,11 @@ export type LoanCreateWithoutTransactionsInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1444,6 +1624,7 @@ export type LoanUncheckedCreateWithoutTransactionsInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1453,6 +1634,11 @@ export type LoanUncheckedCreateWithoutTransactionsInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1488,6 +1674,7 @@ export type LoanUpdateWithoutTransactionsInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1497,6 +1684,11 @@ export type LoanUpdateWithoutTransactionsInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1522,6 +1714,7 @@ export type LoanUncheckedUpdateWithoutTransactionsInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1531,6 +1724,11 @@ export type LoanUncheckedUpdateWithoutTransactionsInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1552,6 +1750,7 @@ export type LoanCreateManyUserInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1561,6 +1760,11 @@ export type LoanCreateManyUserInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1580,6 +1784,7 @@ export type LoanUpdateWithoutUserInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1589,6 +1794,11 @@ export type LoanUpdateWithoutUserInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1613,6 +1823,7 @@ export type LoanUncheckedUpdateWithoutUserInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1622,6 +1833,11 @@ export type LoanUncheckedUpdateWithoutUserInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1644,6 +1860,7 @@ export type LoanUncheckedUpdateManyWithoutUserInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1653,6 +1870,11 @@ export type LoanUncheckedUpdateManyWithoutUserInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1674,6 +1896,7 @@ export type LoanCreateManyWalletInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1683,6 +1906,11 @@ export type LoanCreateManyWalletInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1702,6 +1930,7 @@ export type LoanUpdateWithoutWalletInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1711,6 +1940,11 @@ export type LoanUpdateWithoutWalletInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1735,6 +1969,7 @@ export type LoanUncheckedUpdateWithoutWalletInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1744,6 +1979,11 @@ export type LoanUncheckedUpdateWithoutWalletInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1766,6 +2006,7 @@ export type LoanUncheckedUpdateManyWithoutWalletInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1775,6 +2016,11 @@ export type LoanUncheckedUpdateManyWithoutWalletInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1796,6 +2042,7 @@ export type LoanCreateManyPlanInput = {
   contractAddress?: string | null
   contractLoanId?: number | null
   principal: runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose: string
   collateralRequired: runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: runtime.Decimal | runtime.DecimalJsLike | number | string
   duration: number
@@ -1805,6 +2052,11 @@ export type LoanCreateManyPlanInput = {
   interestOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: $Enums.LoanStatus
+  approvedAt?: Date | string | null
+  approvedBy?: string | null
+  rejectedAt?: Date | string | null
+  rejectedBy?: string | null
+  rejectionReason?: string | null
   createdAt?: Date | string
   collateralDepositedAt?: Date | string | null
   disbursedAt?: Date | string | null
@@ -1824,6 +2076,7 @@ export type LoanUpdateWithoutPlanInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1833,6 +2086,11 @@ export type LoanUpdateWithoutPlanInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1857,6 +2115,7 @@ export type LoanUncheckedUpdateWithoutPlanInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1866,6 +2125,11 @@ export type LoanUncheckedUpdateWithoutPlanInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1888,6 +2152,7 @@ export type LoanUncheckedUpdateManyWithoutPlanInput = {
   contractAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contractLoanId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  purpose?: Prisma.StringFieldUpdateOperationsInput | string
   collateralRequired?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   collateralDeposited?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   duration?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1897,6 +2162,11 @@ export type LoanUncheckedUpdateManyWithoutPlanInput = {
   interestOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feesOwed?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumLoanStatusFieldUpdateOperationsInput | $Enums.LoanStatus
+  approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  approvedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  rejectedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rejectionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   collateralDepositedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   disbursedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1950,6 +2220,7 @@ export type LoanSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   contractAddress?: boolean
   contractLoanId?: boolean
   principal?: boolean
+  purpose?: boolean
   collateralRequired?: boolean
   collateralDeposited?: boolean
   duration?: boolean
@@ -1959,6 +2230,11 @@ export type LoanSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   interestOwed?: boolean
   feesOwed?: boolean
   status?: boolean
+  approvedAt?: boolean
+  approvedBy?: boolean
+  rejectedAt?: boolean
+  rejectedBy?: boolean
+  rejectionReason?: boolean
   createdAt?: boolean
   collateralDepositedAt?: boolean
   disbursedAt?: boolean
@@ -1986,6 +2262,7 @@ export type LoanSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   contractAddress?: boolean
   contractLoanId?: boolean
   principal?: boolean
+  purpose?: boolean
   collateralRequired?: boolean
   collateralDeposited?: boolean
   duration?: boolean
@@ -1995,6 +2272,11 @@ export type LoanSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   interestOwed?: boolean
   feesOwed?: boolean
   status?: boolean
+  approvedAt?: boolean
+  approvedBy?: boolean
+  rejectedAt?: boolean
+  rejectedBy?: boolean
+  rejectionReason?: boolean
   createdAt?: boolean
   collateralDepositedAt?: boolean
   disbursedAt?: boolean
@@ -2020,6 +2302,7 @@ export type LoanSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   contractAddress?: boolean
   contractLoanId?: boolean
   principal?: boolean
+  purpose?: boolean
   collateralRequired?: boolean
   collateralDeposited?: boolean
   duration?: boolean
@@ -2029,6 +2312,11 @@ export type LoanSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   interestOwed?: boolean
   feesOwed?: boolean
   status?: boolean
+  approvedAt?: boolean
+  approvedBy?: boolean
+  rejectedAt?: boolean
+  rejectedBy?: boolean
+  rejectionReason?: boolean
   createdAt?: boolean
   collateralDepositedAt?: boolean
   disbursedAt?: boolean
@@ -2054,6 +2342,7 @@ export type LoanSelectScalar = {
   contractAddress?: boolean
   contractLoanId?: boolean
   principal?: boolean
+  purpose?: boolean
   collateralRequired?: boolean
   collateralDeposited?: boolean
   duration?: boolean
@@ -2063,6 +2352,11 @@ export type LoanSelectScalar = {
   interestOwed?: boolean
   feesOwed?: boolean
   status?: boolean
+  approvedAt?: boolean
+  approvedBy?: boolean
+  rejectedAt?: boolean
+  rejectedBy?: boolean
+  rejectionReason?: boolean
   createdAt?: boolean
   collateralDepositedAt?: boolean
   disbursedAt?: boolean
@@ -2077,7 +2371,7 @@ export type LoanSelectScalar = {
   ethPriceSnapshot?: boolean
 }
 
-export type LoanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "walletId" | "planId" | "contractAddress" | "contractLoanId" | "principal" | "collateralRequired" | "collateralDeposited" | "duration" | "interestRate" | "originationFee" | "principalOwed" | "interestOwed" | "feesOwed" | "status" | "createdAt" | "collateralDepositedAt" | "disbursedAt" | "dueDate" | "repaidAt" | "liquidatedAt" | "liquidationWarningAt" | "extended" | "originalDueDate" | "extensionFee" | "creditScoreSnapshot" | "ethPriceSnapshot", ExtArgs["result"]["loan"]>
+export type LoanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "walletId" | "planId" | "contractAddress" | "contractLoanId" | "principal" | "purpose" | "collateralRequired" | "collateralDeposited" | "duration" | "interestRate" | "originationFee" | "principalOwed" | "interestOwed" | "feesOwed" | "status" | "approvedAt" | "approvedBy" | "rejectedAt" | "rejectedBy" | "rejectionReason" | "createdAt" | "collateralDepositedAt" | "disbursedAt" | "dueDate" | "repaidAt" | "liquidatedAt" | "liquidationWarningAt" | "extended" | "originalDueDate" | "extensionFee" | "creditScoreSnapshot" | "ethPriceSnapshot", ExtArgs["result"]["loan"]>
 export type LoanInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   wallet?: boolean | Prisma.WalletDefaultArgs<ExtArgs>
@@ -2112,6 +2406,7 @@ export type $LoanPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     contractAddress: string | null
     contractLoanId: number | null
     principal: runtime.Decimal
+    purpose: string
     collateralRequired: runtime.Decimal
     collateralDeposited: runtime.Decimal
     duration: number
@@ -2121,6 +2416,11 @@ export type $LoanPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     interestOwed: runtime.Decimal
     feesOwed: runtime.Decimal
     status: $Enums.LoanStatus
+    approvedAt: Date | null
+    approvedBy: string | null
+    rejectedAt: Date | null
+    rejectedBy: string | null
+    rejectionReason: string | null
     createdAt: Date
     collateralDepositedAt: Date | null
     disbursedAt: Date | null
@@ -2567,6 +2867,7 @@ export interface LoanFieldRefs {
   readonly contractAddress: Prisma.FieldRef<"Loan", 'String'>
   readonly contractLoanId: Prisma.FieldRef<"Loan", 'Int'>
   readonly principal: Prisma.FieldRef<"Loan", 'Decimal'>
+  readonly purpose: Prisma.FieldRef<"Loan", 'String'>
   readonly collateralRequired: Prisma.FieldRef<"Loan", 'Decimal'>
   readonly collateralDeposited: Prisma.FieldRef<"Loan", 'Decimal'>
   readonly duration: Prisma.FieldRef<"Loan", 'Int'>
@@ -2576,6 +2877,11 @@ export interface LoanFieldRefs {
   readonly interestOwed: Prisma.FieldRef<"Loan", 'Decimal'>
   readonly feesOwed: Prisma.FieldRef<"Loan", 'Decimal'>
   readonly status: Prisma.FieldRef<"Loan", 'LoanStatus'>
+  readonly approvedAt: Prisma.FieldRef<"Loan", 'DateTime'>
+  readonly approvedBy: Prisma.FieldRef<"Loan", 'String'>
+  readonly rejectedAt: Prisma.FieldRef<"Loan", 'DateTime'>
+  readonly rejectedBy: Prisma.FieldRef<"Loan", 'String'>
+  readonly rejectionReason: Prisma.FieldRef<"Loan", 'String'>
   readonly createdAt: Prisma.FieldRef<"Loan", 'DateTime'>
   readonly collateralDepositedAt: Prisma.FieldRef<"Loan", 'DateTime'>
   readonly disbursedAt: Prisma.FieldRef<"Loan", 'DateTime'>

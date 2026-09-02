@@ -26,20 +26,20 @@ enum UserRole {
 }
 
 enum UserStatus {
-  REGISTERED    // Email not verified
-  VERIFIED      // Email verified, no KYC
-  PENDING_KYC   // KYC submitted, awaiting review
-  APPROVED      // KYC approved, can connect wallet
-  CONNECTED     // Wallet connected, can borrow
-  REJECTED      // KYC rejected
-  SUSPENDED     // Account suspended
+  REGISTERED // Email not verified
+  VERIFIED // Email verified, no KYC
+  PENDING_KYC // KYC submitted, awaiting review
+  APPROVED // KYC approved, can connect wallet
+  CONNECTED // Wallet connected, can borrow
+  REJECTED // KYC rejected
+  SUSPENDED // Account suspended
 }
 
 enum KYCLevel {
   NONE
-  BASIC      // Government ID only
-  STANDARD   // ID + Proof of Income
-  ENHANCED   // ID + Income + Address
+  BASIC // Government ID only
+  STANDARD // ID + Proof of Income
+  ENHANCED // ID + Income + Address
 }
 
 enum DocumentType {
@@ -58,6 +58,8 @@ enum DocumentStatus {
 }
 
 enum LoanStatus {
+  PENDING_APPROVAL
+  REJECTED
   PENDING_COLLATERAL
   COLLATERAL_DEPOSITED
   ACTIVE
@@ -87,6 +89,7 @@ enum NotificationType {
   LOAN_CREATED
   LOAN_APPLICATION_RECEIVED
   LOAN_APPROVED
+  LOAN_REJECTED
   LOAN_CANCELLED
   COLLATERAL_DEPOSITED
   COLLATERAL_ADDED
@@ -112,71 +115,71 @@ enum InterestType {
 // =====================================================
 
 model User {
-  id                  String     @id @default(cuid())
-  email               String     @unique
-  emailVerified       DateTime?
-  passwordHash        String?
-  name                String?
-  phone               String?
-  avatar              String?
-  role                UserRole   @default(BORROWER)
-  status              UserStatus @default(REGISTERED)
+  id            String     @id @default(cuid())
+  email         String     @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  phone         String?
+  avatar        String?
+  role          UserRole   @default(BORROWER)
+  status        UserStatus @default(REGISTERED)
 
   // KYC
-  kycLevel            KYCLevel   @default(NONE)
-  kycSubmittedAt      DateTime?
-  kycApprovedAt       DateTime?
-  kycRejectionReason  String?
+  kycLevel           KYCLevel  @default(NONE)
+  kycSubmittedAt     DateTime?
+  kycApprovedAt      DateTime?
+  kycRejectionReason String?
 
   // User-submitted KYC profile info
-  dateOfBirth         String?
-  gender              String?
-  civilStatus         String?
-  educationLevel      String?
-  country             String?
-  region              String?
-  province            String?
-  cityTown            String?
-  barangay            String?
-  contactNumber       String?
-  secondaryEmail      String?
-  idType              String?    // e.g. PhilID, Driver's License, Passport
+  dateOfBirth    String?
+  gender         String?
+  civilStatus    String?
+  educationLevel String?
+  country        String?
+  region         String?
+  province       String?
+  cityTown       String?
+  barangay       String?
+  contactNumber  String?
+  secondaryEmail String?
+  idType         String? // e.g. PhilID, Driver's License, Passport
 
   // Credit Score
-  creditScore         Int?       // 0-100
-  creditTier          String?    // BASIC, STANDARD, PREMIUM, VIP
+  creditScore Int? // 0-100
+  creditTier  String? // BASIC, STANDARD, PREMIUM, VIP
 
   // Extracted KYC Data (from AI) - Encrypted at Rest
-  legalName           String?    /// @encrypted
-  birthDate           String?    /// @encrypted
-  address             String?    /// @encrypted
-  monthlyIncome       String?    /// @encrypted
-  employmentType      String?
+  legalName      String? /// @encrypted
+  birthDate      String? /// @encrypted
+  address        String? /// @encrypted
+  monthlyIncome  String? /// @encrypted
+  employmentType String?
 
   // Statistics
-  totalBorrowed       Decimal    @default(0)
-  totalRepaid         Decimal    @default(0)
-  activeLoansCount    Int        @default(0)
-  completedLoansCount Int        @default(0)
-  defaultCount        Int        @default(0)
+  totalBorrowed       Decimal @default(0)
+  totalRepaid         Decimal @default(0)
+  activeLoansCount    Int     @default(0)
+  completedLoansCount Int     @default(0)
+  defaultCount        Int     @default(0)
 
   // Timestamps
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
-  lastLoginAt         DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
 
   // Relations
-  accounts            Account[]
-  sessions            Session[]
-  wallets             Wallet[]
-  documents           Document[]
-  loans               Loan[]
-  notifications       Notification[]
-  notificationPrefs   NotificationPreference?
-  deviceTokens        DeviceToken[]
-  investorDeposits    InvestorDeposit[]
-  poolTransactions    PoolTransaction[]
-  auditLogs           AuditLog[]
+  accounts          Account[]
+  sessions          Session[]
+  wallets           Wallet[]
+  documents         Document[]
+  loans             Loan[]
+  notifications     Notification[]
+  notificationPrefs NotificationPreference?
+  deviceTokens      DeviceToken[]
+  investorDeposits  InvestorDeposit[]
+  poolTransactions  PoolTransaction[]
+  auditLogs         AuditLog[]
 
   @@index([email])
   @@index([status])
@@ -184,10 +187,10 @@ model User {
 }
 
 model Account {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   userId            String
-  type              String   // oauth, email, credentials
-  provider          String   // google, github, credentials
+  type              String // oauth, email, credentials
+  provider          String // google, github, credentials
   providerAccountId String
   refresh_token     String?
   access_token      String?
@@ -196,9 +199,9 @@ model Account {
   scope             String?
   id_token          String?
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -212,9 +215,9 @@ model Session {
   ipAddress    String?
   userAgent    String?
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
 }
@@ -223,9 +226,9 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
-  type       String   // EMAIL_VERIFICATION, PASSWORD_RESET
+  type       String // EMAIL_VERIFICATION, PASSWORD_RESET
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([identifier, token])
 }
@@ -238,13 +241,13 @@ model Wallet {
   isPrimary  Boolean   @default(false)
   isVerified Boolean   @default(false)
   verifiedAt DateTime?
-  label      String?   // User-defined label
+  label      String? // User-defined label
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  loans      Loan[]
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loans Loan[]
 
-  createdAt  DateTime  @default(now())
-  lastUsedAt DateTime  @default(now())
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
 
   @@unique([userId, address])
   @@index([address])
@@ -252,39 +255,39 @@ model Wallet {
 }
 
 model Document {
-  id              String         @id @default(cuid())
-  userId          String
-  type            DocumentType
-  status          DocumentStatus @default(PENDING)
+  id     String         @id @default(cuid())
+  userId String
+  type   DocumentType
+  status DocumentStatus @default(PENDING)
 
   // File Info
-  fileName        String
-  fileSize        Int
-  mimeType        String
-  storagePath     String         // Encrypted file path
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  storagePath String // Encrypted file path
 
   // AI Verification Results
-  aiVerified      Boolean        @default(false)
-  aiConfidence    Float?         // 0-1 confidence score
-  aiExtractedData Json?          // Extracted fields
-  aiFraudScore    Float?         // 0-1 fraud probability
-  aiFraudFlags    String[]       // List of fraud indicators
+  aiVerified      Boolean  @default(false)
+  aiConfidence    Float? // 0-1 confidence score
+  aiExtractedData Json? // Extracted fields
+  aiFraudScore    Float? // 0-1 fraud probability
+  aiFraudFlags    String[] // List of fraud indicators
 
   // Face Matching (SELFIE documents only)
-  faceMatchScore  Float?         // Cosine similarity 0-1 vs government ID
-  faceMatchPassed Boolean?       // true = face matches ID photo
+  faceMatchScore  Float? // Cosine similarity 0-1 vs government ID
+  faceMatchPassed Boolean? // true = face matches ID photo
 
   // Manual Review
-  reviewedBy      String?        // Admin ID
+  reviewedBy      String? // Admin ID
   reviewedAt      DateTime?
   rejectionReason String?
 
   // Timestamps
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  expiresAt       DateTime?      // Document expiry date
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime? // Document expiry date
 
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([type])
@@ -292,96 +295,105 @@ model Document {
 }
 
 model LoanPlan {
-  id               String       @id @default(cuid())
-  name             String       @unique
-  description      String?
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
 
   // Eligibility
-  minCreditScore   Int          // Minimum score required
+  minCreditScore Int // Minimum score required
 
   // Loan Terms
-  minAmount        Decimal      // Minimum loan (ETH)
-  maxAmount        Decimal      // Maximum loan (ETH)
-  durationOptions  Int[]        // Available durations in days
-  interestRate     Float        // Interest rate percentage
-  interestType     InterestType @default(FLAT)
+  minAmount       Decimal // Minimum loan (ETH)
+  maxAmount       Decimal // Maximum loan (ETH)
+  durationOptions Int[] // Available durations in days
+  interestRate    Float // Interest rate percentage
+  interestType    InterestType @default(FLAT)
 
   // Collateral
-  collateralRatio  Float        // borrower's own stake as % of principal, e.g. 35 = 35%
+  collateralRatio Float // borrower's own stake as % of principal, e.g. 35 = 35%
 
   // Fees
-  originationFee   Float        // Percentage
-  latePenaltyRate  Float        @default(0.5) // Daily percentage
-  gracePeriodDays  Int          @default(3)
+  originationFee  Float // Percentage
+  latePenaltyRate Float @default(0.5) // Daily percentage
+  gracePeriodDays Int   @default(3)
 
   // Extension (VIP only)
-  extensionAllowed Boolean      @default(false)
-  maxExtensionDays Int          @default(0)
-  extensionFee     Float        @default(0) // Percentage
+  extensionAllowed Boolean @default(false)
+  maxExtensionDays Int     @default(0)
+  extensionFee     Float   @default(0) // Percentage
 
   // Status
-  isActive         Boolean      @default(true)
+  isActive Boolean @default(true)
 
   // Metadata
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  createdBy        String       // Admin ID
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String // Admin ID
 
-  loans            Loan[]
+  loans Loan[]
 
   @@index([isActive])
   @@index([minCreditScore])
 }
 
 model Loan {
-  id                    String     @id @default(cuid())
+  id String @id @default(cuid())
 
   // References
-  userId                String
-  walletId              String
-  planId                String
+  userId   String
+  walletId String
+  planId   String
 
   // Blockchain
-  contractAddress       String?    @unique
-  contractLoanId        Int?       // ID within smart contract
+  contractAddress String? @unique
+  contractLoanId  Int? // ID within smart contract
 
   // Loan Details
-  principal             Decimal    // Original loan amount (ETH)
-  collateralRequired    Decimal    // Required collateral (ETH)
-  collateralDeposited   Decimal    @default(0) // Actual deposited
-  duration              Int        // Duration in days
-  interestRate          Float      // Snapshot of rate at creation
-  originationFee        Decimal    // Actual fee amount
+  principal           Decimal // Original loan amount (ETH)
+  purpose             String // Borrower-provided purpose disclosed at application
+  collateralRequired  Decimal // Required collateral (ETH)
+  collateralDeposited Decimal @default(0) // Actual deposited
+  duration            Int // Duration in days
+  interestRate        Float // Snapshot of rate at creation
+  originationFee      Decimal // Actual fee amount
 
   // Outstanding Amounts
-  principalOwed         Decimal    // Remaining principal
-  interestOwed          Decimal    @default(0) // Accrued interest
-  feesOwed              Decimal    @default(0) // Late fees, etc.
+  principalOwed Decimal // Remaining principal
+  interestOwed  Decimal @default(0) // Accrued interest
+  feesOwed      Decimal @default(0) // Late fees, etc.
 
   // Status & Dates
-  status                LoanStatus @default(PENDING_COLLATERAL)
+  status                LoanStatus @default(PENDING_APPROVAL)
+
+  // Admin decision on the application. The on-chain loan is only created on
+  // approval, so a rejected application never touches the chain.
+  approvedAt            DateTime?
+  approvedBy            String?
+  rejectedAt            DateTime?
+  rejectedBy            String?
+  rejectionReason       String?
   createdAt             DateTime   @default(now())
   collateralDepositedAt DateTime?
   disbursedAt           DateTime?
   dueDate               DateTime?
   repaidAt              DateTime?
   liquidatedAt          DateTime?
-  liquidationWarningAt  DateTime?  // When warning was sent
+  liquidationWarningAt  DateTime? // When warning was sent
 
   // Extension
-  extended              Boolean    @default(false)
-  originalDueDate       DateTime?
-  extensionFee          Decimal?
+  extended        Boolean   @default(false)
+  originalDueDate DateTime?
+  extensionFee    Decimal?
 
   // Risk Metrics (at time of approval)
-  creditScoreSnapshot   Int        // User's score when loan created
-  ethPriceSnapshot      Decimal    // ETH/PHP rate when loan created
+  creditScoreSnapshot Int // User's score when loan created
+  ethPriceSnapshot    Decimal // ETH/PHP rate when loan created
 
   // Relations
-  user                  User       @relation(fields: [userId], references: [id])
-  wallet                Wallet     @relation(fields: [walletId], references: [id])
-  plan                  LoanPlan   @relation(fields: [planId], references: [id])
-  transactions          LoanTransaction[]
+  user         User              @relation(fields: [userId], references: [id])
+  wallet       Wallet            @relation(fields: [walletId], references: [id])
+  plan         LoanPlan          @relation(fields: [planId], references: [id])
+  transactions LoanTransaction[]
 
   @@index([userId])
   @@index([status])
@@ -389,29 +401,29 @@ model Loan {
 }
 
 model LoanTransaction {
-  id          String          @id @default(cuid())
-  loanId      String
-  type        TransactionType
+  id     String          @id @default(cuid())
+  loanId String
+  type   TransactionType
 
   // Amounts
-  amount      Decimal         // ETH amount
-  amountPHP   Decimal?        // PHP equivalent at time
-  ethPrice    Decimal?        // ETH/PHP rate used
+  amount    Decimal // ETH amount
+  amountPHP Decimal? // PHP equivalent at time
+  ethPrice  Decimal? // ETH/PHP rate used
 
   // Blockchain
-  txHash      String?         @unique
+  txHash      String?  @unique
   blockNumber Int?
   gasUsed     Decimal?
 
   // Status
-  confirmed   Boolean         @default(false)
+  confirmed   Boolean   @default(false)
   confirmedAt DateTime?
 
   // Metadata
-  note        String?
-  createdAt   DateTime        @default(now())
+  note      String?
+  createdAt DateTime @default(now())
 
-  loan        Loan            @relation(fields: [loanId], references: [id])
+  loan Loan @relation(fields: [loanId], references: [id])
 
   @@index([loanId])
   @@index([txHash])
@@ -419,36 +431,36 @@ model LoanTransaction {
 }
 
 model Notification {
-  id          String           @id @default(cuid())
-  userId      String
-  type        NotificationType
+  id     String           @id @default(cuid())
+  userId String
+  type   NotificationType
 
   // Content
-  title       String
-  message     String
-  metadata    Json?            // Additional data
+  title    String
+  message  String
+  metadata Json? // Additional data
 
   // Status
-  isRead      Boolean          @default(false)
-  readAt      DateTime?
+  isRead Boolean   @default(false)
+  readAt DateTime?
 
   // Delivery
-  emailSent   Boolean          @default(false)
+  emailSent   Boolean   @default(false)
   emailSentAt DateTime?
-  pushSent    Boolean          @default(false)
+  pushSent    Boolean   @default(false)
   pushSentAt  DateTime?
 
-  createdAt   DateTime         @default(now())
+  createdAt DateTime @default(now())
 
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
   @@index([createdAt])
 }
 
 model NotificationPreference {
-  id                      String  @id @default(cuid())
-  userId                  String  @unique
+  id     String @id @default(cuid())
+  userId String @unique
 
   // Email Preferences
   emailLoanUpdates        Boolean @default(true)
@@ -457,55 +469,55 @@ model NotificationPreference {
   emailMarketingNews      Boolean @default(false)
 
   // Push Preferences
-  pushLoanUpdates         Boolean @default(true)
-  pushRepaymentReminders  Boolean @default(true)
-  pushLiquidationAlerts   Boolean @default(true)
+  pushLoanUpdates        Boolean @default(true)
+  pushRepaymentReminders Boolean @default(true)
+  pushLiquidationAlerts  Boolean @default(true)
 
-  updatedAt               DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
-  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model DeviceToken {
-  id         String   @id @default(cuid())
-  userId     String
-  token      String   @unique
-  platform   String   // IOS, ANDROID, WEB
-  isActive   Boolean  @default(true)
+  id       String  @id @default(cuid())
+  userId   String
+  token    String  @unique
+  platform String // IOS, ANDROID, WEB
+  isActive Boolean @default(true)
 
   createdAt  DateTime @default(now())
   lastUsedAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model PriceHistory {
-  id          String   @id @default(cuid())
-  ethPricePHP Decimal  // ETH price in PHP
-  source      String   // manual, chainlink, coingecko
+  id          String  @id @default(cuid())
+  ethPricePHP Decimal // ETH price in PHP
+  source      String // manual, chainlink, coingecko
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([createdAt])
 }
 
 model AuditLog {
-  id        String   @id @default(cuid())
-  userId    String?
-  action    String   // LOGIN, KYC_SUBMIT, LOAN_CREATE, etc.
-  entity    String?  // User, Loan, Document, etc.
-  entityId  String?
+  id       String  @id @default(cuid())
+  userId   String?
+  action   String // LOGIN, KYC_SUBMIT, LOAN_CREATE, etc.
+  entity   String? // User, Loan, Document, etc.
+  entityId String?
 
   // Details
   ipAddress String?
   userAgent String?
-  metadata  Json?    // Additional context
+  metadata  Json? // Additional context
 
   createdAt DateTime @default(now())
 
-  user      User?    @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([action])
@@ -513,13 +525,13 @@ model AuditLog {
 }
 
 model SystemConfig {
-  id          String   @id @default(cuid())
-  key         String   @unique
+  id          String  @id @default(cuid())
+  key         String  @unique
   value       String
   description String?
 
-  updatedAt   DateTime @updatedAt
-  updatedBy   String?  // Admin ID
+  updatedAt DateTime @updatedAt
+  updatedBy String? // Admin ID
 }
 
 // =====================================================
@@ -527,34 +539,39 @@ model SystemConfig {
 // =====================================================
 
 enum DepositStatus {
-  PENDING    // Tx submitted, not yet confirmed on-chain
-  CONFIRMED  // Confirmed — liquidity is in the pool
-  WITHDRAWN  // Fully withdrawn
+  PENDING // Tx submitted, not yet confirmed on-chain
+  CONFIRMED // Confirmed — liquidity is in the pool
+  WITHDRAWN // Fully withdrawn
 }
 
 enum PoolTransactionType {
   DEPOSIT
   WITHDRAWAL
   YIELD_EARNED
+  YIELD_CLAIMED
   FEE_COLLECTED
 }
 
 /// Records a single investor deposit into the liquidity pool.
 model InvestorDeposit {
-  id               String        @id @default(cuid())
-  userId           String
+  id     String @id @default(cuid())
+  userId String
 
   // Deposit details
-  amount           Decimal       // ETH amount deposited
+  amount           Decimal // ETH amount deposited
   txHash           String        @unique
   status           DepositStatus @default(PENDING)
-  poolSharePercent Float?        // Pool share at time of deposit (0–100)
+  poolSharePercent Float? // Pool share at time of deposit (0–100)
+  // Shares minted on-chain by AvelonLiquidityPool. The chain, not this row, is
+  // authoritative for what the position is worth today.
+  sharesMinted     Decimal?
+  blockNumber      Int?
 
   // Timestamps
-  createdAt        DateTime      @default(now())
-  withdrawnAt      DateTime?
+  createdAt   DateTime  @default(now())
+  withdrawnAt DateTime?
 
-  user             User          @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([status])
@@ -563,36 +580,43 @@ model InvestorDeposit {
 /// Singleton table — one row represents the shared liquidity pool state.
 /// Updated on every deposit, withdrawal, and loan repayment.
 model LiquidityPool {
-  id               String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Pool financials (ETH)
-  totalLiquidity   Decimal  @default(0)  // Total deposited (active)
-  totalBorrowed    Decimal  @default(0)  // Currently lent out
-  cumulativeYield  Decimal  @default(0)  // Total yield ever distributed
+  totalLiquidity  Decimal @default(0) // Total deposited (active)
+  totalBorrowed   Decimal @default(0) // Currently lent out
+  cumulativeYield Decimal @default(0) // Total yield ever distributed
 
   // Computed metrics (cached, recomputed on relevant events)
-  utilizationRate  Float    @default(0)  // totalBorrowed / totalLiquidity (0–1)
-  apy              Float    @default(0)  // Annualised yield rate (0–1)
+  utilizationRate Float @default(0) // totalBorrowed / totalLiquidity (0–1)
+  apy             Float @default(0) // Annualised yield rate (0–1)
 
-  lastUpdated      DateTime @default(now()) @updatedAt
+  // Address of the AvelonLiquidityPool this row mirrors. A pool redeployed at a
+  // new address is a different pool; the ledger below belongs to the old one.
+  poolAddress String?
+
+  lastUpdated DateTime @default(now()) @updatedAt
 }
 
 /// Ledger of all pool-level financial events (deposits, withdrawals, yield).
 model PoolTransaction {
-  id        String              @id @default(cuid())
-  type      PoolTransactionType
+  id   String              @id @default(cuid())
+  type PoolTransactionType
 
   // Amount in ETH
-  amount    Decimal
+  amount Decimal
 
   // On-chain reference (null for internal yield events)
-  txHash    String?
+  txHash String?
+
+  // Shares minted (positive) or burned (negative) by this event, when on-chain
+  sharesDelta Decimal?
 
   // Associated user (null for pool-aggregate events like FEE_COLLECTED)
-  userId    String?
-  user      User?               @relation(fields: [userId], references: [id])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
 
-  createdAt DateTime            @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([type])

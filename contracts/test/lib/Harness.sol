@@ -12,6 +12,9 @@ interface Vm {
     function deal(address who, uint256 newBalance) external;
     function prank(address sender) external;
     function expectRevert(bytes4 revertData) external;
+    // Errors carrying parameters need the whole encoded payload; the bytes4 form
+    // is compared against the full revert data and will not match a prefix.
+    function expectRevert(bytes calldata revertData) external;
     function expectEmit(bool checkTopic1, bool checkTopic2, bool checkTopic3, bool checkData, address emitter) external;
 }
 

@@ -16,8 +16,10 @@ import { blockchainService } from '../../services/blockchain.service.js';
 import { NotificationType } from '../../generated/prisma/enums.js';
 import { contractService } from '../../services/contract.service.js';
 import { env } from '../../config/env.js';
+import { poolService } from '../../services/pool.service.js';
 
 const adminRoutes = new Hono();
+const volatilityCache = new Map<number, { expiresAt: number; data: Record<string, any> }>();
 
 // Protect ALL admin routes with auth + admin role check (OWASP A01)
 adminRoutes.use('*', authMiddleware);
@@ -506,15 +508,32 @@ adminRoutes.get('/deposits', async (c) => {
 adminRoutes.get('/pool', async (c) => {
     try {
         const pool = await prisma.liquidityPool.findFirst();
-        if (!pool) {
+
+        // Read the pool contract rather than the mirror row. The mirror only
+        // refreshes on investor activity, so between events it under-reports.
+        if (poolService.isConfigured()) {
+            const [state, investors] = await Promise.all([
+                poolService.getPoolState(),
+                prisma.investorDeposit.groupBy({ by: ['userId'], where: { status: 'CONFIRMED' }, _count: true }),
+            ]);
+
             return c.json({
                 success: true,
                 data: {
-                    totalLiquidity: 0,
-                    totalBorrowed: 0,
-                    cumulativeYield: 0,
-                    utilizationRate: 0,
-                    apy: 0,
+                    poolAddress: state.address,
+                    totalLiquidity: Number(state.totalAssets),
+                    availableLiquidity: Number(state.availableLiquidity),
+                    totalBorrowed: Number(state.totalOutstandingPrincipal),
+                    totalShares: Number(state.totalShares),
+                    cumulativeYield: Number(state.cumulativeInterest),
+                    cumulativeWriteOffs: Number(state.cumulativeWriteOffs),
+                    utilizationRate: state.utilization,
+                    // Interest received to date over pool size. Backward-looking, not a promise.
+                    apy: Number(state.totalAssets) > 0
+                        ? Number(state.cumulativeInterest) / Number(state.totalAssets)
+                        : 0,
+                    investorCount: investors.length,
+                    source: 'chain' as const,
                     lastUpdated: new Date(),
                 },
             });
@@ -523,12 +542,18 @@ adminRoutes.get('/pool', async (c) => {
         return c.json({
             success: true,
             data: {
-                totalLiquidity: Number(pool.totalLiquidity),
-                totalBorrowed: Number(pool.totalBorrowed),
-                cumulativeYield: Number(pool.cumulativeYield),
-                utilizationRate: pool.utilizationRate,
-                apy: pool.apy,
-                lastUpdated: pool.lastUpdated,
+                poolAddress: null,
+                totalLiquidity: Number(pool?.totalLiquidity ?? 0),
+                availableLiquidity: 0,
+                totalBorrowed: Number(pool?.totalBorrowed ?? 0),
+                totalShares: 0,
+                cumulativeYield: Number(pool?.cumulativeYield ?? 0),
+                cumulativeWriteOffs: 0,
+                utilizationRate: pool?.utilizationRate ?? 0,
+                apy: pool?.apy ?? 0,
+                investorCount: 0,
+                source: 'database' as const,
+                lastUpdated: pool?.lastUpdated ?? new Date(),
             },
         });
     } catch (err) {
@@ -539,27 +564,18 @@ adminRoutes.get('/pool', async (c) => {
 
 /**
  * GET /admin/volatility
- * ETH volatility forecast from the LLM service, resolved against every active
- * loan plan's stake ratio so admins can see which tiers are exposed.
+ * ETH volatility research forecast. ETH price does not change an ETH/ETH debt
+ * ratio, so this endpoint is advisory and never drives liquidation.
  */
 adminRoutes.get('/volatility', async (c) => {
     const horizonDays = Math.min(30, Math.max(1, Number(c.req.query('horizon') ?? 7)));
 
     try {
-        const plans = await prisma.loanPlan.findMany({
-            where: { isActive: true },
-            select: { id: true, name: true, collateralRatio: true },
-            orderBy: { collateralRatio: 'desc' },
-        });
-
-        // minCollateralRatio in CollateralManager.sol, in basis points.
-        const minRatioBps = 3500;
-
-        const call = async (stakeRatioBps: number) => {
+        const cached = volatilityCache.get(horizonDays);
+        let baseline = cached && cached.expiresAt > Date.now() ? cached.data : null;
+        if (!baseline) {
             const url = new URL(`${env.AI_SERVICE_URL}/api/v1/predict/volatility`);
             url.searchParams.set('horizon_days', String(horizonDays));
-            url.searchParams.set('stake_ratio_bps', String(stakeRatioBps));
-            url.searchParams.set('min_ratio_bps', String(minRatioBps));
 
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 15000);
@@ -569,37 +585,24 @@ adminRoutes.get('/volatility', async (c) => {
                     signal: controller.signal,
                 });
                 if (!res.ok) throw new Error(`AI service returned ${res.status}`);
-                return await res.json() as Record<string, any>;
+                baseline = await res.json() as Record<string, any>;
+                volatilityCache.set(horizonDays, {
+                    expiresAt: Date.now() + 15 * 60 * 1000,
+                    data: baseline,
+                });
             } finally {
                 clearTimeout(timeout);
             }
-        };
-
-        // The forecast itself is identical across plans; only the liquidation maths
-        // differs. The LLM caches prices for 15 minutes, so the extra calls are cheap
-        // and the threshold formula stays in one place instead of being re-derived here.
-        const baseline = await call(Math.round(Number(plans[0]?.collateralRatio ?? 40) * 100));
-        const perPlan = await Promise.all(
-            plans.map(async (plan) => {
-                const stakeRatioBps = Math.round(Number(plan.collateralRatio) * 100);
-                const result = await call(stakeRatioBps);
-                return {
-                    planId: plan.id,
-                    planName: plan.name,
-                    collateralRatio: Number(plan.collateralRatio),
-                    stakeRatioBps,
-                    priceDropToLiquidation: result.liquidation.price_drop_to_liquidation,
-                    probability: result.liquidation.probability,
-                };
-            })
-        );
+        }
 
         return c.json({
             success: true,
             data: {
                 online: true,
                 horizonDays,
-                minRatioBps,
+                advisoryOnly: true,
+                liquidationEnabled: false,
+                economicNote: 'ETH volatility does not change an ETH-collateral/ETH-debt ratio; liquidation is based only on an overdue default.',
                 currentPricePHP: baseline.current_price_php,
                 priceSource: baseline.price_source,
                 model: baseline.model,
@@ -611,7 +614,6 @@ adminRoutes.get('/volatility', async (c) => {
                 priceRange95: baseline.price_range_95,
                 recentPrices: baseline.recent_prices,
                 modelMetadata: baseline.model_metadata,
-                plans: perPlan,
             },
         });
     } catch (err) {
@@ -619,7 +621,7 @@ adminRoutes.get('/volatility', async (c) => {
         // The AI service being down must not blank the page — the UI shows a banner.
         return c.json({
             success: true,
-            data: { online: false, horizonDays, plans: [] },
+            data: { online: false, horizonDays, advisoryOnly: true, liquidationEnabled: false },
         });
     }
 });

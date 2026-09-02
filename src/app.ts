@@ -23,6 +23,8 @@ import { investorRoutes } from './routes/investor.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { globalRateLimiter, adminRateLimiter, authRateLimiter } from './middleware/rate-limit.middleware.js';
 import { bodySizeLimiter, requestId, enforceContentType } from './middleware/security.middleware.js';
+import { corsAllowedOrigins, env } from './config/env.js';
+import { adminMiddleware, authMiddleware } from './middleware/auth.middleware.js';
 
 // Create Hono app
 const app = new Hono();
@@ -60,23 +62,10 @@ app.use('*', secureHeaders({
 app.use('*', cors({
     origin: (origin) => {
         // Allow all origins in development for mobile testing
-        if (process.env.NODE_ENV === 'development') {
-            return origin || '*';
+        if (env.NODE_ENV === 'development' && !origin) {
+            return '*';
         }
-        // In production, use whitelist
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://localhost:3002',
-            'http://localhost:19006',
-            'https://avelon.io',
-            'https://avelon-web.vercel.app',
-            'https://avelon-app.com',
-        ];
-        // Allow all vercel.app and onrender.com preview deployments
-        if (origin && origin.endsWith('.vercel.app')) return origin;
-        if (origin && origin.endsWith('.onrender.com')) return origin;
-        return allowedOrigins.includes(origin || '') ? origin : null;
+        return corsAllowedOrigins.includes(origin || '') ? origin : null;
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
@@ -102,6 +91,9 @@ app.use('/api/*', globalRateLimiter);
 app.use('/api/v1/auth/login', authRateLimiter);
 app.use('/api/v1/auth/register', authRateLimiter);
 app.use('/api/v1/auth/forgot-password', authRateLimiter);
+app.use('/api/v1/auth/validate-reset-token', authRateLimiter);
+app.use('/api/v1/auth/reset-password', authRateLimiter);
+app.use('/api/v1/auth/verify-email', authRateLimiter);
 
 // Error handler
 app.onError(errorHandler);
@@ -128,7 +120,7 @@ app.get('/health', (c) => {
 });
 
 // Diagnostic: check AI service connectivity
-app.get('/health/ai', async (c) => {
+app.get('/health/ai', authMiddleware, adminMiddleware, async (c) => {
     const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
     try {
         const controller = new AbortController();

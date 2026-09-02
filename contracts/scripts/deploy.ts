@@ -14,6 +14,7 @@ interface DeployedContracts {
     avelonLending: string;
     collateralManager: string;
     repaymentSchedule: string;
+    liquidityPool: string;
     deployer: string;
     network: string;
     chainId: number;
@@ -59,8 +60,12 @@ function getNetworkConfig(): { network: NetworkName; config: NetworkConfig } {
             return {
                 network,
                 config: {
-                    rpcUrl: "http://127.0.0.1:8545",
-                    privateKey: process.env.DEPLOYER_PRIVATE_KEY || "",
+                    rpcUrl: process.env.LOCAL_RPC_URL || "http://127.0.0.1:8545",
+                    // Hardhat's node prints the same account #0 on every machine. It is
+                    // a published test key and must never be used off localhost.
+                    privateKey:
+                        process.env.DEPLOYER_PRIVATE_KEY ||
+                        "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
                     expectedChainId: 31337,
                 },
             };
@@ -245,6 +250,22 @@ async function main() {
     const repaymentScheduleAddress = repaymentScheduleReceipt.contractAddress;
     console.log(`  [OK] RepaymentSchedule deployed at: ${repaymentScheduleAddress}`);
 
+    // Deploy AvelonLiquidityPool
+    console.log("Deploying AvelonLiquidityPool...");
+    const liquidityPoolArtifact = loadArtifact("AvelonLiquidityPool");
+    const LiquidityPoolFactory = new ethers.ContractFactory(
+        liquidityPoolArtifact.abi,
+        liquidityPoolArtifact.bytecode,
+        wallet
+    );
+    const liquidityPool = await LiquidityPoolFactory.deploy();
+    const liquidityPoolTx = liquidityPool.deploymentTransaction();
+    if (!liquidityPoolTx) throw new Error("Failed to get deployment transaction for AvelonLiquidityPool");
+    const liquidityPoolReceipt = await liquidityPoolTx.wait();
+    if (!liquidityPoolReceipt?.contractAddress) throw new Error("AvelonLiquidityPool deployment receipt missing contractAddress");
+    const liquidityPoolAddress = liquidityPoolReceipt.contractAddress;
+    console.log(`  [OK] AvelonLiquidityPool deployed at: ${liquidityPoolAddress}`);
+
     // Link contracts
     console.log("\nLinking contracts...");
 
@@ -293,6 +314,7 @@ async function main() {
         avelonLending: avelonLendingAddress,
         collateralManager: collateralManagerAddress,
         repaymentSchedule: repaymentScheduleAddress,
+        liquidityPool: liquidityPoolAddress,
         deployer,
         network: networkName,
         chainId: Number(network.chainId),
@@ -313,6 +335,7 @@ async function main() {
     console.log(`AVELON_LENDING_ADDRESS=${avelonLendingAddress}`);
     console.log(`COLLATERAL_MANAGER_ADDRESS=${collateralManagerAddress}`);
     console.log(`REPAYMENT_SCHEDULE_ADDRESS=${repaymentScheduleAddress}`);
+    console.log(`LIQUIDITY_POOL_ADDRESS=${liquidityPoolAddress}`);
 
     return deploymentInfo;
 }

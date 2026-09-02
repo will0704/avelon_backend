@@ -110,7 +110,7 @@ export const errorHandler = (err: Error, c: Context) => {
                 message: err.message,
                 ...(err.details ? { details: err.details } : {}),
             },
-        }, err.statusCode as 400 | 401 | 403 | 404 | 409 | 429 | 500 | 502);
+        }, err.statusCode as 400 | 401 | 403 | 404 | 409 | 429 | 500 | 502 | 503);
     }
 
     // Handle Hono HTTP exceptions

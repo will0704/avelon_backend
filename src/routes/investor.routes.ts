@@ -1,22 +1,30 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
-import { authMiddleware } from '../middleware/auth.middleware.js';
-import { investorMiddleware } from '../middleware/auth.middleware.js';
+import { Hono, type Context } from 'hono';
+import { authMiddleware, investorMiddleware, verifiedMiddleware } from '../middleware/auth.middleware.js';
 import { investorService } from '../services/investor.service.js';
+import { ValidationError } from '../middleware/error.middleware.js';
 
 const investorRoutes = new Hono();
 
 // All investor routes require auth + investor role
 investorRoutes.use('*', authMiddleware, investorMiddleware);
 
+/** Read a transaction hash out of the body and reject anything malformed early. */
+const readTxHash = async (c: Context) => {
+    const body = await c.req.json().catch(() => ({}) as Record<string, unknown>);
+    const txHash = (body as { txHash?: unknown }).txHash;
+    if (typeof txHash !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+        throw new ValidationError('txHash is required and must be a 32-byte hex hash');
+    }
+    return txHash;
+};
+
 // =====================================================
-// ROUTES
+// READS
 // =====================================================
 
 /**
  * GET /investor/dashboard
- * Investor dashboard: totals, pool stats, recent transactions
+ * Live position read from the pool contract, plus pool stats and recent activity
  */
 investorRoutes.get('/dashboard', async (c) => {
     const userId = c.get('userId');
@@ -26,7 +34,7 @@ investorRoutes.get('/dashboard', async (c) => {
 
 /**
  * GET /investor/pool
- * Public pool stats (still requires investor auth here)
+ * Pool-wide stats
  */
 investorRoutes.get('/pool', async (c) => {
     const data = await investorService.getPoolStats();
@@ -34,8 +42,18 @@ investorRoutes.get('/pool', async (c) => {
 });
 
 /**
+ * GET /investor/position
+ * Just this investor's position
+ */
+investorRoutes.get('/position', async (c) => {
+    const userId = c.get('userId');
+    const data = await investorService.getPosition(userId);
+    return c.json({ success: true, data });
+});
+
+/**
  * GET /investor/earnings
- * Yield earnings breakdown
+ * Yield breakdown, realised and unrealised
  */
 investorRoutes.get('/earnings', async (c) => {
     const userId = c.get('userId');
@@ -67,56 +85,56 @@ investorRoutes.get('/deposits', async (c) => {
 });
 
 /**
- * POST /investor/deposit
- * Record a new deposit (after on-chain tx submitted)
+ * GET /investor/calldata
+ * The exact transaction the investor's wallet has to sign. Keeps the pool's
+ * function selectors out of the clients.
  */
-investorRoutes.post(
-    '/deposit',
-    zValidator(
-        'json',
-        z.object({
-            txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash'),
-            amount: z.string().regex(/^\d+(\.\d+)?$/, 'Invalid amount'),
-        }),
-    ),
-    async (c) => {
-        const userId = c.get('userId');
-        const { txHash, amount } = c.req.valid('json');
-        const deposit = await investorService.recordDeposit(userId, txHash, amount);
-        return c.json({ success: true, data: deposit }, 201);
-    },
-);
+investorRoutes.get('/calldata', async (c) => {
+    const action = c.req.query('action');
+    if (action !== 'deposit' && action !== 'withdraw' && action !== 'claim') {
+        throw new ValidationError('action must be one of: deposit, withdraw, claim');
+    }
+    const data = await investorService.getCallData(action, c.req.query('shares'));
+    return c.json({ success: true, data });
+});
+
+// =====================================================
+// WRITES — all of these file a transaction the investor already signed.
+// The backend never holds an investor key and never moves investor funds.
+// =====================================================
 
 /**
- * POST /investor/deposit/:txHash/confirm
- * Confirm deposit after on-chain confirmation received
+ * POST /investor/deposit
+ * Record a deposit the investor signed. Amount and shares come from the pool's
+ * own event, not from the request body.
  */
-investorRoutes.post('/deposit/:txHash/confirm', async (c) => {
+investorRoutes.post('/deposit', verifiedMiddleware, async (c) => {
     const userId = c.get('userId');
-    const txHash = c.req.param('txHash');
-    const deposit = await investorService.confirmDeposit(userId, txHash);
-    return c.json({ success: true, data: deposit });
+    const txHash = await readTxHash(c);
+    const data = await investorService.recordDeposit(userId, txHash);
+    return c.json({ success: true, data });
 });
 
 /**
- * POST /investor/withdraw/:depositId
- * Withdraw a confirmed deposit from the pool (sends ETH on-chain)
+ * POST /investor/withdraw
+ * Record a withdrawal the investor signed
  */
-investorRoutes.post(
-    '/withdraw/:depositId',
-    zValidator(
-        'json',
-        z.object({
-            walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid wallet address'),
-        }),
-    ),
-    async (c) => {
-        const userId = c.get('userId');
-        const depositId = c.req.param('depositId');
-        const { walletAddress } = c.req.valid('json');
-        const deposit = await investorService.withdraw(userId, depositId, walletAddress);
-        return c.json({ success: true, data: deposit });
-    },
-);
+investorRoutes.post('/withdraw', verifiedMiddleware, async (c) => {
+    const userId = c.get('userId');
+    const txHash = await readTxHash(c);
+    const data = await investorService.recordWithdrawal(userId, txHash);
+    return c.json({ success: true, data });
+});
+
+/**
+ * POST /investor/claim-yield
+ * Record a yield claim the investor signed
+ */
+investorRoutes.post('/claim-yield', verifiedMiddleware, async (c) => {
+    const userId = c.get('userId');
+    const txHash = await readTxHash(c);
+    const data = await investorService.recordYieldClaim(userId, txHash);
+    return c.json({ success: true, data });
+});
 
 export { investorRoutes };

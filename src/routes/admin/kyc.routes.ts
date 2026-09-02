@@ -6,6 +6,7 @@ import { UserStatus } from '../../types/index.js';
 import { notificationService } from '../../services/notification.service.js';
 import { NotFoundError, AppError } from '../../middleware/error.middleware.js';
 import fs from 'fs/promises';
+import { env } from '../../config/env.js';
 
 const adminKycRoutes = new Hono();
 
@@ -29,6 +30,8 @@ adminKycRoutes.get('/pending', async (c) => {
                 name: true,
                 status: true,
                 kycSubmittedAt: true,
+                kycRejectionReason: true,
+                legalName: true,
                 dateOfBirth: true,
                 gender: true,
                 civilStatus: true,
@@ -291,6 +294,12 @@ adminKycRoutes.put('/:userId/reject', zValidator('json', rejectSchema), async (c
  * Stream a KYC document file (admin access — any user's document)
  */
 adminKycRoutes.get('/documents/:id/file', async (c) => {
+    if (env.NODE_ENV === 'production' && env.KYC_STORAGE_MODE !== 'object') {
+        throw new AppError(503, 'KYC_STORAGE_UNAVAILABLE', 'KYC document storage is unavailable.');
+    }
+    if (env.KYC_STORAGE_MODE === 'object') {
+        throw new AppError(503, 'KYC_STORAGE_UNAVAILABLE', 'Object storage adapter is not configured.');
+    }
     const id = c.req.param('id');
 
     const document = await prisma.document.findUnique({
@@ -314,7 +323,7 @@ adminKycRoutes.get('/documents/:id/file', async (c) => {
     // Strip control characters and quotes to prevent response header injection
     const safeDisplayName = document.fileName.replace(/[\r\n"\\]/g, '_');
     c.header('Content-Disposition', `inline; filename="${safeDisplayName}"`);
-    c.header('Cache-Control', 'private, max-age=3600');
+    c.header('Cache-Control', 'private, no-store');
 
     return c.body(fileBuffer);
 });

@@ -3,6 +3,8 @@ import { prisma } from '../../lib/prisma.js';
 import { notificationService } from '../../services/notification.service.js';
 import { contractService, LiquidationReason } from '../../services/contract.service.js';
 import { NotFoundError, ValidationError } from '../../middleware/error.middleware.js';
+import { loanService } from '../../services/loan.service.js';
+import { poolService } from '../../services/pool.service.js';
 
 const adminLoansRoutes = new Hono();
 
@@ -23,6 +25,11 @@ const loanSelect = {
     interestOwed: true,
     feesOwed: true,
     status: true,
+    // The admin decides on these, so the review screen has to show them
+    purpose: true,
+    rejectionReason: true,
+    approvedAt: true,
+    rejectedAt: true,
     createdAt: true,
     collateralDepositedAt: true,
     disbursedAt: true,
@@ -168,6 +175,51 @@ adminLoansRoutes.get('/:id', async (c) => {
 });
 
 /**
+ * POST /admin/loans/:id/approve
+ * Approve a pending application. This is where the on-chain loan is created.
+ */
+adminLoansRoutes.post('/:id/approve', async (c) => {
+    const id = c.req.param('id');
+    const adminId = (c.get as (key: string) => string)('userId');
+
+    const loan = await loanService.approveLoan(id, adminId);
+
+    return c.json({
+        success: true,
+        message: 'Loan approved',
+        data: {
+            id: loan.id,
+            status: loan.status,
+            contractLoanId: loan.contractLoanId,
+            collateralRequired: loan.collateralRequired.toString(),
+        },
+    });
+});
+
+/**
+ * POST /admin/loans/:id/reject
+ * Reject a pending application with a reason the borrower sees.
+ */
+adminLoansRoutes.post('/:id/reject', async (c) => {
+    const id = c.req.param('id');
+    const adminId = (c.get as (key: string) => string)('userId');
+
+    const body = await c.req.json().catch(() => ({}));
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    if (reason.length < 5) {
+        throw new ValidationError('A rejection reason of at least 5 characters is required');
+    }
+
+    const loan = await loanService.rejectLoan(id, adminId, reason);
+
+    return c.json({
+        success: true,
+        message: 'Loan rejected',
+        data: { id: loan.id, status: loan.status, rejectionReason: loan.rejectionReason },
+    });
+});
+
+/**
  * POST /admin/loans/:id/liquidate
  * Manually trigger liquidation
  */
@@ -213,6 +265,28 @@ adminLoansRoutes.post('/:id/liquidate', async (c) => {
         },
     });
 
+    // The pool lent this principal and will not get it back. Write it off so the
+    // loss shows up in investor positions, then forward the seized stake, which
+    // CollateralManager paid to the treasury signer, back to the pool.
+    let writeOffTxHash: string | null = null;
+    let recoveryTxHash: string | null = null;
+    if (poolService.isConfigured()) {
+        try {
+            const outstanding = await poolService.getLoanPrincipal(loan.contractLoanId);
+            if (Number(outstanding) > 0) {
+                writeOffTxHash = await poolService.writeOffLoan(loan.contractLoanId, outstanding);
+            }
+            const seized = loan.collateralDeposited?.toString() ?? '0';
+            if (Number(seized) > 0) {
+                recoveryTxHash = await poolService.recordRecovery(loan.contractLoanId, seized);
+            }
+        } catch (err) {
+            // The seizure already happened on-chain; surface this rather than
+            // pretending the pool accounting is settled.
+            console.error('[AdminLoans] Pool write-off/recovery after liquidation failed:', err);
+        }
+    }
+
     // Record audit trail — liquidation is irreversible and must be traceable
     await prisma.auditLog.create({
         data: {
@@ -226,6 +300,8 @@ adminLoansRoutes.post('/:id/liquidate', async (c) => {
                 reason: LiquidationReason[reason],
                 observedRatioBps,
                 txHash,
+                writeOffTxHash,
+                recoveryTxHash,
             },
         },
     });
@@ -241,7 +317,7 @@ adminLoansRoutes.post('/:id/liquidate', async (c) => {
     return c.json({
         success: true,
         message: 'Liquidation triggered',
-        data: { txHash },
+        data: { txHash, writeOffTxHash, recoveryTxHash },
     });
 });
 

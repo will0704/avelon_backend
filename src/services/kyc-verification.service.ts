@@ -39,6 +39,37 @@ interface VerificationDoc {
     fileName: string;
 }
 
+function normalizeIdentity(value: unknown): string {
+    return String(value ?? '')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+}
+
+function tokenSimilarity(left: unknown, right: unknown): number {
+    const a = new Set(normalizeIdentity(left).split(' ').filter(Boolean));
+    const b = new Set(normalizeIdentity(right).split(' ').filter(Boolean));
+    if (a.size === 0 || b.size === 0) return 0;
+    const intersection = [...a].filter((token) => b.has(token)).length;
+    return (2 * intersection) / (a.size + b.size);
+}
+
+function extractedValue(data: Record<string, unknown>, keys: string[]): string {
+    for (const key of keys) {
+        const value = data[key];
+        if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return '';
+}
+
+function comparableDate(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    const parsed = Date.parse(raw);
+    return Number.isNaN(parsed) ? normalizeIdentity(raw) : new Date(parsed).toISOString().slice(0, 10);
+}
+
 // ─── Tier mapping ─────────────────────────────────────────────────────────────
 
 function deriveTier(score: number): string {
@@ -89,7 +120,12 @@ export async function triggerAIVerification(
             const fileBuffer = await fs.readFile(doc.storagePath);
 
             const formData = new FormData();
-            const mimeType = doc.fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
+            const extension = path.extname(doc.fileName).toLowerCase();
+            const mimeType = extension === '.png'
+                ? 'image/png'
+                : extension === '.webp'
+                    ? 'image/webp'
+                    : 'image/jpeg';
             formData.append('file', new Blob([fileBuffer], { type: mimeType }), doc.fileName);
 
             const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/document?document_type=${aiDocType}`, {
@@ -102,12 +138,12 @@ export async function triggerAIVerification(
                 const errorReason = `AI service returned HTTP ${response.status}`;
                 console.error(`[KYC] AI verification failed for doc ${doc.id}: ${errorReason}`);
 
-                // Mark document as REJECTED so it doesn't stay PENDING forever
+                // Infrastructure failure is not evidence that the participant
+                // supplied a bad document. Keep it pending for retry/review.
                 await prisma.document.update({
                     where: { id: doc.id },
                     data: {
-                        status: 'REJECTED',
-                        rejectionReason: `${errorReason} — please re-upload a clearer document`,
+                        rejectionReason: `${errorReason} — manual review or retry required`,
                     },
                 });
 
@@ -153,20 +189,20 @@ export async function triggerAIVerification(
             results.push({ docId: doc.id, type: doc.type, result });
         }
 
-        // If no results at all (AI completely unreachable), still reject
+        // If no results at all, preserve PENDING_KYC for operator review.
         if (results.length === 0) {
             const reason = 'AI verification service was unreachable for all documents';
             await prisma.user.update({
                 where: { id: userId },
-                data: { status: UserStatus.REJECTED, kycRejectionReason: reason },
+                data: { status: UserStatus.PENDING_KYC, kycRejectionReason: `Manual review required: ${reason}` },
             });
             await prisma.auditLog.create({
-                data: { userId, action: 'KYC_REJECTED', entity: 'User', entityId: userId, metadata: { reason, rejectedBy: 'ai' } },
+                data: { userId, action: 'KYC_MANUAL_REVIEW_REQUIRED', entity: 'User', entityId: userId, metadata: { reason } },
             });
             await notificationService.notify(userId, {
-                type: 'KYC_REJECTED',
-                title: '❌ Verification Failed',
-                message: `${reason}. Please try again later.`,
+                type: 'KYC_SUBMITTED',
+                title: 'Verification Needs Review',
+                message: 'Automated verification was unavailable. Your submission remains pending for manual review.',
                 metadata: { reason },
             });
             return;
@@ -188,6 +224,73 @@ export async function triggerAIVerification(
                 (acc, r) => ({ ...acc, ...r.result.extracted_data }),
                 {},
             );
+
+            const identityProfile = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    legalName: true,
+                    dateOfBirth: true,
+                    country: true,
+                    region: true,
+                    province: true,
+                    cityTown: true,
+                    barangay: true,
+                },
+            });
+            const extractedName = extractedValue(mergedExtractedData, ['name', 'full_name', 'legal_name']);
+            const extractedBirthDate = extractedValue(mergedExtractedData, ['date_of_birth', 'birth_date', 'dob']);
+            const extractedAddress = extractedValue(mergedExtractedData, ['address', 'full_address']);
+            const enteredAddress = identityProfile
+                ? [identityProfile.barangay, identityProfile.cityTown, identityProfile.province, identityProfile.region, identityProfile.country]
+                    .filter(Boolean)
+                    .join(' ')
+                : '';
+            const identityChecks = {
+                nameSimilarity: tokenSimilarity(identityProfile?.legalName, extractedName),
+                birthDateMatches: Boolean(
+                    identityProfile?.dateOfBirth &&
+                    extractedBirthDate &&
+                    comparableDate(identityProfile.dateOfBirth) === comparableDate(extractedBirthDate)
+                ),
+                addressSimilarity: extractedAddress ? tokenSimilarity(enteredAddress, extractedAddress) : null,
+                extractedNamePresent: Boolean(extractedName),
+                extractedBirthDatePresent: Boolean(extractedBirthDate),
+            };
+            const identityMismatchReasons = [
+                !identityChecks.extractedNamePresent || identityChecks.nameSimilarity < 0.7
+                    ? 'legal name could not be matched confidently'
+                    : null,
+                !identityChecks.extractedBirthDatePresent || !identityChecks.birthDateMatches
+                    ? 'date of birth could not be matched'
+                    : null,
+                identityChecks.addressSimilarity !== null && identityChecks.addressSimilarity < 0.35
+                    ? 'address differs from the submitted profile'
+                    : null,
+            ].filter((reason): reason is string => Boolean(reason));
+
+            if (identityMismatchReasons.length > 0) {
+                const reason = `Manual review required: ${identityMismatchReasons.join('; ')}`;
+                await prisma.user.update({
+                    where: { id: userId },
+                    data: { status: UserStatus.PENDING_KYC, kycRejectionReason: reason },
+                });
+                await prisma.auditLog.create({
+                    data: {
+                        userId,
+                        action: 'KYC_IDENTITY_MISMATCH',
+                        entity: 'User',
+                        entityId: userId,
+                        metadata: { identityChecks, reasons: identityMismatchReasons },
+                    },
+                });
+                await notificationService.notify(userId, {
+                    type: 'KYC_SUBMITTED',
+                    title: 'Verification Needs Review',
+                    message: 'Some submitted identity details need manual review. Your application remains pending.',
+                    metadata: { reasons: identityMismatchReasons },
+                });
+                return;
+            }
 
             // Fetch user's primary wallet for richer credit scoring
             const primaryWallet = await prisma.wallet.findFirst({
@@ -276,56 +379,55 @@ export async function triggerAIVerification(
             await prisma.user.update({
                 where: { id: userId },
                 data: {
-                    status: UserStatus.REJECTED,
-                    kycRejectionReason: reason,
+                    status: UserStatus.PENDING_KYC,
+                    kycRejectionReason: `Manual review required: ${reason}`,
                 },
             });
 
             await prisma.auditLog.create({
                 data: {
                     userId,
-                    action: 'KYC_REJECTED',
+                    action: 'KYC_MANUAL_REVIEW_REQUIRED',
                     entity: 'User',
                     entityId: userId,
-                    metadata: { reason, rejectedBy: 'ai' },
+                    metadata: { reason, flaggedBy: 'ai' },
                 },
             });
 
             await notificationService.notify(userId, {
-                type: 'KYC_REJECTED',
-                title: '❌ Verification Failed',
-                message: `Your KYC verification was rejected: ${reason}. Please re-submit your documents.`,
+                type: 'KYC_SUBMITTED',
+                title: 'Verification Needs Review',
+                message: 'Automated checks flagged your documents for manual review. No rejection has been made.',
                 metadata: { reason },
             });
         }
     } catch (error) {
         console.error('[KYC] AI verification error:', error);
-        // Still reject the user so they don't stay stuck in PENDING_KYC
+        // A system failure is not a participant rejection. Preserve the pending
+        // state and surface it to the admin review queue.
         try {
-            const reason = 'Verification failed due to a system error. Please try again.';
+            const reason = 'Manual review required because automated verification encountered a system error.';
             await prisma.user.update({
                 where: { id: userId },
-                data: { status: UserStatus.REJECTED, kycRejectionReason: reason },
+                data: { status: UserStatus.PENDING_KYC, kycRejectionReason: reason },
             });
             await prisma.auditLog.create({
                 data: {
                     userId,
-                    action: 'KYC_REJECTED',
+                    action: 'KYC_MANUAL_REVIEW_REQUIRED',
                     entity: 'User',
                     entityId: userId,
-                    metadata: { reason, rejectedBy: 'system-error-recovery' },
+                    metadata: { reason, flaggedBy: 'system-error-recovery' },
                 },
             });
             await notificationService.notify(userId, {
-                type: 'KYC_REJECTED',
-                title: '❌ Verification Failed',
-                message: `${reason}`,
+                type: 'KYC_SUBMITTED',
+                title: 'Verification Needs Review',
+                message: reason,
                 metadata: { reason },
             });
         } catch (innerErr) {
-            // Recovery also failed — user may be stuck in PENDING_KYC.
-            // This requires manual admin intervention.
-            console.error('[KYC] CRITICAL: Failed to reject user after AI error. User stuck in PENDING_KYC:', userId, innerErr);
+            console.error('[KYC] CRITICAL: Failed to record manual review after AI error:', userId, innerErr);
         }
     }
 }

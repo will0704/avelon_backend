@@ -9,6 +9,17 @@ const envSchema = z.object({
     // Server
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     PORT: z.coerce.number().default(3001),
+    ENABLE_BACKGROUND_JOBS: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+    // Returns the email/reset OTP in the API response so a local demo can verify an
+    // account with no mailbox. Ignored outside development — see exposeDemoOtp.
+    DEMO_EXPOSE_OTP: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+    CORS_ALLOWED_ORIGINS: z.string().default([
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'http://localhost:19006',
+        'https://avelon-web.vercel.app',
+    ].join(',')),
 
     // How many proxies sit in front of this server. Each one appends an entry to
     // X-Forwarded-For, so this says how many trailing entries are trustworthy.
@@ -40,6 +51,7 @@ const envSchema = z.object({
     CHAIN_ID: z.coerce.number().optional(),
     CHAIN_RPC_URL: z.string().url().optional(),
     CHAIN_PRIVATE_KEY: z.string().optional(),
+    CHAIN_MIN_CONFIRMATIONS: z.coerce.number().int().min(1).max(64).default(1),
 
     // Blockchain (Sepolia — superseded, kept as a fallback)
     SEPOLIA_RPC_URL: z.string().url().optional(),
@@ -65,6 +77,7 @@ const envSchema = z.object({
     // Storage
     STORAGE_PATH: z.string().default('./uploads'),
     ENCRYPTION_KEY: z.string().min(32).optional(),
+    KYC_STORAGE_MODE: z.enum(['local', 'object']).default('local'),
 
     // Database Encryption
     PRISMA_FIELD_ENCRYPTION_KEY: z.string().min(32),
@@ -94,6 +107,27 @@ const parseEnv = () => {
 
 export const env = parseEnv();
 
+/**
+ * Whether verification codes may be returned to the caller.
+ *
+ * Handing an OTP back over the API defeats the point of sending it out of band, so
+ * this is refused outside development no matter what the variable says. It exists
+ * because the capstone demo runs with no mailbox attached.
+ */
+export const exposeDemoOtp = env.DEMO_EXPOSE_OTP && env.NODE_ENV === 'development';
+
+if (env.DEMO_EXPOSE_OTP && !exposeDemoOtp) {
+    console.warn('[env] DEMO_EXPOSE_OTP is set but ignored — it only applies in development.');
+}
+if (exposeDemoOtp) {
+    console.warn('[env] DEMO_EXPOSE_OTP is on: verification codes are returned in API responses. Development only.');
+}
+
+export const corsAllowedOrigins = env.CORS_ALLOWED_ORIGINS
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 // Block explorers, by chain id
 const EXPLORERS: Record<number, string> = {
     84532: 'https://sepolia.basescan.org',
@@ -119,6 +153,7 @@ export const chain = {
     rpcUrl: env.CHAIN_RPC_URL ?? env.SEPOLIA_RPC_URL ?? env.GANACHE_URL ?? 'http://127.0.0.1:8545',
     privateKey: env.CHAIN_PRIVATE_KEY ?? env.SEPOLIA_PRIVATE_KEY ?? env.DEPLOYER_PRIVATE_KEY,
     explorerUrl: EXPLORERS[chainId] ?? null,
+    minConfirmations: env.CHAIN_MIN_CONFIRMATIONS,
 } as const;
 
 // Export types

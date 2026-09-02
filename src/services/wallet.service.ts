@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { randomBytes } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, NotFoundError, ValidationError } from '../middleware/error.middleware.js';
 import { UserStatus, LoanStatus } from '../types/index.js';
@@ -7,9 +8,11 @@ export class WalletService {
     /**
      * Generate a nonce message and persist the nonce for single-use verification
      */
-    async generateAndStoreNonce(userId: string, address: string): Promise<string> {
-        const nonce = Date.now().toString();
-        const identifier = `wallet-nonce:${userId}:${address.toLowerCase()}`;
+    async generateAndStoreNonce(userId: string, address: string, chainId: number): Promise<string> {
+        const normalizedAddress = address.toLowerCase();
+        const nonce = randomBytes(32).toString('hex');
+        const identifier = `wallet-nonce:${userId}:${normalizedAddress}:${chainId}`;
+        const expires = new Date(Date.now() + 10 * 60 * 1_000);
 
         // Remove any stale nonce for this user+address, then store fresh one
         await prisma.verificationToken.deleteMany({
@@ -20,11 +23,11 @@ export class WalletService {
                 identifier,
                 token: nonce,
                 type: 'WALLET_NONCE',
-                expires: new Date(Date.now() + 10 * 60 * 1_000), // 10-minute window
+                expires,
             },
         });
 
-        return `Welcome to Avelon!\n\nPlease sign this message to verify your wallet ownership.\n\nWallet: ${address}\nNonce: ${nonce}\n\nThis request will not trigger a blockchain transaction or cost any gas fees.`;
+        return this.buildVerificationMessage(userId, normalizedAddress, chainId, nonce, expires);
     }
 
     /**
@@ -33,6 +36,7 @@ export class WalletService {
     async verifySignature(
         userId: string,
         address: string,
+        chainId: number,
         signature: string,
         message: string
     ) {
@@ -50,18 +54,36 @@ export class WalletService {
         }
 
         // Validate nonce — prevents replay attacks (H-10)
-        const nonceIdentifier = `wallet-nonce:${userId}:${address.toLowerCase()}`;
+        const normalizedAddress = address.toLowerCase();
+        const nonceIdentifier = `wallet-nonce:${userId}:${normalizedAddress}:${chainId}`;
         const nonceRecord = await prisma.verificationToken.findFirst({
             where: { identifier: nonceIdentifier, type: 'WALLET_NONCE' },
         });
         if (!nonceRecord || new Date() > nonceRecord.expires) {
             throw new ValidationError('Nonce expired or not found — please request a new message');
         }
-        if (!message.includes(`Nonce: ${nonceRecord.token}`)) {
-            throw new ValidationError('Message nonce does not match — possible replay attack');
+        const expectedMessage = this.buildVerificationMessage(
+            userId,
+            normalizedAddress,
+            chainId,
+            nonceRecord.token,
+            nonceRecord.expires,
+        );
+        if (message !== expectedMessage) {
+            throw new ValidationError('Verification message does not match the issued challenge');
         }
-        // Consume the nonce so it cannot be replayed
-        await prisma.verificationToken.delete({ where: { token: nonceRecord.token } });
+        // Consume atomically. Exactly one concurrent request can win.
+        const consumed = await prisma.verificationToken.deleteMany({
+            where: {
+                token: nonceRecord.token,
+                identifier: nonceIdentifier,
+                type: 'WALLET_NONCE',
+                expires: { gt: new Date() },
+            },
+        });
+        if (consumed.count !== 1) {
+            throw new ValidationError('Wallet challenge has already been used or expired');
+        }
 
         // Check if wallet already exists for another user
         const existingWallet = await prisma.wallet.findUnique({
@@ -88,10 +110,12 @@ export class WalletService {
                 isVerified: true,
                 verifiedAt: new Date(),
                 lastUsedAt: new Date(),
+                chainId,
             },
             create: {
                 userId,
                 address: address.toLowerCase(),
+                chainId,
                 isVerified: true,
                 verifiedAt: new Date(),
                 isPrimary: isFirstWallet,
@@ -104,7 +128,7 @@ export class WalletService {
             select: { status: true },
         });
 
-        if (user && user.status === UserStatus.VERIFIED) {
+        if (user && user.status === UserStatus.APPROVED) {
             await prisma.user.update({
                 where: { id: userId },
                 data: { status: UserStatus.CONNECTED },
@@ -125,65 +149,24 @@ export class WalletService {
         return wallet;
     }
 
-    /**
-     * Connect and verify wallet directly (mobile flow — no signature required)
-     */
-    async connectDirect(userId: string, address: string) {
-        const existingWallet = await prisma.wallet.findUnique({
-            where: { address: address.toLowerCase() },
-        });
-
-        if (existingWallet && existingWallet.userId !== userId) {
-            throw new ConflictError('This wallet is already linked to another account');
-        }
-
-        const walletCount = await prisma.wallet.count({ where: { userId } });
-        const isFirstWallet = walletCount === 0;
-
-        const wallet = await prisma.wallet.upsert({
-            where: {
-                userId_address: {
-                    userId,
-                    address: address.toLowerCase(),
-                },
-            },
-            update: {
-                isVerified: true,
-                verifiedAt: new Date(),
-                lastUsedAt: new Date(),
-            },
-            create: {
-                userId,
-                address: address.toLowerCase(),
-                isVerified: true,
-                verifiedAt: new Date(),
-                isPrimary: isFirstWallet,
-            },
-        });
-
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { status: true },
-        });
-
-        if (user && user.status === UserStatus.VERIFIED) {
-            await prisma.user.update({
-                where: { id: userId },
-                data: { status: UserStatus.CONNECTED },
-            });
-        }
-
-        await prisma.auditLog.create({
-            data: {
-                userId,
-                action: 'WALLET_CONNECTED',
-                entity: 'Wallet',
-                entityId: wallet.id,
-                metadata: { address: wallet.address },
-            },
-        });
-
-        return wallet;
+    private buildVerificationMessage(
+        userId: string,
+        address: string,
+        chainId: number,
+        nonce: string,
+        expires: Date,
+    ): string {
+        return [
+            'Avelon wallet ownership verification',
+            `Audience: avelon.finance`,
+            `User: ${userId}`,
+            `Wallet: ${address}`,
+            `Chain ID: ${chainId}`,
+            `Nonce: ${nonce}`,
+            `Expires: ${expires.toISOString()}`,
+            '',
+            'Signing proves wallet ownership. It does not submit a transaction or cost gas.',
+        ].join('\n');
     }
 
     /**

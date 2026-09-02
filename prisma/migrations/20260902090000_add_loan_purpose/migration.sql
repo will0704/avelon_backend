@@ -1,0 +1,3 @@
+ALTER TABLE "Loan" ADD COLUMN "purpose" TEXT NOT NULL DEFAULT 'Not specified';
+
+ALTER TABLE "Loan" ALTER COLUMN "purpose" DROP DEFAULT;

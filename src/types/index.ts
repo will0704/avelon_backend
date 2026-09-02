@@ -40,6 +40,8 @@ export interface TokenPayload {
     userId: string;
     email: string;
     role: string;
+    type: 'access';
+    jti: string;
     iat: number;
     exp: number;
 }
@@ -53,6 +55,8 @@ export interface AuthTokens {
 // ── Loan ────────────────────────────────────────────
 
 export enum LoanStatus {
+    PENDING_APPROVAL = 'PENDING_APPROVAL',
+    REJECTED = 'REJECTED',
     PENDING_COLLATERAL = 'PENDING_COLLATERAL',
     COLLATERAL_DEPOSITED = 'COLLATERAL_DEPOSITED',
     ACTIVE = 'ACTIVE',

@@ -1,4 +1,4 @@
-import { ethers, Contract, JsonRpcProvider, Wallet, ContractTransactionResponse } from 'ethers';
+import { ethers, Contract, JsonRpcProvider, NonceManager, Wallet, ContractTransactionResponse } from 'ethers';
 import { BlockchainError } from '../middleware/error.middleware.js';
 import { chain } from '../config/env.js';
 
@@ -58,6 +58,58 @@ const REPAYMENT_SCHEDULE_ABI = [
     { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint128', name: 'amount', type: 'uint128' }, { internalType: 'uint128', name: 'remaining', type: 'uint128' }], name: 'PaymentRecorded', type: 'event' },
 ] as const;
 
+const LIQUIDITY_POOL_ABI = [
+    // Investor-signed
+    { inputs: [], name: 'deposit', outputs: [], stateMutability: 'payable', type: 'function' },
+    { inputs: [{ internalType: 'uint256', name: 'shareAmount', type: 'uint256' }], name: 'withdraw', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+    { inputs: [], name: 'claimYield', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+    // Borrower-signed
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'repay', outputs: [], stateMutability: 'payable', type: 'function' },
+    // Owner
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'address', name: 'borrower', type: 'address' }, { internalType: 'uint256', name: 'amount', type: 'uint256' }], name: 'fundLoan', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint256', name: 'amount', type: 'uint256' }], name: 'writeOffLoan', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'recordRecovery', outputs: [], stateMutability: 'payable', type: 'function' },
+    // View
+    { inputs: [], name: 'totalAssets', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [], name: 'availableLiquidity', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [], name: 'totalShares', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [], name: 'totalOutstandingPrincipal', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [], name: 'cumulativeInterest', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [], name: 'cumulativeWriteOffs', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [{ internalType: 'address', name: '', type: 'address' }], name: 'shares', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [{ internalType: 'address', name: '', type: 'address' }], name: 'depositedPrincipal', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [{ internalType: 'address', name: 'investor', type: 'address' }], name: 'assetsOf', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [{ internalType: 'address', name: 'investor', type: 'address' }], name: 'yieldOf', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [{ internalType: 'address', name: 'investor', type: 'address' }], name: 'maxWithdrawableAssets', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: '', type: 'uint32' }], name: 'loanPrincipal', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    // Events
+    { anonymous: false, inputs: [{ indexed: true, internalType: 'address', name: 'investor', type: 'address' }, { internalType: 'uint256', name: 'assets', type: 'uint256' }, { internalType: 'uint256', name: 'sharesMinted', type: 'uint256' }], name: 'Deposited', type: 'event' },
+    { anonymous: false, inputs: [{ indexed: true, internalType: 'address', name: 'investor', type: 'address' }, { internalType: 'uint256', name: 'assets', type: 'uint256' }, { internalType: 'uint256', name: 'sharesBurned', type: 'uint256' }], name: 'Withdrawn', type: 'event' },
+    { anonymous: false, inputs: [{ indexed: true, internalType: 'address', name: 'investor', type: 'address' }, { internalType: 'uint256', name: 'assets', type: 'uint256' }, { internalType: 'uint256', name: 'sharesBurned', type: 'uint256' }], name: 'YieldClaimed', type: 'event' },
+    { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { indexed: true, internalType: 'address', name: 'borrower', type: 'address' }, { internalType: 'uint256', name: 'amount', type: 'uint256' }], name: 'LoanFunded', type: 'event' },
+    { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint256', name: 'principal', type: 'uint256' }, { internalType: 'uint256', name: 'interest', type: 'uint256' }], name: 'RepaymentReceived', type: 'event' },
+] as const;
+
+/**
+ * A NonceManager that recovers from a failed send.
+ *
+ * The base class allocates the next nonce before the node accepts anything. When a
+ * transaction is rejected — a revert caught during gas estimation, most often —
+ * that nonce is never used, and every later send is one too high. The node then
+ * refuses them all with "nonce too high", which reads like a bug in whatever ran
+ * next rather than in the call that actually failed.
+ */
+class ResilientNonceManager extends NonceManager {
+    async sendTransaction(tx: Parameters<NonceManager['sendTransaction']>[0]) {
+        try {
+            return await super.sendTransaction(tx);
+        } catch (error) {
+            this.reset();
+            throw error;
+        }
+    }
+}
+
 /**
  * BlockchainService
  * Core service for blockchain connectivity and contract management
@@ -66,11 +118,13 @@ export class BlockchainService {
     private provider: JsonRpcProvider;
     private readonly privateKey?: string;
     private _wallet: Wallet | null = null;
+    private _signer: ResilientNonceManager | null = null;
 
     // Contract instances (lazy loaded)
     private _avelonLending: Contract | null = null;
     private _collateralManager: Contract | null = null;
     private _repaymentSchedule: Contract | null = null;
+    private _liquidityPool: Contract | null = null;
 
     constructor() {
         // Resolved in config/env.ts, newest var name first
@@ -115,6 +169,22 @@ export class BlockchainService {
     }
 
     /**
+     * The signer every write goes through.
+     *
+     * Wrapped in a NonceManager because the backend regularly sends two
+     * transactions back to back — record a repayment, then release the collateral.
+     * A bare Wallet asks the node for its nonce each time, and the node's answer
+     * lags the transaction it only just accepted, so the second send reuses a spent
+     * nonce and is rejected. The deploy script wraps its wallet for the same reason.
+     */
+    private getSignerInternal(): ResilientNonceManager {
+        if (!this._signer) {
+            this._signer = new ResilientNonceManager(this.getWallet());
+        }
+        return this._signer;
+    }
+
+    /**
      * Whether a usable signing key is configured. Lets callers and health
      * checks report the degraded state instead of triggering a throw.
      */
@@ -141,8 +211,8 @@ export class BlockchainService {
     /**
      * Get the signer wallet
      */
-    getSigner(): Wallet {
-        return this.getWallet();
+    getSigner(): ResilientNonceManager {
+        return this.getSignerInternal();
     }
 
     /**
@@ -216,6 +286,7 @@ export class BlockchainService {
         AvelonLending: AVELON_LENDING_ABI,
         CollateralManager: COLLATERAL_MANAGER_ABI,
         RepaymentSchedule: REPAYMENT_SCHEDULE_ABI,
+        AvelonLiquidityPool: LIQUIDITY_POOL_ABI,
     };
 
     /**
@@ -226,7 +297,7 @@ export class BlockchainService {
         if (!abi) {
             throw new Error(`Unknown contract: ${contractName}. Supported: ${Object.keys(BlockchainService.CONTRACT_ABIS).join(', ')}`);
         }
-        const runner = useSigner ? this.getWallet() : this.provider;
+        const runner = useSigner ? this.getSignerInternal() : this.provider;
         return new ethers.Contract(address, abi as any[], runner);
     }
 
@@ -274,6 +345,25 @@ export class BlockchainService {
             this._repaymentSchedule = this.getContract('RepaymentSchedule', address);
         }
         return this._repaymentSchedule;
+    }
+
+    /**
+     * Get AvelonLiquidityPool contract instance
+     */
+    getLiquidityPool(): Contract {
+        if (!this._liquidityPool) {
+            const address = process.env.LIQUIDITY_POOL_ADDRESS;
+            if (!address) {
+                throw new Error('LIQUIDITY_POOL_ADDRESS not configured');
+            }
+            this._liquidityPool = this.getContract('AvelonLiquidityPool', address);
+        }
+        return this._liquidityPool;
+    }
+
+    /** Whether an investor pool address is configured at all. */
+    hasLiquidityPool(): boolean {
+        return !!process.env.LIQUIDITY_POOL_ADDRESS;
     }
 
     // ============================================
@@ -326,7 +416,7 @@ export class BlockchainService {
         blockNumber: number;
         gasUsed: string;
     }> {
-        const tx = await this.getWallet().sendTransaction({
+        const tx = await this.getSignerInternal().sendTransaction({
             to,
             value: ethers.parseEther(amountEth),
         });
@@ -353,9 +443,12 @@ export class BlockchainService {
     async verifyTransaction(txHash: string): Promise<{
         valid: boolean;
         blockNumber?: number;
+        chainId?: number;
+        confirmations?: number;
         from?: string;
         to?: string;
         value?: string;
+        data?: string;
         gasUsed?: string;
     }> {
         try {
@@ -366,13 +459,22 @@ export class BlockchainService {
             }
 
             const tx = await this.provider.getTransaction(txHash);
+            if (!tx) {
+                return { valid: false };
+            }
+
+            const network = await this.provider.getNetwork();
+            const confirmations = await this.countConfirmations(receipt.blockNumber);
 
             return {
-                valid: receipt.status === 1,
+                valid: receipt.status === 1 && confirmations >= chain.minConfirmations,
                 blockNumber: receipt.blockNumber,
+                chainId: Number(network.chainId),
+                confirmations,
                 from: receipt.from,
                 to: receipt.to || undefined,
-                value: tx ? ethers.formatEther(tx.value) : undefined,
+                value: ethers.formatEther(tx.value),
+                data: tx.data,
                 gasUsed: receipt.gasUsed.toString(),
             };
         } catch (error) {
@@ -381,10 +483,144 @@ export class BlockchainService {
     }
 
     /**
+     * Confirmations for a mined block, tolerating a provider that is momentarily
+     * behind.
+     *
+     * ethers caches the head block number for a moment, so a transaction read back
+     * immediately after it is mined can appear to be in the future and score zero
+     * confirmations. That is indistinguishable from an unconfirmed transaction to
+     * every caller, and on a local chain it happens constantly. Re-read a few times
+     * before believing it.
+     */
+    private async countConfirmations(minedBlock: number, attempts = 4): Promise<number> {
+        for (let i = 0; i < attempts; i++) {
+            const head = await this.provider.getBlockNumber();
+            if (head >= minedBlock) return head - minedBlock + 1;
+            await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+        return 0;
+    }
+
+    /**
      * Verify wallet message signature
      */
     verifySignature(message: string, signature: string): string {
         return ethers.verifyMessage(message, signature);
+    }
+
+    /** Decode a CollateralManager deposit call using the deployed ABI. */
+    decodeCollateralDeposit(data: string): number | null {
+        try {
+            const parsed = new ethers.Interface(COLLATERAL_MANAGER_ABI).parseTransaction({ data });
+            if (!parsed || parsed.name !== 'depositCollateral') return null;
+            return Number(parsed.args[0]);
+        } catch {
+            return null;
+        }
+    }
+
+    /** Decode a pool call, returning the function name and its first argument. */
+    decodePoolCall(data: string): { name: string; args: readonly unknown[] } | null {
+        try {
+            const parsed = new ethers.Interface(LIQUIDITY_POOL_ABI).parseTransaction({ data });
+            if (!parsed) return null;
+            return { name: parsed.name, args: parsed.args };
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Find one pool event in a receipt, by name and investor.
+     *
+     * Returns the ETH amount and the share delta, both as decimal strings. Shares
+     * are 18-decimal like ETH, so formatEther is the right conversion for both.
+     */
+    async findPoolEvent(
+        txHash: string,
+        poolAddress: string,
+        eventName: 'Deposited' | 'Withdrawn' | 'YieldClaimed',
+        investorAddress: string,
+    ): Promise<{ assets: string; shares: string } | null> {
+        const receipt = await this.provider.getTransactionReceipt(txHash);
+        if (!receipt) return null;
+
+        const iface = new ethers.Interface(LIQUIDITY_POOL_ABI);
+        for (const log of receipt.logs) {
+            if (log.address.toLowerCase() !== poolAddress.toLowerCase()) continue;
+            try {
+                const parsed = iface.parseLog({ topics: [...log.topics], data: log.data });
+                if (
+                    parsed?.name === eventName &&
+                    String(parsed.args.investor).toLowerCase() === investorAddress.toLowerCase()
+                ) {
+                    const shares = eventName === 'Deposited' ? parsed.args.sharesMinted : parsed.args.sharesBurned;
+                    return {
+                        assets: ethers.formatEther(parsed.args.assets),
+                        shares: ethers.formatEther(shares),
+                    };
+                }
+            } catch {
+                // Ignore unrelated logs in the same receipt.
+            }
+        }
+        return null;
+    }
+
+    /** Find the repayment the pool credited to a loan, if any. */
+    async findPoolRepaymentEvent(
+        txHash: string,
+        poolAddress: string,
+        loanId: number,
+    ): Promise<{ principal: string; interest: string } | null> {
+        const receipt = await this.provider.getTransactionReceipt(txHash);
+        if (!receipt) return null;
+
+        const iface = new ethers.Interface(LIQUIDITY_POOL_ABI);
+        for (const log of receipt.logs) {
+            if (log.address.toLowerCase() !== poolAddress.toLowerCase()) continue;
+            try {
+                const parsed = iface.parseLog({ topics: [...log.topics], data: log.data });
+                if (parsed?.name === 'RepaymentReceived' && Number(parsed.args.loanId) === loanId) {
+                    return {
+                        principal: ethers.formatEther(parsed.args.principal),
+                        interest: ethers.formatEther(parsed.args.interest),
+                    };
+                }
+            } catch {
+                // Ignore unrelated logs in the same receipt.
+            }
+        }
+        return null;
+    }
+
+    /** Find the exact deposit event emitted by CollateralManager. */
+    async findCollateralDepositEvent(
+        txHash: string,
+        contractAddress: string,
+        loanId: number,
+        borrowerAddress: string,
+    ): Promise<{ amount: string } | null> {
+        const receipt = await this.provider.getTransactionReceipt(txHash);
+        if (!receipt) return null;
+
+        const iface = new ethers.Interface(COLLATERAL_MANAGER_ABI);
+        for (const log of receipt.logs) {
+            if (log.address.toLowerCase() !== contractAddress.toLowerCase()) continue;
+            try {
+                const parsed = iface.parseLog({ topics: [...log.topics], data: log.data });
+                if (
+                    parsed?.name === 'CollateralDeposited' &&
+                    Number(parsed.args.loanId) === loanId &&
+                    String(parsed.args.depositor).toLowerCase() === borrowerAddress.toLowerCase()
+                ) {
+                    return { amount: ethers.formatEther(parsed.args.amount) };
+                }
+            } catch {
+                // Ignore unrelated logs in the same receipt.
+            }
+        }
+        return null;
     }
 }
 

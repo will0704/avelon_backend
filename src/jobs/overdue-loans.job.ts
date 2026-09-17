@@ -26,9 +26,12 @@ export async function flagOverdueLoans(): Promise<void> {
             orderBy: { dueDate: 'asc' },
         });
 
-        if (overdue.length === 0) return;
+        // A paid-off loan waiting for its stake to be released is not overdue
+        const owing = overdue.filter((loan) =>
+            loan.principalOwed.add(loan.interestOwed).add(loan.feesOwed).gt(0));
+        if (owing.length === 0) return;
 
-        for (const loan of overdue) {
+        for (const loan of owing) {
             try {
                 await prisma.loan.update({
                     where: { id: loan.id },
@@ -47,7 +50,7 @@ export async function flagOverdueLoans(): Promise<void> {
             }
         }
 
-        console.log(`[OverdueLoans] Flagged ${overdue.length} overdue loan(s) for admin review`);
+        console.log(`[OverdueLoans] Flagged ${owing.length} overdue loan(s) for admin review`);
     } finally {
         isRunning = false;
     }

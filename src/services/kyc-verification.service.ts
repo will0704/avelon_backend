@@ -14,6 +14,9 @@ interface AIFaceMatchResult {
     message: string | null;
 }
 
+/** The face service is down; nothing about the selfie is known. */
+export class FaceServiceUnavailableError extends Error {}
+
 export interface FaceVerifyResult {
     passed: boolean;
     score: number;
@@ -39,20 +42,147 @@ interface VerificationDoc {
     fileName: string;
 }
 
+function normalizeIdentity(value: unknown): string {
+    return String(value ?? '')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+}
+
+export function tokenSimilarity(left: unknown, right: unknown): number {
+    const a = new Set(normalizeIdentity(left).split(' ').filter(Boolean));
+    const b = new Set(normalizeIdentity(right).split(' ').filter(Boolean));
+    if (a.size === 0 || b.size === 0) return 0;
+    const intersection = [...a].filter((token) => b.has(token)).length;
+    return (2 * intersection) / (a.size + b.size);
+}
+
+function extractedValue(data: Record<string, unknown>, keys: string[]): string {
+    for (const key of keys) {
+        const value = data[key];
+        if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return '';
+}
+
+export function comparableDate(value: unknown): string {
+    // Both sides of the comparison have to land on the same calendar day, and they
+    // arrive differently: the profile date is a Prisma DateTime stored as UTC
+    // midnight, while the OCR value is a bare string like "DECEMBER 23, 1975" that
+    // parses as *local* midnight. Reading that one back with toISOString shifted it
+    // to the previous day everywhere east of UTC, so no birth date ever matched.
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? '' : value.toISOString().slice(0, 10);
+    }
+
+    const raw = String(value ?? '').trim();
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+    if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return normalizeIdentity(raw);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+}
+
 // ─── Tier mapping ─────────────────────────────────────────────────────────────
 
-function deriveTier(score: number): string {
-    if (score >= 80) return 'VIP';
-    if (score >= 60) return 'PREMIUM';
-    if (score >= 40) return 'STANDARD';
+// Same floors as the seeded plans: Standard 60, Premium 80, VIP 90. Below 60
+// only the entry plan is open.
+export function deriveTier(score: number): string {
+    if (score >= 90) return 'VIP';
+    if (score >= 80) return 'PREMIUM';
+    if (score >= 60) return 'STANDARD';
     return 'BASIC';
 }
+
+// A user the scorer never saw is not allowed past the entry plan
+const FALLBACK_SCORE_CAP = 59;
+
+const AI_DOCUMENT_TIMEOUT_MS = 90_000;
+const AI_SCORE_TIMEOUT_MS = 30_000;
+const STALLED_KYC_MS = 10 * 60 * 1000;
+
+// The AI service answers these when the image itself is the problem. Anything
+// else non-2xx (auth, overload, crash) is ours, not the borrower's.
+const UNREADABLE_IMAGE_STATUSES = new Set([400, 413, 415, 422]);
+
+class AIServiceUnavailableError extends Error {}
+
+const OUTAGE_REASON =
+    'Verification could not be completed because the verification service is unavailable. ' +
+    'Your documents were not rejected — please submit again in a few minutes.';
 
 function deriveKycLevel(docTypes: string[]): KYCLevel {
     const has = (t: string) => docTypes.includes(t);
     if (has('GOVERNMENT_ID') && has('PROOF_OF_INCOME') && has('PROOF_OF_ADDRESS')) return KYCLevel.ENHANCED;
     if (has('GOVERNMENT_ID') && has('PROOF_OF_INCOME')) return KYCLevel.STANDARD;
     return KYCLevel.BASIC;
+}
+
+function isUsableScore(value: unknown): value is number {
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100;
+}
+
+/**
+ * Write a verification outcome only if the user is still waiting on it. An admin
+ * decision, or a newer submission, wins over an AI result that arrives late.
+ */
+async function applyOutcome(userId: string, data: Record<string, unknown>, what: string): Promise<boolean> {
+    const result = await prisma.user.updateMany({
+        where: { id: userId, status: UserStatus.PENDING_KYC },
+        data,
+    });
+    if (result.count === 1) return true;
+
+    await prisma.auditLog.create({
+        data: {
+            userId,
+            action: 'KYC_AI_RESULT_IGNORED',
+            entity: 'User',
+            entityId: userId,
+            metadata: { outcome: what, reason: 'User was no longer awaiting review' },
+        },
+    });
+    return false;
+}
+
+async function recordOutage(userId: string, flaggedBy: string) {
+    const applied = await applyOutcome(
+        userId,
+        { status: UserStatus.VERIFIED, kycRejectionReason: OUTAGE_REASON },
+        'unavailable',
+    );
+    if (!applied) return;
+    await prisma.auditLog.create({
+        data: { userId, action: 'KYC_VERIFICATION_UNAVAILABLE', entity: 'User', entityId: userId, metadata: { reason: OUTAGE_REASON, flaggedBy } },
+    });
+    await notificationService.notify(userId, {
+        type: 'KYC_SUBMITTED',
+        title: 'Verification Unavailable',
+        message: OUTAGE_REASON,
+        metadata: { reason: OUTAGE_REASON },
+    });
+}
+
+/**
+ * Users left in PENDING_KYC by a restart or a hung call. /kyc/submit refuses that
+ * status, so without this they could never try again.
+ */
+export async function recoverStalledKyc(): Promise<number> {
+    const result = await prisma.user.updateMany({
+        where: {
+            status: UserStatus.PENDING_KYC,
+            kycSubmittedAt: { lt: new Date(Date.now() - STALLED_KYC_MS) },
+        },
+        data: { status: UserStatus.VERIFIED, kycRejectionReason: OUTAGE_REASON },
+    });
+    if (result.count > 0) {
+        console.warn(`[KYC] Returned ${result.count} stalled verification(s) to VERIFIED`);
+    }
+    return result.count;
 }
 
 // ─── Document type mapping ────────────────────────────────────────────────────
@@ -65,6 +195,21 @@ const DOC_TYPE_TO_AI: Record<string, string | null> = {
     PROOF_OF_INCOME:    'proof_of_income',
     PROOF_OF_ADDRESS:   'proof_of_address',
 };
+
+// Names the borrower recognises, for when a rejection has to name a document.
+const DOC_LABELS: Record<string, string> = {
+    GOVERNMENT_ID:      'the front of your government ID',
+    GOVERNMENT_ID_BACK: 'the back of your government ID',
+    PROOF_OF_INCOME:    'your proof of income',
+    PROOF_OF_ADDRESS:   'your proof of address',
+};
+
+// Every rejection reason below is read by the borrower in the app, so each line
+// says what to do next rather than what the model measured. The numeric scores
+// stay in the audit log.
+const PHOTO_GUIDANCE =
+    'Retake the photo in bright, even light with the whole card flat in the frame, ' +
+    'and keep it free of glare, shadows and blur.';
 
 // ─── Main function ────────────────────────────────────────────────────────────
 
@@ -89,29 +234,29 @@ export async function triggerAIVerification(
             const fileBuffer = await fs.readFile(doc.storagePath);
 
             const formData = new FormData();
-            const mimeType = doc.fileName.endsWith('.png') ? 'image/png' : 'image/jpeg';
+            const extension = path.extname(doc.fileName).toLowerCase();
+            const mimeType = extension === '.png'
+                ? 'image/png'
+                : extension === '.webp'
+                    ? 'image/webp'
+                    : 'image/jpeg';
             formData.append('file', new Blob([fileBuffer], { type: mimeType }), doc.fileName);
 
             const response = await fetch(`${env.AI_SERVICE_URL}/api/v1/verify/document?document_type=${aiDocType}`, {
                 method: 'POST',
                 headers: { 'X-API-Key': env.AI_API_KEY },
                 body: formData,
+                signal: AbortSignal.timeout(AI_DOCUMENT_TIMEOUT_MS),
             });
 
             if (!response.ok) {
-                const errorReason = `AI service returned HTTP ${response.status}`;
-                console.error(`[KYC] AI verification failed for doc ${doc.id}: ${errorReason}`);
+                console.error(`[KYC] AI verification failed for doc ${doc.id}: HTTP ${response.status}`);
 
-                // Mark document as REJECTED so it doesn't stay PENDING forever
-                await prisma.document.update({
-                    where: { id: doc.id },
-                    data: {
-                        status: 'REJECTED',
-                        rejectionReason: `${errorReason} — please re-upload a clearer document`,
-                    },
-                });
+                if (!UNREADABLE_IMAGE_STATUSES.has(response.status)) {
+                    throw new AIServiceUnavailableError(`AI service returned HTTP ${response.status}`);
+                }
 
-                // Track as a failed result so the user gets auto-rejected
+                const message = `${DOC_LABELS[doc.type] ?? 'One of your documents'} could not be read.`;
                 results.push({
                     docId: doc.id,
                     type: doc.type,
@@ -121,8 +266,12 @@ export async function triggerAIVerification(
                         confidence: 0,
                         extracted_data: {},
                         fraud_indicators: [],
-                        message: errorReason,
+                        message,
                     },
+                });
+                await prisma.document.update({
+                    where: { id: doc.id },
+                    data: { status: 'REJECTED', rejectionReason: message },
                 });
                 continue;
             }
@@ -153,22 +302,10 @@ export async function triggerAIVerification(
             results.push({ docId: doc.id, type: doc.type, result });
         }
 
-        // If no results at all (AI completely unreachable), still reject
+        // Nothing was checked, so there is nothing to hold against the borrower.
+        // VERIFIED is the state /kyc/submit accepts again.
         if (results.length === 0) {
-            const reason = 'AI verification service was unreachable for all documents';
-            await prisma.user.update({
-                where: { id: userId },
-                data: { status: UserStatus.REJECTED, kycRejectionReason: reason },
-            });
-            await prisma.auditLog.create({
-                data: { userId, action: 'KYC_REJECTED', entity: 'User', entityId: userId, metadata: { reason, rejectedBy: 'ai' } },
-            });
-            await notificationService.notify(userId, {
-                type: 'KYC_REJECTED',
-                title: '❌ Verification Failed',
-                message: `${reason}. Please try again later.`,
-                metadata: { reason },
-            });
+            await recordOutage(userId, 'no-verifiable-documents');
             return;
         }
 
@@ -183,11 +320,89 @@ export async function triggerAIVerification(
         if (allPassed) {
             const kycLevel = deriveKycLevel(results.map((r) => r.type));
 
-            // Merge extracted data from all verified documents
-            const mergedExtractedData = results.reduce<Record<string, unknown>>(
+            // The ID front is the identity document; other documents only fill
+            // gaps, so a different name on a utility bill cannot override it.
+            const ordered = [...results].sort((a, b) =>
+                (a.type === 'GOVERNMENT_ID' ? 1 : 0) - (b.type === 'GOVERNMENT_ID' ? 1 : 0));
+            const mergedExtractedData = ordered.reduce<Record<string, unknown>>(
                 (acc, r) => ({ ...acc, ...r.result.extracted_data }),
                 {},
             );
+
+            const identityProfile = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    legalName: true,
+                    dateOfBirth: true,
+                    country: true,
+                    region: true,
+                    province: true,
+                    cityTown: true,
+                    barangay: true,
+                },
+            });
+            const extractedName = extractedValue(mergedExtractedData, ['name', 'full_name', 'legal_name']);
+            const extractedBirthDate = extractedValue(mergedExtractedData, ['date_of_birth', 'birth_date', 'dob']);
+            const extractedAddress = extractedValue(mergedExtractedData, ['address', 'full_address']);
+            const enteredAddress = identityProfile
+                ? [identityProfile.barangay, identityProfile.cityTown, identityProfile.province, identityProfile.region, identityProfile.country]
+                    .filter(Boolean)
+                    .join(' ')
+                : '';
+            const identityChecks = {
+                nameSimilarity: tokenSimilarity(identityProfile?.legalName, extractedName),
+                birthDateMatches: Boolean(
+                    identityProfile?.dateOfBirth &&
+                    extractedBirthDate &&
+                    comparableDate(identityProfile.dateOfBirth) === comparableDate(extractedBirthDate)
+                ),
+                addressSimilarity: extractedAddress ? tokenSimilarity(enteredAddress, extractedAddress) : null,
+                extractedNamePresent: Boolean(extractedName),
+                extractedBirthDatePresent: Boolean(extractedBirthDate),
+            };
+            const identityMismatchReasons = [
+                !identityChecks.extractedNamePresent || identityChecks.nameSimilarity < 0.7
+                    ? 'The name printed on your ID could not be matched to the name in your profile.'
+                    : null,
+                !identityChecks.extractedBirthDatePresent || !identityChecks.birthDateMatches
+                    ? 'The date of birth on your ID could not be matched to the one you entered.'
+                    : null,
+                identityChecks.addressSimilarity !== null && identityChecks.addressSimilarity < 0.35
+                    ? 'The address on your ID does not match the address in your profile.'
+                    : null,
+            ].filter((reason): reason is string => Boolean(reason));
+
+            if (identityMismatchReasons.length > 0) {
+                const reason = [...identityMismatchReasons, PHOTO_GUIDANCE].join(' ');
+                const applied = await applyOutcome(
+                    userId,
+                    { status: UserStatus.REJECTED, kycRejectionReason: reason },
+                    'identity-mismatch',
+                );
+                if (!applied) return;
+                // Force a fresh photo on retry: /kyc/submit only accepts PENDING
+                // documents, so leaving these would replay the same bad scan.
+                await prisma.document.updateMany({
+                    where: { id: { in: results.map((r) => r.docId) } },
+                    data: { status: 'REJECTED', rejectionReason: reason },
+                });
+                await prisma.auditLog.create({
+                    data: {
+                        userId,
+                        action: 'KYC_REJECTED',
+                        entity: 'User',
+                        entityId: userId,
+                        metadata: { identityChecks, reasons: identityMismatchReasons },
+                    },
+                });
+                await notificationService.notify(userId, {
+                    type: 'KYC_REJECTED',
+                    title: 'Verification Failed',
+                    message: reason,
+                    metadata: { reasons: identityMismatchReasons },
+                });
+                return;
+            }
 
             // Fetch user's primary wallet for richer credit scoring
             const primaryWallet = await prisma.wallet.findFirst({
@@ -200,13 +415,21 @@ export async function triggerAIVerification(
                 select: { totalBorrowed: true, totalRepaid: true, activeLoansCount: true, completedLoansCount: true, defaultCount: true },
             });
 
-            // Call LLM credit scoring endpoint for an accurate, multi-factor score
             let creditScore: number;
-            let creditTier: string;
+            let scoreSource: 'scorer' | 'fallback';
             try {
+                // The scorer reads which documents passed from inside extracted_data.
+                // Sending only the OCR fields left it with nothing, so the 40-point
+                // document component scored zero however much was uploaded.
+                const verifiedDocuments = results.reduce<Record<string, unknown>>((acc, r) => {
+                    const key = DOC_TYPE_TO_AI[r.type];
+                    if (key) acc[key] = { is_verified: r.result.valid, confidence: r.result.confidence };
+                    return acc;
+                }, {});
+
                 const scorePayload = {
                     user_id: userId,
-                    extracted_data: mergedExtractedData,
+                    extracted_data: { ...mergedExtractedData, verified_documents: verifiedDocuments },
                     wallet_address: primaryWallet?.address ?? '0x0000000000000000000000000000000000000000',
                     loan_history: loanStats
                         ? {
@@ -222,26 +445,29 @@ export async function triggerAIVerification(
                     method: 'POST',
                     headers: { 'X-API-Key': env.AI_API_KEY, 'Content-Type': 'application/json' },
                     body: JSON.stringify(scorePayload),
+                    signal: AbortSignal.timeout(AI_SCORE_TIMEOUT_MS),
                 });
 
-                if (scoreRes.ok) {
-                    const scoreData = (await scoreRes.json()) as { score: number; tier: string | null };
-                    creditScore = scoreData.score;
-                    creditTier = scoreData.tier?.toUpperCase() ?? deriveTier(scoreData.score);
-                } else {
+                if (!scoreRes.ok) {
                     throw new Error(`Score endpoint returned HTTP ${scoreRes.status}`);
                 }
+                const scoreData = (await scoreRes.json()) as { score: unknown };
+                if (!isUsableScore(scoreData.score)) {
+                    throw new Error(`Score endpoint returned an unusable score: ${String(scoreData.score)}`);
+                }
+                creditScore = scoreData.score;
+                scoreSource = 'scorer';
             } catch (scoreErr) {
-                // Fall back to confidence-based score so KYC approval still completes
-                console.warn('[KYC] Credit score endpoint failed, using fallback:', scoreErr);
+                console.warn('[KYC] Credit score endpoint failed, using capped fallback:', scoreErr);
                 const avgConfidence = results.reduce((sum, r) => sum + r.result.confidence, 0) / results.length;
-                creditScore = Math.round(avgConfidence * 100);
-                creditTier = deriveTier(creditScore);
+                creditScore = Math.min(Math.round(avgConfidence * 100), FALLBACK_SCORE_CAP);
+                scoreSource = 'fallback';
             }
+            const creditTier = deriveTier(creditScore);
 
-            await prisma.user.update({
-                where: { id: userId },
-                data: {
+            const applied = await applyOutcome(
+                userId,
+                {
                     status: UserStatus.APPROVED,
                     kycLevel,
                     creditScore,
@@ -249,7 +475,9 @@ export async function triggerAIVerification(
                     kycApprovedAt: new Date(),
                     kycRejectionReason: null,
                 },
-            });
+                'approved',
+            );
+            if (!applied) return;
 
             await prisma.auditLog.create({
                 data: {
@@ -257,7 +485,7 @@ export async function triggerAIVerification(
                     action: 'KYC_APPROVED',
                     entity: 'User',
                     entityId: userId,
-                    metadata: { creditScore, creditTier, kycLevel, approvedBy: 'ai' },
+                    metadata: { creditScore, creditTier, kycLevel, scoreSource, approvedBy: 'ai' },
                 },
             });
 
@@ -269,17 +497,17 @@ export async function triggerAIVerification(
             });
         } else {
             const failedDocs = results.filter((r) => !r.result.valid);
-            const reason = failedDocs
-                .map((r) => r.result.message ?? `${r.type} failed verification`)
-                .join('; ');
+            const details = failedDocs
+                .map((r) => r.result.message ?? `${DOC_LABELS[r.type] ?? r.type} could not be verified.`)
+                .join(' ');
+            const reason = `${details} ${PHOTO_GUIDANCE}`.trim();
 
-            await prisma.user.update({
-                where: { id: userId },
-                data: {
-                    status: UserStatus.REJECTED,
-                    kycRejectionReason: reason,
-                },
-            });
+            const applied = await applyOutcome(
+                userId,
+                { status: UserStatus.REJECTED, kycRejectionReason: reason },
+                'rejected',
+            );
+            if (!applied) return;
 
             await prisma.auditLog.create({
                 data: {
@@ -293,39 +521,18 @@ export async function triggerAIVerification(
 
             await notificationService.notify(userId, {
                 type: 'KYC_REJECTED',
-                title: '❌ Verification Failed',
-                message: `Your KYC verification was rejected: ${reason}. Please re-submit your documents.`,
+                title: 'Verification Failed',
+                message: reason,
                 metadata: { reason },
             });
         }
     } catch (error) {
+        // A system failure is not a participant rejection
         console.error('[KYC] AI verification error:', error);
-        // Still reject the user so they don't stay stuck in PENDING_KYC
         try {
-            const reason = 'Verification failed due to a system error. Please try again.';
-            await prisma.user.update({
-                where: { id: userId },
-                data: { status: UserStatus.REJECTED, kycRejectionReason: reason },
-            });
-            await prisma.auditLog.create({
-                data: {
-                    userId,
-                    action: 'KYC_REJECTED',
-                    entity: 'User',
-                    entityId: userId,
-                    metadata: { reason, rejectedBy: 'system-error-recovery' },
-                },
-            });
-            await notificationService.notify(userId, {
-                type: 'KYC_REJECTED',
-                title: '❌ Verification Failed',
-                message: `${reason}`,
-                metadata: { reason },
-            });
+            await recordOutage(userId, error instanceof AIServiceUnavailableError ? 'ai-http-error' : 'system-error-recovery');
         } catch (innerErr) {
-            // Recovery also failed — user may be stuck in PENDING_KYC.
-            // This requires manual admin intervention.
-            console.error('[KYC] CRITICAL: Failed to reject user after AI error. User stuck in PENDING_KYC:', userId, innerErr);
+            console.error('[KYC] CRITICAL: Failed to record manual review after AI error:', userId, innerErr);
         }
     }
 }
@@ -375,6 +582,7 @@ export async function verifyFace(
         method: 'POST',
         headers: { 'X-API-Key': env.AI_API_KEY },
         body: formData,
+        signal: AbortSignal.timeout(AI_DOCUMENT_TIMEOUT_MS),
     });
 
     let passed = false;
@@ -386,9 +594,15 @@ export async function verifyFace(
         passed = result.passed;
         score = result.score;
         message = result.message;
+    } else if (response.status === 400 || response.status === 413 || response.status === 422) {
+        // The photo is the problem; the service says what to change
+        const body = (await response.json().catch(() => ({}))) as { detail?: unknown };
+        message = typeof body.detail === 'string'
+            ? body.detail
+            : 'Your selfie could not be checked. Retake it facing the camera in good light.';
     } else {
-        message = `Face verification service returned HTTP ${response.status}`;
-        console.error(`[KYC] Face match failed for user ${userId}: ${message}`);
+        console.error(`[KYC] Face service unavailable for user ${userId}: HTTP ${response.status}`);
+        throw new FaceServiceUnavailableError(`Face service returned HTTP ${response.status}`);
     }
 
     // Upsert the SELFIE document record (replace any previous one)
@@ -410,6 +624,7 @@ export async function verifyFace(
                 fileSize: selfieBuffer.length,
                 faceMatchScore: score,
                 faceMatchPassed: passed,
+                aiExtractedData: { comparedWithDocumentId: govIdDoc.id },
                 status: 'PENDING',
             },
         });
@@ -425,13 +640,14 @@ export async function verifyFace(
                 status: 'PENDING',
                 faceMatchScore: score,
                 faceMatchPassed: passed,
+                aiExtractedData: { comparedWithDocumentId: govIdDoc.id },
             },
         });
     } else {
         // APPROVED selfie — update only the match fields, keep the stored file
         selfieDoc = await prisma.document.update({
             where: { id: existingSelfie.id },
-            data: { faceMatchScore: score, faceMatchPassed: passed },
+            data: { faceMatchScore: score, faceMatchPassed: passed, aiExtractedData: { comparedWithDocumentId: govIdDoc.id } },
         });
     }
 

@@ -6,9 +6,9 @@ import "../contracts/AvelonLending.sol";
 import "../contracts/CollateralManager.sol";
 
 /**
- * Covers the stake model: a loan is deliberately under-secured, so liquidation
- * keys off default or off an off-chain value shortfall, never off the on-chain
- * ETH-over-ETH ratio.
+ * Covers the stake model: a loan is deliberately under-secured and liquidation
+ * keys only off an objectively verifiable missed due date. ETH volatility is an
+ * advisory research signal and cannot liquidate ETH-denominated debt.
  */
 contract CollateralManagerTest is Harness {
     AvelonLending internal lending;
@@ -63,6 +63,7 @@ contract CollateralManagerTest is Harness {
         assertEq(uint8(status), 1, "loan should be Active");
         assertEq(manager.getCollateral(loanId), STAKE, "stake recorded");
         assertTrue(manager.isCollateralLocked(loanId), "stake locked");
+        assertEq(manager.totalLockedCollateral(), STAKE, "locked total not tracked");
     }
 
     // ── liquidation triggers ─────────────────────────────────────────────
@@ -89,42 +90,15 @@ contract CollateralManagerTest is Harness {
         assertEq(address(manager).balance, 0, "stake stranded in the manager");
         assertEq(manager.getCollateral(loanId), 0, "stake not cleared");
         assertFalse(manager.isCollateralLocked(loanId), "stake still locked");
+        assertEq(manager.totalLockedCollateral(), 0, "locked total not cleared");
 
         (, AvelonLending.LoanStatus status) = lending.getLoanBorrowerAndStatus(loanId);
         assertEq(uint8(status), 3, "loan should be Liquidated");
     }
 
-    function test_LiquidateOnShortfallSucceedsBelowMinRatio() public {
+    function test_ShortfallLiquidationIsDisabled() public {
         uint32 loanId = _activeLoan();
-        uint256 balanceBefore = TREASURY.balance;
-
-        // Not overdue — this branch is the off-chain fiat valuation
-        manager.liquidate(loanId, CollateralManager.LiquidationReason.Shortfall, 3000);
-
-        assertEq(TREASURY.balance - balanceBefore, STAKE, "treasury did not receive the stake");
-        (, AvelonLending.LoanStatus status) = lending.getLoanBorrowerAndStatus(loanId);
-        assertEq(uint8(status), 3, "loan should be Liquidated");
-    }
-
-    function test_LiquidateOnShortfallRevertsWhenRatioHealthy() public {
-        uint32 loanId = _activeLoan();
-
-        vm.expectRevert(CollateralManager.CollateralRatioHealthy.selector);
-        manager.liquidate(loanId, CollateralManager.LiquidationReason.Shortfall, 3600);
-    }
-
-    function test_LiquidateEmitsReasonAndObservedRatio() public {
-        uint32 loanId = _activeLoan();
-        uint128 penalty = uint128((uint256(STAKE) * manager.liquidationPenalty()) / 10000);
-
-        vm.expectEmit(true, false, false, true, address(manager));
-        emit CollateralManager.CollateralLiquidated(
-            loanId,
-            STAKE - penalty,
-            penalty,
-            CollateralManager.LiquidationReason.Shortfall,
-            2800
-        );
+        vm.expectRevert(CollateralManager.UnsupportedLiquidationReason.selector);
         manager.liquidate(loanId, CollateralManager.LiquidationReason.Shortfall, 2800);
     }
 
@@ -141,6 +115,7 @@ contract CollateralManagerTest is Harness {
 
         assertEq(BORROWER.balance - balanceBefore, STAKE, "borrower did not get the stake back");
         assertFalse(manager.isCollateralLocked(loanId), "stake still locked");
+        assertEq(manager.totalLockedCollateral(), 0, "locked total not cleared");
     }
 
     // ── risk view ────────────────────────────────────────────────────────
@@ -158,15 +133,33 @@ contract CollateralManagerTest is Harness {
         assertFalse(warning, "liquidatable loan should not also warn");
     }
 
-    function test_IsAtRiskWarnsBetweenMinAndWarning() public {
+    function test_IsAtRiskIgnoresOwnerSuppliedRatio() public {
         uint32 loanId = _activeLoan();
 
         (bool warning, bool liquidatable) = manager.isAtRisk(loanId, 3700);
-        assertTrue(warning, "3700 sits between min 3500 and warning 4000");
-        assertFalse(liquidatable, "3700 is above the minimum stake");
+        assertFalse(warning, "ETH ratio must not create a warning");
+        assertFalse(liquidatable, "ETH ratio must not authorize liquidation");
 
         (warning, liquidatable) = manager.isAtRisk(loanId, 3400);
-        assertFalse(warning, "below min is liquidatable, not a warning");
-        assertTrue(liquidatable, "3400 is below the 3500 minimum stake");
+        assertFalse(warning, "ETH ratio must remain advisory");
+        assertFalse(liquidatable, "owner-supplied ratio must be ignored");
+    }
+
+    function test_EmergencyWithdrawCannotTouchLockedCollateral() public {
+        _activeLoan();
+
+        vm.expectRevert(CollateralManager.LockedCollateralProtected.selector);
+        manager.emergencyWithdraw(TREASURY, 1 wei);
+    }
+
+    function test_EmergencyWithdrawCanRecoverOnlyExcessEth() public {
+        _activeLoan();
+        vm.deal(address(manager), STAKE + 1 ether);
+
+        uint256 beforeBalance = TREASURY.balance;
+        manager.emergencyWithdraw(TREASURY, 1 ether);
+
+        assertEq(TREASURY.balance - beforeBalance, 1 ether, "excess ETH was not recovered");
+        assertEq(address(manager).balance, STAKE, "locked collateral was touched");
     }
 }

@@ -9,7 +9,7 @@ import { UserStatus } from '../types/index.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { notificationService } from '../services/notification.service.js';
-import { triggerAIVerification, verifyFace } from '../services/kyc-verification.service.js';
+import { triggerAIVerification, verifyFace, FaceServiceUnavailableError } from '../services/kyc-verification.service.js';
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js';
 
 const kycRoutes = new Hono();
@@ -18,13 +18,39 @@ const kycRoutes = new Hono();
 kycRoutes.use('*', authMiddleware);
 
 // Allowed document types and MIME types
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const VALID_DOC_TYPES = ['GOVERNMENT_ID', 'GOVERNMENT_ID_BACK', 'E_SIGNATURE', 'PROOF_OF_INCOME', 'PROOF_OF_ADDRESS', 'SELFIE'] as const;
 
 // 5 uploads per minute per IP — prevents disk exhaustion via authenticated flood
 const kycUploadRateLimiter = createRateLimiter({ windowMs: 60_000, maxRequests: 5, keyPrefix: 'kyc-upload' });
+
+function requireSafeKycStorage(): void {
+    if (env.NODE_ENV === 'production' && env.KYC_STORAGE_MODE !== 'object') {
+        throw new AppError(
+            503,
+            'KYC_STORAGE_UNAVAILABLE',
+            'KYC uploads are disabled until encrypted private object storage is configured.'
+        );
+    }
+    if (env.KYC_STORAGE_MODE === 'object') {
+        throw new AppError(503, 'KYC_STORAGE_UNAVAILABLE', 'Object storage adapter is not configured.');
+    }
+}
+
+function detectImageMime(buffer: Buffer): string | null {
+    if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+        return 'image/jpeg';
+    }
+    if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+        return 'image/png';
+    }
+    if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') {
+        return 'image/webp';
+    }
+    return null;
+}
 
 /**
  * Ensure the uploads directory exists
@@ -106,6 +132,9 @@ kycRoutes.get('/status', async (c) => {
 
 // Validation for KYC profile info
 const kycProfileSchema = z.object({
+    firstName: z.string().trim().min(2).max(80),
+    middleName: z.string().trim().max(80).optional(),
+    lastName: z.string().trim().min(2).max(80),
     dateOfBirth: z.string()
         .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date of birth must be in YYYY-MM-DD format')
         .refine((d) => !isNaN(Date.parse(d)), 'Date of birth must be a valid date'),
@@ -117,7 +146,7 @@ const kycProfileSchema = z.object({
     province: z.string().optional(),
     cityTown: z.string().optional(),
     barangay: z.string().optional(),
-    contactNumber: z.string().min(1, 'Contact number is required'),
+    contactNumber: z.string().regex(/^\+?[1-9]\d{7,14}$/, 'Contact number must be a valid international number'),
     secondaryEmail: z.string().email('Must be a valid email').optional(),
     idType: z.string().min(1, 'ID type is required').optional(),
 });
@@ -152,6 +181,7 @@ kycRoutes.post('/profile', zValidator('json', kycProfileSchema), async (c) => {
     const updated = await prisma.user.update({
         where: { id: userId },
         data: {
+            legalName: [body.firstName, body.middleName, body.lastName].filter(Boolean).join(' '),
             dateOfBirth: body.dateOfBirth,
             gender: body.gender,
             civilStatus: body.civilStatus,
@@ -167,6 +197,7 @@ kycRoutes.post('/profile', zValidator('json', kycProfileSchema), async (c) => {
         },
         select: {
             id: true,
+            legalName: true,
             dateOfBirth: true,
             gender: true,
             civilStatus: true,
@@ -210,6 +241,7 @@ kycRoutes.get('/profile', async (c) => {
     const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
+            legalName: true,
             dateOfBirth: true,
             gender: true,
             civilStatus: true,
@@ -239,6 +271,7 @@ kycRoutes.get('/profile', async (c) => {
  * Upload a KYC document (multipart/form-data)
  */
 kycRoutes.post('/documents', kycUploadRateLimiter, async (c) => {
+    requireSafeKycStorage();
     const userId = c.get('userId');
 
     // Parse multipart form data
@@ -291,12 +324,17 @@ kycRoutes.post('/documents', kycUploadRateLimiter, async (c) => {
         );
     }
 
-    // Save file to disk
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const detectedMime = detectImageMime(buffer);
+    if (!detectedMime || detectedMime !== file.type) {
+        throw new ValidationError('File content does not match the declared image type');
+    }
+
+    // Save file to disk using a server-generated name
     const uploadDir = await ensureUploadDir(userId);
     const safeFileName = `${docType}_${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, safeFileName);
 
-    const buffer = Buffer.from(await file.arrayBuffer());
     await fs.writeFile(filePath, buffer);
 
     // Create document record
@@ -304,7 +342,7 @@ kycRoutes.post('/documents', kycUploadRateLimiter, async (c) => {
         data: {
             userId,
             type: docType as any,
-            fileName: file.name,
+            fileName: safeFileName,
             fileSize: file.size,
             mimeType: file.type,
             storagePath: filePath,
@@ -378,6 +416,7 @@ kycRoutes.get('/documents', async (c) => {
  * Stream a KYC document file back to the client
  */
 kycRoutes.get('/documents/:id/file', async (c) => {
+    requireSafeKycStorage();
     const userId = c.get('userId');
     const id = c.req.param('id');
 
@@ -404,7 +443,7 @@ kycRoutes.get('/documents/:id/file', async (c) => {
     // Strip control characters and quotes to prevent response header injection
     const safeDisplayName = document.fileName.replace(/[\r\n"\\]/g, '_');
     c.header('Content-Disposition', `inline; filename="${safeDisplayName}"`);
-    c.header('Cache-Control', 'private, max-age=3600');
+    c.header('Cache-Control', 'private, no-store');
 
     return c.body(fileBuffer);
 });
@@ -464,6 +503,7 @@ kycRoutes.delete('/documents/:id', async (c) => {
  * Must be called after uploading a GOVERNMENT_ID document and before /kyc/submit.
  */
 kycRoutes.post('/verify/face', kycUploadRateLimiter, async (c) => {
+    requireSafeKycStorage();
     const userId = c.get('userId');
 
     const body = await c.req.parseBody();
@@ -486,11 +526,16 @@ kycRoutes.post('/verify/face', kycUploadRateLimiter, async (c) => {
         throw new ValidationError(`Selfie too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const detectedMime = detectImageMime(buffer);
+    if (!detectedMime || detectedMime !== file.type) {
+        throw new ValidationError('Selfie content does not match the declared image type');
+    }
+
     // Save selfie to disk
     const uploadDir = await ensureUploadDir(userId);
     const safeFileName = `SELFIE_${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, safeFileName);
-    const buffer = Buffer.from(await file.arrayBuffer());
     await fs.writeFile(filePath, buffer);
 
     try {
@@ -522,7 +567,10 @@ kycRoutes.post('/verify/face', kycUploadRateLimiter, async (c) => {
         }
 
         // Handle AI service / network errors with a descriptive message
-        if (err instanceof Error && (err.message.includes('fetch') || err.message.includes('ECONNREFUSED') || err.message.includes('network'))) {
+        if (
+            err instanceof FaceServiceUnavailableError ||
+            (err instanceof Error && (err.name === 'TimeoutError' || err.message.includes('fetch') || err.message.includes('ECONNREFUSED') || err.message.includes('network')))
+        ) {
             console.error('[KYC] Face verify: AI service unreachable —', err.message);
             throw new AppError(502, 'AI_SERVICE_ERROR', 'Face verification service is currently unavailable. Please try again later.');
         }
@@ -543,6 +591,7 @@ const submitKycSchema = z.object({
  * Submit KYC documents for AI verification
  */
 kycRoutes.post('/submit', zValidator('json', submitKycSchema), async (c) => {
+    requireSafeKycStorage();
     const userId = c.get('userId');
 
     // Verify user is in the right state for KYC submission
@@ -584,25 +633,36 @@ kycRoutes.post('/submit', zValidator('json', submitKycSchema), async (c) => {
         throw new ValidationError('A government ID document is required for KYC submission');
     }
 
-    // Require completed and passed face verification
+    // The face match has to be against the ID being submitted now
     const selfieDoc = await prisma.document.findFirst({
         where: { userId, type: 'SELFIE' },
-        orderBy: { createdAt: 'desc' },
-        select: { faceMatchPassed: true },
+        orderBy: { updatedAt: 'desc' },
+        select: { faceMatchPassed: true, aiExtractedData: true },
     });
 
     if (!selfieDoc || selfieDoc.faceMatchPassed !== true) {
         throw new ValidationError('Face verification must be completed and passed before submitting KYC');
     }
 
-    // Update user status to pending KYC
-    await prisma.user.update({
-        where: { id: userId },
+    const currentIds = documents
+        .filter((d: { type: string }) => d.type === 'GOVERNMENT_ID')
+        .map((d: { id: string }) => d.id);
+    const comparedWith = (selfieDoc.aiExtractedData as { comparedWithDocumentId?: string } | null)?.comparedWithDocumentId;
+    if (!comparedWith || !currentIds.includes(comparedWith)) {
+        throw new ValidationError('Your ID changed after your face check. Please complete face verification again.');
+    }
+
+    // Only one submission wins; a double tap must not start two verifications
+    const moved = await prisma.user.updateMany({
+        where: { id: userId, status: { in: [UserStatus.VERIFIED, UserStatus.REJECTED] } },
         data: {
             status: UserStatus.PENDING_KYC,
             kycSubmittedAt: new Date(),
         },
     });
+    if (moved.count !== 1) {
+        throw new AppError(409, 'KYC_ALREADY_SUBMITTED', 'KYC is already pending review');
+    }
 
     // Create notification (non-blocking — don't fail submission if notification fails)
     notificationService.notify(userId, {

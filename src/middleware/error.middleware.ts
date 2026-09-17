@@ -110,7 +110,7 @@ export const errorHandler = (err: Error, c: Context) => {
                 message: err.message,
                 ...(err.details ? { details: err.details } : {}),
             },
-        }, err.statusCode as 400 | 401 | 403 | 404 | 409 | 429 | 500 | 502);
+        }, err.statusCode as 400 | 401 | 403 | 404 | 409 | 429 | 500 | 502 | 503);
     }
 
     // Handle Hono HTTP exceptions
@@ -126,7 +126,8 @@ export const errorHandler = (err: Error, c: Context) => {
     }
 
     // Handle unknown errors
-    const isDev = env.NODE_ENV === 'development';
+    // Details only on a developer's own machine, never through a tunnel
+    const isDev = env.NODE_ENV === 'development' && env.TRUSTED_PROXY_COUNT === 0;
     return c.json({
         success: false,
         ...(requestId ? { requestId } : {}),

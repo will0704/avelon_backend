@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import { z } from 'zod';
+import { localOnlyFlags } from './exposure.js';
 
 // Load environment variables
 config();
@@ -9,6 +10,17 @@ const envSchema = z.object({
     // Server
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     PORT: z.coerce.number().default(3001),
+    ENABLE_BACKGROUND_JOBS: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+    // Returns the email/reset OTP in the API response so a local demo can verify an
+    // account with no mailbox. Ignored outside development — see exposeDemoOtp.
+    DEMO_EXPOSE_OTP: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+    CORS_ALLOWED_ORIGINS: z.string().default([
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'http://localhost:19006',
+        'https://avelon-web.vercel.app',
+    ].join(',')),
 
     // How many proxies sit in front of this server. Each one appends an entry to
     // X-Forwarded-For, so this says how many trailing entries are trustworthy.
@@ -16,12 +28,16 @@ const envSchema = z.object({
     // anything else lets a client forge its own rate-limit identity.
     // Render puts exactly one load balancer in front, so set this to 1 there.
     TRUSTED_PROXY_COUNT: z.coerce.number().int().min(0).default(0),
+    // Per-IP cap on /api/* per 15 minutes. A room of phones on one Wi-Fi shares
+    // a public IP, so a group demo needs more than the default.
+    RATE_LIMIT_GLOBAL_MAX: z.coerce.number().int().min(1).default(100),
 
     // Database
     DATABASE_URL: z.string().url(),
 
     // Redis
-    REDIS_URL: z.string().url().optional(),
+    // Empty means unset: the rate limiter falls back to memory
+    REDIS_URL: z.union([z.string().url(), z.literal('')]).optional(),
 
     // JWT
     JWT_SECRET: z.string().min(32),
@@ -40,6 +56,7 @@ const envSchema = z.object({
     CHAIN_ID: z.coerce.number().optional(),
     CHAIN_RPC_URL: z.string().url().optional(),
     CHAIN_PRIVATE_KEY: z.string().optional(),
+    CHAIN_MIN_CONFIRMATIONS: z.coerce.number().int().min(1).max(64).default(1),
 
     // Blockchain (Sepolia — superseded, kept as a fallback)
     SEPOLIA_RPC_URL: z.string().url().optional(),
@@ -65,6 +82,7 @@ const envSchema = z.object({
     // Storage
     STORAGE_PATH: z.string().default('./uploads'),
     ENCRYPTION_KEY: z.string().min(32).optional(),
+    KYC_STORAGE_MODE: z.enum(['local', 'object']).default('local'),
 
     // Database Encryption
     PRISMA_FIELD_ENCRYPTION_KEY: z.string().min(32),
@@ -94,6 +112,27 @@ const parseEnv = () => {
 
 export const env = parseEnv();
 
+/**
+ * Whether verification codes may be returned to the caller.
+ *
+ * Handing an OTP back over the API defeats the point of sending it out of band, so
+ * it only happens on a development server with no proxy or tunnel in front. It
+ * exists because the capstone demo can run with no mailbox attached.
+ */
+export const { isLocalOnly, exposeDemoOtp } = localOnlyFlags(env);
+
+if (env.DEMO_EXPOSE_OTP && !exposeDemoOtp) {
+    console.warn('[env] DEMO_EXPOSE_OTP is ignored — it only applies in development with TRUSTED_PROXY_COUNT=0.');
+}
+if (exposeDemoOtp) {
+    console.warn('[env] DEMO_EXPOSE_OTP is on: verification codes are returned in API responses. Local only.');
+}
+
+export const corsAllowedOrigins = env.CORS_ALLOWED_ORIGINS
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 // Block explorers, by chain id
 const EXPLORERS: Record<number, string> = {
     84532: 'https://sepolia.basescan.org',
@@ -119,6 +158,7 @@ export const chain = {
     rpcUrl: env.CHAIN_RPC_URL ?? env.SEPOLIA_RPC_URL ?? env.GANACHE_URL ?? 'http://127.0.0.1:8545',
     privateKey: env.CHAIN_PRIVATE_KEY ?? env.SEPOLIA_PRIVATE_KEY ?? env.DEPLOYER_PRIVATE_KEY,
     explorerUrl: EXPLORERS[chainId] ?? null,
+    minConfirmations: env.CHAIN_MIN_CONFIRMATIONS,
 } as const;
 
 // Export types

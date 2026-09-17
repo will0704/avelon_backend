@@ -23,7 +23,11 @@
     "hardhat:deploy:base": "cd contracts && npx tsx scripts/deploy.ts --network baseSepolia",
     "lint": "eslint src/",
     "format": "prettier --write \"src/**/*.ts\"",
-    "test": "vitest run"
+    "test": "vitest run",
+    "chain:local": "cd contracts && npx hardhat node",
+    "chain:deploy:local": "cd contracts && npx tsx scripts/deploy.ts --network hardhat",
+    "demo:reset": "tsx scripts/reset-local.ts",
+    "demo:e2e": "tsx scripts/e2e-local.ts"
   },
   "repository": {
     "type": "git",

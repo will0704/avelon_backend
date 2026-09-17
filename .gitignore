@@ -58,3 +58,7 @@ docs
 # Claude Code
 CLAUDE.md
 .claude/
+
+# Backup of the Base Sepolia chain block, taken when this checkout moved to the
+# local Hardhat node. Contains real keys.
+.env.basesepolia.bak

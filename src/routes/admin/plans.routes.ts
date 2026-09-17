@@ -30,26 +30,53 @@ const planSelect = {
     _count: { select: { loans: true } },
 } as const;
 
+const amountSchema = z.union([z.string(), z.number()])
+    .refine((value) => Number.isFinite(Number(value)) && Number(value) > 0, 'Amount must be greater than zero')
+    .refine((value) => /^\d+(\.\d{1,18})?$/.test(String(value)), 'Amount can have at most 18 decimal places')
+    .transform(String);
+
+// The contract stores the rate in whole basis points
+const isWholeBasisPoints = (rate: number) => Math.abs(rate * 100 - Math.round(rate * 100)) < 1e-9;
+
 // Accept both number and string for amount fields (frontend sends number, schema stores Decimal)
 const createPlanSchema = z.object({
     name: z.string().min(1),
     description: z.string().optional(),
     minCreditScore: z.number().int().min(0).max(100),
-    minAmount: z.union([z.string(), z.number()]).transform(String),
-    maxAmount: z.union([z.string(), z.number()]).transform(String),
-    durationOptions: z.array(z.number().int().positive()),
-    interestRate: z.number().positive(),
-    interestType: z.enum(['FLAT', 'COMPOUND']).default('FLAT'),
+    minAmount: amountSchema,
+    maxAmount: amountSchema,
+    durationOptions: z.array(z.number().int().min(1).max(365)).min(1).max(12),
+    interestRate: z.number().positive().max(100)
+        .refine(isWholeBasisPoints, 'Interest rate can have at most two decimal places'),
+    interestType: z.literal('FLAT').default('FLAT'),
     // Borrower's own stake, floored at the platform minimum (revision 5). Above
     // 100 is allowed — that is a fully secured plan, not a mistake.
     collateralRatio: z.number().min(env.MIN_COLLATERAL_RATIO).max(200),
-    originationFee: z.number().min(0),
-    latePenaltyRate: z.number().min(0).default(0.5),
+    // A 100% fee would leave nothing to pay out
+    originationFee: z.number().min(0).lt(100),
+    latePenaltyRate: z.number().min(0).max(100).default(0.5),
     gracePeriodDays: z.number().int().min(0).default(3),
     extensionAllowed: z.boolean().default(false),
     maxExtensionDays: z.number().int().min(0).default(0),
-    extensionFee: z.number().min(0).default(0),
+    extensionFee: z.number().min(0).max(100).default(0),
 });
+
+function planRuleError(plan: {
+    minAmount: string;
+    maxAmount: string;
+    durationOptions: number[];
+    extensionAllowed: boolean;
+    maxExtensionDays: number;
+    extensionFee: number;
+}) {
+    if (Number(plan.minAmount) > Number(plan.maxAmount)) return 'Minimum amount cannot exceed maximum amount';
+    if (new Set(plan.durationOptions).size !== plan.durationOptions.length) return 'Duration options must be unique';
+    if (!plan.extensionAllowed && (plan.maxExtensionDays !== 0 || plan.extensionFee !== 0)) {
+        return 'Disabled extensions must have zero maximum days and zero extension fee';
+    }
+    if (plan.extensionAllowed && plan.maxExtensionDays < 1) return 'Enabled extensions require at least one extension day';
+    return null;
+}
 
 /**
  * GET /admin/plans
@@ -88,6 +115,8 @@ adminPlansRoutes.post('/', zValidator('json', createPlanSchema), async (c) => {
     try {
         const body = c.req.valid('json');
         const createdBy = (c.get('userId' as never) as string) ?? 'system';
+        const ruleError = planRuleError(body);
+        if (ruleError) return c.json({ success: false, message: ruleError }, 400);
 
         const plan = await prisma.loanPlan.create({
             data: {
@@ -109,6 +138,10 @@ adminPlansRoutes.post('/', zValidator('json', createPlanSchema), async (c) => {
                 createdBy,
             },
             select: planSelect,
+        });
+
+        await prisma.auditLog.create({
+            data: { userId: createdBy, action: 'PLAN_CREATED', entity: 'LoanPlan', entityId: plan.id, metadata: { name: plan.name } },
         });
 
         return c.json({
@@ -145,10 +178,31 @@ adminPlansRoutes.put('/:id', zValidator('json', createPlanSchema.partial()), asy
             return c.json({ success: false, message: 'Plan not found' }, 404);
         }
 
+        const merged = {
+            minAmount: body.minAmount ?? existing.minAmount.toString(),
+            maxAmount: body.maxAmount ?? existing.maxAmount.toString(),
+            durationOptions: body.durationOptions ?? existing.durationOptions,
+            extensionAllowed: body.extensionAllowed ?? existing.extensionAllowed,
+            maxExtensionDays: body.maxExtensionDays ?? existing.maxExtensionDays,
+            extensionFee: body.extensionFee ?? existing.extensionFee,
+        };
+        const ruleError = planRuleError(merged);
+        if (ruleError) return c.json({ success: false, message: ruleError }, 400);
+
         const plan = await prisma.loanPlan.update({
             where: { id },
             data: body,
             select: planSelect,
+        });
+
+        await prisma.auditLog.create({
+            data: {
+                userId: (c.get('userId' as never) as string) ?? null,
+                action: 'PLAN_UPDATED',
+                entity: 'LoanPlan',
+                entityId: id,
+                metadata: { changes: Object.keys(body) },
+            },
         });
 
         return c.json({
@@ -188,6 +242,9 @@ adminPlansRoutes.delete('/:id', async (c) => {
         await prisma.loanPlan.update({
             where: { id },
             data: { isActive: false },
+        });
+        await prisma.auditLog.create({
+            data: { userId: (c.get('userId' as never) as string) ?? null, action: 'PLAN_DEACTIVATED', entity: 'LoanPlan', entityId: id },
         });
 
         return c.json({
@@ -229,6 +286,9 @@ adminPlansRoutes.delete('/:id/permanent', async (c) => {
         }
 
         await prisma.loanPlan.delete({ where: { id } });
+        await prisma.auditLog.create({
+            data: { userId: (c.get('userId' as never) as string) ?? null, action: 'PLAN_DELETED', entity: 'LoanPlan', entityId: id, metadata: { name: existing.name } },
+        });
 
         return c.json({ success: true, message: 'Plan permanently deleted' });
     } catch (err) {

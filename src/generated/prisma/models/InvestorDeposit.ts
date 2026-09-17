@@ -29,11 +29,15 @@ export type AggregateInvestorDeposit = {
 export type InvestorDepositAvgAggregateOutputType = {
   amount: runtime.Decimal | null
   poolSharePercent: number | null
+  sharesMinted: runtime.Decimal | null
+  blockNumber: number | null
 }
 
 export type InvestorDepositSumAggregateOutputType = {
   amount: runtime.Decimal | null
   poolSharePercent: number | null
+  sharesMinted: runtime.Decimal | null
+  blockNumber: number | null
 }
 
 export type InvestorDepositMinAggregateOutputType = {
@@ -43,6 +47,8 @@ export type InvestorDepositMinAggregateOutputType = {
   txHash: string | null
   status: $Enums.DepositStatus | null
   poolSharePercent: number | null
+  sharesMinted: runtime.Decimal | null
+  blockNumber: number | null
   createdAt: Date | null
   withdrawnAt: Date | null
 }
@@ -54,6 +60,8 @@ export type InvestorDepositMaxAggregateOutputType = {
   txHash: string | null
   status: $Enums.DepositStatus | null
   poolSharePercent: number | null
+  sharesMinted: runtime.Decimal | null
+  blockNumber: number | null
   createdAt: Date | null
   withdrawnAt: Date | null
 }
@@ -65,6 +73,8 @@ export type InvestorDepositCountAggregateOutputType = {
   txHash: number
   status: number
   poolSharePercent: number
+  sharesMinted: number
+  blockNumber: number
   createdAt: number
   withdrawnAt: number
   _all: number
@@ -74,11 +84,15 @@ export type InvestorDepositCountAggregateOutputType = {
 export type InvestorDepositAvgAggregateInputType = {
   amount?: true
   poolSharePercent?: true
+  sharesMinted?: true
+  blockNumber?: true
 }
 
 export type InvestorDepositSumAggregateInputType = {
   amount?: true
   poolSharePercent?: true
+  sharesMinted?: true
+  blockNumber?: true
 }
 
 export type InvestorDepositMinAggregateInputType = {
@@ -88,6 +102,8 @@ export type InvestorDepositMinAggregateInputType = {
   txHash?: true
   status?: true
   poolSharePercent?: true
+  sharesMinted?: true
+  blockNumber?: true
   createdAt?: true
   withdrawnAt?: true
 }
@@ -99,6 +115,8 @@ export type InvestorDepositMaxAggregateInputType = {
   txHash?: true
   status?: true
   poolSharePercent?: true
+  sharesMinted?: true
+  blockNumber?: true
   createdAt?: true
   withdrawnAt?: true
 }
@@ -110,6 +128,8 @@ export type InvestorDepositCountAggregateInputType = {
   txHash?: true
   status?: true
   poolSharePercent?: true
+  sharesMinted?: true
+  blockNumber?: true
   createdAt?: true
   withdrawnAt?: true
   _all?: true
@@ -208,6 +228,8 @@ export type InvestorDepositGroupByOutputType = {
   txHash: string
   status: $Enums.DepositStatus
   poolSharePercent: number | null
+  sharesMinted: runtime.Decimal | null
+  blockNumber: number | null
   createdAt: Date
   withdrawnAt: Date | null
   _count: InvestorDepositCountAggregateOutputType | null
@@ -242,6 +264,8 @@ export type InvestorDepositWhereInput = {
   txHash?: Prisma.StringFilter<"InvestorDeposit"> | string
   status?: Prisma.EnumDepositStatusFilter<"InvestorDeposit"> | $Enums.DepositStatus
   poolSharePercent?: Prisma.FloatNullableFilter<"InvestorDeposit"> | number | null
+  sharesMinted?: Prisma.DecimalNullableFilter<"InvestorDeposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.IntNullableFilter<"InvestorDeposit"> | number | null
   createdAt?: Prisma.DateTimeFilter<"InvestorDeposit"> | Date | string
   withdrawnAt?: Prisma.DateTimeNullableFilter<"InvestorDeposit"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -254,6 +278,8 @@ export type InvestorDepositOrderByWithRelationInput = {
   txHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   poolSharePercent?: Prisma.SortOrderInput | Prisma.SortOrder
+  sharesMinted?: Prisma.SortOrderInput | Prisma.SortOrder
+  blockNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   withdrawnAt?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -269,6 +295,8 @@ export type InvestorDepositWhereUniqueInput = Prisma.AtLeast<{
   amount?: Prisma.DecimalFilter<"InvestorDeposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   status?: Prisma.EnumDepositStatusFilter<"InvestorDeposit"> | $Enums.DepositStatus
   poolSharePercent?: Prisma.FloatNullableFilter<"InvestorDeposit"> | number | null
+  sharesMinted?: Prisma.DecimalNullableFilter<"InvestorDeposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.IntNullableFilter<"InvestorDeposit"> | number | null
   createdAt?: Prisma.DateTimeFilter<"InvestorDeposit"> | Date | string
   withdrawnAt?: Prisma.DateTimeNullableFilter<"InvestorDeposit"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -281,6 +309,8 @@ export type InvestorDepositOrderByWithAggregationInput = {
   txHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   poolSharePercent?: Prisma.SortOrderInput | Prisma.SortOrder
+  sharesMinted?: Prisma.SortOrderInput | Prisma.SortOrder
+  blockNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   withdrawnAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.InvestorDepositCountOrderByAggregateInput
@@ -300,6 +330,8 @@ export type InvestorDepositScalarWhereWithAggregatesInput = {
   txHash?: Prisma.StringWithAggregatesFilter<"InvestorDeposit"> | string
   status?: Prisma.EnumDepositStatusWithAggregatesFilter<"InvestorDeposit"> | $Enums.DepositStatus
   poolSharePercent?: Prisma.FloatNullableWithAggregatesFilter<"InvestorDeposit"> | number | null
+  sharesMinted?: Prisma.DecimalNullableWithAggregatesFilter<"InvestorDeposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.IntNullableWithAggregatesFilter<"InvestorDeposit"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"InvestorDeposit"> | Date | string
   withdrawnAt?: Prisma.DateTimeNullableWithAggregatesFilter<"InvestorDeposit"> | Date | string | null
 }
@@ -310,6 +342,8 @@ export type InvestorDepositCreateInput = {
   txHash: string
   status?: $Enums.DepositStatus
   poolSharePercent?: number | null
+  sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: number | null
   createdAt?: Date | string
   withdrawnAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutInvestorDepositsInput
@@ -322,6 +356,8 @@ export type InvestorDepositUncheckedCreateInput = {
   txHash: string
   status?: $Enums.DepositStatus
   poolSharePercent?: number | null
+  sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: number | null
   createdAt?: Date | string
   withdrawnAt?: Date | string | null
 }
@@ -332,6 +368,8 @@ export type InvestorDepositUpdateInput = {
   txHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDepositStatusFieldUpdateOperationsInput | $Enums.DepositStatus
   poolSharePercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   withdrawnAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutInvestorDepositsNestedInput
@@ -344,6 +382,8 @@ export type InvestorDepositUncheckedUpdateInput = {
   txHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDepositStatusFieldUpdateOperationsInput | $Enums.DepositStatus
   poolSharePercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   withdrawnAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -355,6 +395,8 @@ export type InvestorDepositCreateManyInput = {
   txHash: string
   status?: $Enums.DepositStatus
   poolSharePercent?: number | null
+  sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: number | null
   createdAt?: Date | string
   withdrawnAt?: Date | string | null
 }
@@ -365,6 +407,8 @@ export type InvestorDepositUpdateManyMutationInput = {
   txHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDepositStatusFieldUpdateOperationsInput | $Enums.DepositStatus
   poolSharePercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   withdrawnAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -376,6 +420,8 @@ export type InvestorDepositUncheckedUpdateManyInput = {
   txHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDepositStatusFieldUpdateOperationsInput | $Enums.DepositStatus
   poolSharePercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   withdrawnAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -397,6 +443,8 @@ export type InvestorDepositCountOrderByAggregateInput = {
   txHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   poolSharePercent?: Prisma.SortOrder
+  sharesMinted?: Prisma.SortOrder
+  blockNumber?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   withdrawnAt?: Prisma.SortOrder
 }
@@ -404,6 +452,8 @@ export type InvestorDepositCountOrderByAggregateInput = {
 export type InvestorDepositAvgOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   poolSharePercent?: Prisma.SortOrder
+  sharesMinted?: Prisma.SortOrder
+  blockNumber?: Prisma.SortOrder
 }
 
 export type InvestorDepositMaxOrderByAggregateInput = {
@@ -413,6 +463,8 @@ export type InvestorDepositMaxOrderByAggregateInput = {
   txHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   poolSharePercent?: Prisma.SortOrder
+  sharesMinted?: Prisma.SortOrder
+  blockNumber?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   withdrawnAt?: Prisma.SortOrder
 }
@@ -424,6 +476,8 @@ export type InvestorDepositMinOrderByAggregateInput = {
   txHash?: Prisma.SortOrder
   status?: Prisma.SortOrder
   poolSharePercent?: Prisma.SortOrder
+  sharesMinted?: Prisma.SortOrder
+  blockNumber?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   withdrawnAt?: Prisma.SortOrder
 }
@@ -431,6 +485,8 @@ export type InvestorDepositMinOrderByAggregateInput = {
 export type InvestorDepositSumOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   poolSharePercent?: Prisma.SortOrder
+  sharesMinted?: Prisma.SortOrder
+  blockNumber?: Prisma.SortOrder
 }
 
 export type InvestorDepositCreateNestedManyWithoutUserInput = {
@@ -485,6 +541,8 @@ export type InvestorDepositCreateWithoutUserInput = {
   txHash: string
   status?: $Enums.DepositStatus
   poolSharePercent?: number | null
+  sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: number | null
   createdAt?: Date | string
   withdrawnAt?: Date | string | null
 }
@@ -495,6 +553,8 @@ export type InvestorDepositUncheckedCreateWithoutUserInput = {
   txHash: string
   status?: $Enums.DepositStatus
   poolSharePercent?: number | null
+  sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: number | null
   createdAt?: Date | string
   withdrawnAt?: Date | string | null
 }
@@ -535,6 +595,8 @@ export type InvestorDepositScalarWhereInput = {
   txHash?: Prisma.StringFilter<"InvestorDeposit"> | string
   status?: Prisma.EnumDepositStatusFilter<"InvestorDeposit"> | $Enums.DepositStatus
   poolSharePercent?: Prisma.FloatNullableFilter<"InvestorDeposit"> | number | null
+  sharesMinted?: Prisma.DecimalNullableFilter<"InvestorDeposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.IntNullableFilter<"InvestorDeposit"> | number | null
   createdAt?: Prisma.DateTimeFilter<"InvestorDeposit"> | Date | string
   withdrawnAt?: Prisma.DateTimeNullableFilter<"InvestorDeposit"> | Date | string | null
 }
@@ -545,6 +607,8 @@ export type InvestorDepositCreateManyUserInput = {
   txHash: string
   status?: $Enums.DepositStatus
   poolSharePercent?: number | null
+  sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: number | null
   createdAt?: Date | string
   withdrawnAt?: Date | string | null
 }
@@ -555,6 +619,8 @@ export type InvestorDepositUpdateWithoutUserInput = {
   txHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDepositStatusFieldUpdateOperationsInput | $Enums.DepositStatus
   poolSharePercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   withdrawnAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -565,6 +631,8 @@ export type InvestorDepositUncheckedUpdateWithoutUserInput = {
   txHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDepositStatusFieldUpdateOperationsInput | $Enums.DepositStatus
   poolSharePercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   withdrawnAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -575,6 +643,8 @@ export type InvestorDepositUncheckedUpdateManyWithoutUserInput = {
   txHash?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumDepositStatusFieldUpdateOperationsInput | $Enums.DepositStatus
   poolSharePercent?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  blockNumber?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   withdrawnAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -588,6 +658,8 @@ export type InvestorDepositSelect<ExtArgs extends runtime.Types.Extensions.Inter
   txHash?: boolean
   status?: boolean
   poolSharePercent?: boolean
+  sharesMinted?: boolean
+  blockNumber?: boolean
   createdAt?: boolean
   withdrawnAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -600,6 +672,8 @@ export type InvestorDepositSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   txHash?: boolean
   status?: boolean
   poolSharePercent?: boolean
+  sharesMinted?: boolean
+  blockNumber?: boolean
   createdAt?: boolean
   withdrawnAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -612,6 +686,8 @@ export type InvestorDepositSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   txHash?: boolean
   status?: boolean
   poolSharePercent?: boolean
+  sharesMinted?: boolean
+  blockNumber?: boolean
   createdAt?: boolean
   withdrawnAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -624,11 +700,13 @@ export type InvestorDepositSelectScalar = {
   txHash?: boolean
   status?: boolean
   poolSharePercent?: boolean
+  sharesMinted?: boolean
+  blockNumber?: boolean
   createdAt?: boolean
   withdrawnAt?: boolean
 }
 
-export type InvestorDepositOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "amount" | "txHash" | "status" | "poolSharePercent" | "createdAt" | "withdrawnAt", ExtArgs["result"]["investorDeposit"]>
+export type InvestorDepositOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "amount" | "txHash" | "status" | "poolSharePercent" | "sharesMinted" | "blockNumber" | "createdAt" | "withdrawnAt", ExtArgs["result"]["investorDeposit"]>
 export type InvestorDepositInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -651,6 +729,8 @@ export type $InvestorDepositPayload<ExtArgs extends runtime.Types.Extensions.Int
     txHash: string
     status: $Enums.DepositStatus
     poolSharePercent: number | null
+    sharesMinted: runtime.Decimal | null
+    blockNumber: number | null
     createdAt: Date
     withdrawnAt: Date | null
   }, ExtArgs["result"]["investorDeposit"]>
@@ -1083,6 +1163,8 @@ export interface InvestorDepositFieldRefs {
   readonly txHash: Prisma.FieldRef<"InvestorDeposit", 'String'>
   readonly status: Prisma.FieldRef<"InvestorDeposit", 'DepositStatus'>
   readonly poolSharePercent: Prisma.FieldRef<"InvestorDeposit", 'Float'>
+  readonly sharesMinted: Prisma.FieldRef<"InvestorDeposit", 'Decimal'>
+  readonly blockNumber: Prisma.FieldRef<"InvestorDeposit", 'Int'>
   readonly createdAt: Prisma.FieldRef<"InvestorDeposit", 'DateTime'>
   readonly withdrawnAt: Prisma.FieldRef<"InvestorDeposit", 'DateTime'>
 }

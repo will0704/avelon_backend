@@ -23,8 +23,9 @@ interface IAvelonLending {
  * Gas-optimized with state packing and custom errors
  */
 contract CollateralManager is Ownable, ReentrancyGuard {
-    // Why a loan was liquidated. Default is checked on-chain; Shortfall is judged
-    // off-chain against a fiat rate and recorded here for the audit trail.
+    // Shortfall is retained in the enum for ABI compatibility with the testnet
+    // prototype, but is deliberately disabled: ETH collateral and ETH debt move
+    // together, so an ETH price prediction cannot prove a collateral shortfall.
     enum LiquidationReason { Default, Shortfall }
 
     // ============================================
@@ -48,6 +49,8 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     error TransferFailed();
     error MinRatioTooLow();
     error WarningMustExceedMin();
+    error UnsupportedLiquidationReason();
+    error LockedCollateralProtected();
 
     // ============================================
     // STATE VARIABLES
@@ -66,6 +69,10 @@ contract CollateralManager is Ownable, ReentrancyGuard {
 
     // Loan ID => Is collateral locked
     mapping(uint32 => bool) public isCollateralLocked;
+
+    // Sum of collateral owed to borrowers. Stuck/unattributed ETH is the only
+    // balance an emergency withdrawal may touch.
+    uint256 public totalLockedCollateral;
 
     // ============================================
     // EVENTS
@@ -150,6 +157,7 @@ contract CollateralManager is Ownable, ReentrancyGuard {
 
         collateralDeposits[loanId] = uint128(msg.value);
         isCollateralLocked[loanId] = true;
+        totalLockedCollateral += msg.value;
 
         emit CollateralDeposited(loanId, msg.sender, uint128(msg.value));
 
@@ -171,6 +179,7 @@ contract CollateralManager is Ownable, ReentrancyGuard {
         if (msg.sender != borrower) revert OnlyBorrower();
 
         collateralDeposits[loanId] += uint128(msg.value);
+        totalLockedCollateral += msg.value;
 
         emit CollateralAdded(loanId, msg.sender, uint128(msg.value));
     }
@@ -189,6 +198,7 @@ contract CollateralManager is Ownable, ReentrancyGuard {
         uint128 amount = collateralDeposits[loanId];
         collateralDeposits[loanId] = 0;
         isCollateralLocked[loanId] = false;
+        totalLockedCollateral -= amount;
 
         (bool success, ) = borrower.call{value: amount}("");
         if (!success) revert TransferFailed();
@@ -197,16 +207,10 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Seize the borrower's stake on default or on a collateral value shortfall.
+     * @dev Seize the borrower's stake after an objectively verifiable default.
      * @param loanId The loan ID
-     * @param reason Default is verified here; Shortfall is asserted by the owner
-     * @param observedRatioBps Stake as a share of the debt in fiat terms, basis
-     *        points. Only read for Shortfall; pass 0 for Default.
-     *
-     * The old ratio check could never fire: stake and debt are both denominated in
-     * ETH, and the debt only shrinks as the borrower repays, so the ratio only ever
-     * climbed away from the threshold. Price risk is only visible in fiat terms, and
-     * that needs an off-chain rate.
+     * @param reason Must be Default. Shortfall is retained only for ABI compatibility.
+     * @param observedRatioBps Must be zero; volatility is advisory and cannot liquidate.
      */
     function liquidate(
         uint32 loanId,
@@ -218,12 +222,12 @@ contract CollateralManager is Ownable, ReentrancyGuard {
         (, uint8 status) = lendingContract.getLoanBorrowerAndStatus(loanId);
         if (status != 1) revert LoanNotActive(); // Active = 1
 
-        if (reason == LiquidationReason.Default) {
-            // Verified on-chain — the backend cannot fake a missed due date
-            if (!lendingContract.isOverdue(loanId)) revert LoanNotOverdue();
-        } else {
-            if (observedRatioBps >= minCollateralRatio) revert CollateralRatioHealthy();
+        if (reason != LiquidationReason.Default || observedRatioBps != 0) {
+            revert UnsupportedLiquidationReason();
         }
+
+        // Verified on-chain — the backend cannot fake a missed due date.
+        if (!lendingContract.isOverdue(loanId)) revert LoanNotOverdue();
 
         uint128 collateral = collateralDeposits[loanId];
 
@@ -235,6 +239,7 @@ contract CollateralManager is Ownable, ReentrancyGuard {
         // Clear collateral before any external call
         collateralDeposits[loanId] = 0;
         isCollateralLocked[loanId] = false;
+        totalLockedCollateral -= collateral;
 
         // Notify lending contract
         lendingContract.liquidateLoan(loanId);
@@ -281,9 +286,8 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Check if a loan is at risk of liquidation
-     * @param observedRatioBps Stake as a share of the debt in fiat terms, basis points.
-     *        Caller supplies it because the on-chain ETH ratio carries no price signal.
+     * @dev Check whether a loan is objectively liquidatable due to default.
+     * @param observedRatioBps Ignored and retained for ABI compatibility.
      */
     function isAtRisk(
         uint32 loanId,
@@ -291,8 +295,9 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     ) external view returns (bool warning, bool liquidatable) {
         if (!isCollateralLocked[loanId]) return (false, false);
 
-        liquidatable = lendingContract.isOverdue(loanId) || observedRatioBps < minCollateralRatio;
-        warning = !liquidatable && observedRatioBps < warningCollateralRatio;
+        observedRatioBps;
+        liquidatable = lendingContract.isOverdue(loanId);
+        warning = false;
     }
 
     /**
@@ -312,6 +317,9 @@ contract CollateralManager is Ownable, ReentrancyGuard {
     function emergencyWithdraw(address to, uint256 amount) external onlyOwner {
         if (to == address(0)) revert InvalidAddress();
         if (amount > address(this).balance) revert InsufficientBalance();
+        if (address(this).balance - amount < totalLockedCollateral) {
+            revert LockedCollateralProtected();
+        }
 
         (bool success, ) = to.call{value: amount}("");
         if (!success) revert TransferFailed();

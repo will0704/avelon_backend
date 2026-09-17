@@ -28,10 +28,12 @@ export type AggregatePoolTransaction = {
 
 export type PoolTransactionAvgAggregateOutputType = {
   amount: runtime.Decimal | null
+  sharesDelta: runtime.Decimal | null
 }
 
 export type PoolTransactionSumAggregateOutputType = {
   amount: runtime.Decimal | null
+  sharesDelta: runtime.Decimal | null
 }
 
 export type PoolTransactionMinAggregateOutputType = {
@@ -39,6 +41,7 @@ export type PoolTransactionMinAggregateOutputType = {
   type: $Enums.PoolTransactionType | null
   amount: runtime.Decimal | null
   txHash: string | null
+  sharesDelta: runtime.Decimal | null
   userId: string | null
   createdAt: Date | null
 }
@@ -48,6 +51,7 @@ export type PoolTransactionMaxAggregateOutputType = {
   type: $Enums.PoolTransactionType | null
   amount: runtime.Decimal | null
   txHash: string | null
+  sharesDelta: runtime.Decimal | null
   userId: string | null
   createdAt: Date | null
 }
@@ -57,6 +61,7 @@ export type PoolTransactionCountAggregateOutputType = {
   type: number
   amount: number
   txHash: number
+  sharesDelta: number
   userId: number
   createdAt: number
   _all: number
@@ -65,10 +70,12 @@ export type PoolTransactionCountAggregateOutputType = {
 
 export type PoolTransactionAvgAggregateInputType = {
   amount?: true
+  sharesDelta?: true
 }
 
 export type PoolTransactionSumAggregateInputType = {
   amount?: true
+  sharesDelta?: true
 }
 
 export type PoolTransactionMinAggregateInputType = {
@@ -76,6 +83,7 @@ export type PoolTransactionMinAggregateInputType = {
   type?: true
   amount?: true
   txHash?: true
+  sharesDelta?: true
   userId?: true
   createdAt?: true
 }
@@ -85,6 +93,7 @@ export type PoolTransactionMaxAggregateInputType = {
   type?: true
   amount?: true
   txHash?: true
+  sharesDelta?: true
   userId?: true
   createdAt?: true
 }
@@ -94,6 +103,7 @@ export type PoolTransactionCountAggregateInputType = {
   type?: true
   amount?: true
   txHash?: true
+  sharesDelta?: true
   userId?: true
   createdAt?: true
   _all?: true
@@ -190,6 +200,7 @@ export type PoolTransactionGroupByOutputType = {
   type: $Enums.PoolTransactionType
   amount: runtime.Decimal
   txHash: string | null
+  sharesDelta: runtime.Decimal | null
   userId: string | null
   createdAt: Date
   _count: PoolTransactionCountAggregateOutputType | null
@@ -222,6 +233,7 @@ export type PoolTransactionWhereInput = {
   type?: Prisma.EnumPoolTransactionTypeFilter<"PoolTransaction"> | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFilter<"PoolTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.StringNullableFilter<"PoolTransaction"> | string | null
+  sharesDelta?: Prisma.DecimalNullableFilter<"PoolTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   userId?: Prisma.StringNullableFilter<"PoolTransaction"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PoolTransaction"> | Date | string
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -232,6 +244,7 @@ export type PoolTransactionOrderByWithRelationInput = {
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   txHash?: Prisma.SortOrderInput | Prisma.SortOrder
+  sharesDelta?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -245,6 +258,7 @@ export type PoolTransactionWhereUniqueInput = Prisma.AtLeast<{
   type?: Prisma.EnumPoolTransactionTypeFilter<"PoolTransaction"> | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFilter<"PoolTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.StringNullableFilter<"PoolTransaction"> | string | null
+  sharesDelta?: Prisma.DecimalNullableFilter<"PoolTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   userId?: Prisma.StringNullableFilter<"PoolTransaction"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PoolTransaction"> | Date | string
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -255,6 +269,7 @@ export type PoolTransactionOrderByWithAggregationInput = {
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   txHash?: Prisma.SortOrderInput | Prisma.SortOrder
+  sharesDelta?: Prisma.SortOrderInput | Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.PoolTransactionCountOrderByAggregateInput
@@ -272,6 +287,7 @@ export type PoolTransactionScalarWhereWithAggregatesInput = {
   type?: Prisma.EnumPoolTransactionTypeWithAggregatesFilter<"PoolTransaction"> | $Enums.PoolTransactionType
   amount?: Prisma.DecimalWithAggregatesFilter<"PoolTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.StringNullableWithAggregatesFilter<"PoolTransaction"> | string | null
+  sharesDelta?: Prisma.DecimalNullableWithAggregatesFilter<"PoolTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   userId?: Prisma.StringNullableWithAggregatesFilter<"PoolTransaction"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PoolTransaction"> | Date | string
 }
@@ -281,6 +297,7 @@ export type PoolTransactionCreateInput = {
   type: $Enums.PoolTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: string | null
+  sharesDelta?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutPoolTransactionsInput
 }
@@ -290,6 +307,7 @@ export type PoolTransactionUncheckedCreateInput = {
   type: $Enums.PoolTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: string | null
+  sharesDelta?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   userId?: string | null
   createdAt?: Date | string
 }
@@ -299,6 +317,7 @@ export type PoolTransactionUpdateInput = {
   type?: Prisma.EnumPoolTransactionTypeFieldUpdateOperationsInput | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharesDelta?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutPoolTransactionsNestedInput
 }
@@ -308,6 +327,7 @@ export type PoolTransactionUncheckedUpdateInput = {
   type?: Prisma.EnumPoolTransactionTypeFieldUpdateOperationsInput | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharesDelta?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -317,6 +337,7 @@ export type PoolTransactionCreateManyInput = {
   type: $Enums.PoolTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: string | null
+  sharesDelta?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   userId?: string | null
   createdAt?: Date | string
 }
@@ -326,6 +347,7 @@ export type PoolTransactionUpdateManyMutationInput = {
   type?: Prisma.EnumPoolTransactionTypeFieldUpdateOperationsInput | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharesDelta?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -334,6 +356,7 @@ export type PoolTransactionUncheckedUpdateManyInput = {
   type?: Prisma.EnumPoolTransactionTypeFieldUpdateOperationsInput | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharesDelta?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -353,12 +376,14 @@ export type PoolTransactionCountOrderByAggregateInput = {
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   txHash?: Prisma.SortOrder
+  sharesDelta?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type PoolTransactionAvgOrderByAggregateInput = {
   amount?: Prisma.SortOrder
+  sharesDelta?: Prisma.SortOrder
 }
 
 export type PoolTransactionMaxOrderByAggregateInput = {
@@ -366,6 +391,7 @@ export type PoolTransactionMaxOrderByAggregateInput = {
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   txHash?: Prisma.SortOrder
+  sharesDelta?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -375,12 +401,14 @@ export type PoolTransactionMinOrderByAggregateInput = {
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   txHash?: Prisma.SortOrder
+  sharesDelta?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
 export type PoolTransactionSumOrderByAggregateInput = {
   amount?: Prisma.SortOrder
+  sharesDelta?: Prisma.SortOrder
 }
 
 export type PoolTransactionCreateNestedManyWithoutUserInput = {
@@ -434,6 +462,7 @@ export type PoolTransactionCreateWithoutUserInput = {
   type: $Enums.PoolTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: string | null
+  sharesDelta?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
 }
 
@@ -442,6 +471,7 @@ export type PoolTransactionUncheckedCreateWithoutUserInput = {
   type: $Enums.PoolTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: string | null
+  sharesDelta?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
 }
 
@@ -479,6 +509,7 @@ export type PoolTransactionScalarWhereInput = {
   type?: Prisma.EnumPoolTransactionTypeFilter<"PoolTransaction"> | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFilter<"PoolTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.StringNullableFilter<"PoolTransaction"> | string | null
+  sharesDelta?: Prisma.DecimalNullableFilter<"PoolTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   userId?: Prisma.StringNullableFilter<"PoolTransaction"> | string | null
   createdAt?: Prisma.DateTimeFilter<"PoolTransaction"> | Date | string
 }
@@ -488,6 +519,7 @@ export type PoolTransactionCreateManyUserInput = {
   type: $Enums.PoolTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: string | null
+  sharesDelta?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
 }
 
@@ -496,6 +528,7 @@ export type PoolTransactionUpdateWithoutUserInput = {
   type?: Prisma.EnumPoolTransactionTypeFieldUpdateOperationsInput | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharesDelta?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -504,6 +537,7 @@ export type PoolTransactionUncheckedUpdateWithoutUserInput = {
   type?: Prisma.EnumPoolTransactionTypeFieldUpdateOperationsInput | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharesDelta?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -512,6 +546,7 @@ export type PoolTransactionUncheckedUpdateManyWithoutUserInput = {
   type?: Prisma.EnumPoolTransactionTypeFieldUpdateOperationsInput | $Enums.PoolTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   txHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sharesDelta?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -522,6 +557,7 @@ export type PoolTransactionSelect<ExtArgs extends runtime.Types.Extensions.Inter
   type?: boolean
   amount?: boolean
   txHash?: boolean
+  sharesDelta?: boolean
   userId?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.PoolTransaction$userArgs<ExtArgs>
@@ -532,6 +568,7 @@ export type PoolTransactionSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   type?: boolean
   amount?: boolean
   txHash?: boolean
+  sharesDelta?: boolean
   userId?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.PoolTransaction$userArgs<ExtArgs>
@@ -542,6 +579,7 @@ export type PoolTransactionSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   type?: boolean
   amount?: boolean
   txHash?: boolean
+  sharesDelta?: boolean
   userId?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.PoolTransaction$userArgs<ExtArgs>
@@ -552,11 +590,12 @@ export type PoolTransactionSelectScalar = {
   type?: boolean
   amount?: boolean
   txHash?: boolean
+  sharesDelta?: boolean
   userId?: boolean
   createdAt?: boolean
 }
 
-export type PoolTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "amount" | "txHash" | "userId" | "createdAt", ExtArgs["result"]["poolTransaction"]>
+export type PoolTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "amount" | "txHash" | "sharesDelta" | "userId" | "createdAt", ExtArgs["result"]["poolTransaction"]>
 export type PoolTransactionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.PoolTransaction$userArgs<ExtArgs>
 }
@@ -577,6 +616,7 @@ export type $PoolTransactionPayload<ExtArgs extends runtime.Types.Extensions.Int
     type: $Enums.PoolTransactionType
     amount: runtime.Decimal
     txHash: string | null
+    sharesDelta: runtime.Decimal | null
     userId: string | null
     createdAt: Date
   }, ExtArgs["result"]["poolTransaction"]>
@@ -1007,6 +1047,7 @@ export interface PoolTransactionFieldRefs {
   readonly type: Prisma.FieldRef<"PoolTransaction", 'PoolTransactionType'>
   readonly amount: Prisma.FieldRef<"PoolTransaction", 'Decimal'>
   readonly txHash: Prisma.FieldRef<"PoolTransaction", 'String'>
+  readonly sharesDelta: Prisma.FieldRef<"PoolTransaction", 'Decimal'>
   readonly userId: Prisma.FieldRef<"PoolTransaction", 'String'>
   readonly createdAt: Prisma.FieldRef<"PoolTransaction", 'DateTime'>
 }

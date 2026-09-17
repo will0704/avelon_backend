@@ -15,36 +15,35 @@ interface NotifyPayload {
  */
 class NotificationService {
     /**
-     * Create an in-app notification record and send a push notification.
-     * - DB record: always awaited (fast)
-     * - Push delivery: fire-and-forget (non-blocking)
+     * Store a notification and push it. Runs after the action it reports has
+     * already happened, so a failure here is logged, never thrown.
      */
     async notify(userId: string, payload: NotifyPayload): Promise<void> {
-        // 1. Persist notification to DB (always awaited)
-        await prisma.notification.create({
-            data: {
-                userId,
-                type: payload.type as any,
-                title: payload.title,
-                message: payload.message,
-                metadata: (payload.metadata ?? {}) as any,
-            },
-        });
+        try {
+            await prisma.notification.create({
+                data: {
+                    userId,
+                    type: payload.type as any,
+                    title: payload.title,
+                    message: payload.message,
+                    metadata: (payload.metadata ?? {}) as any,
+                },
+            });
+        } catch (err) {
+            console.error(`[NotificationService] Could not store ${payload.type} for user ${userId}:`, err);
+            return;
+        }
 
-        // 2. Send push notification (fire-and-forget — does NOT block the response)
+        const loanId = payload.metadata?.loanId;
         this.sendPushAsync(userId, {
             title: payload.title,
             body: payload.message,
-            data: { type: payload.type },
+            data: { type: payload.type, ...(typeof loanId === 'string' ? { loanId } : {}) },
         }).catch((err) => {
             console.error(`[NotificationService] Push failed for user ${userId}:`, err);
         });
     }
 
-    /**
-     * Internal: look up device tokens and send push via Firebase/Expo.
-     * Automatically cleans up invalid tokens.
-     */
     private async sendPushAsync(
         userId: string,
         payload: { title: string; body: string; data?: Record<string, string> }

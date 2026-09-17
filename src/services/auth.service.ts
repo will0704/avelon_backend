@@ -1,12 +1,13 @@
 import jwt from 'jsonwebtoken';
 // @ts-ignore -- bcrypt types resolved via @types/bcrypt in deps
 import bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 import { env } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, UnauthorizedError, ValidationError } from '../middleware/error.middleware.js';
 import { isAccountLocked, recordFailedLogin, resetLoginAttempts } from '../middleware/rate-limit.middleware.js';
 import { securityLogger } from '../lib/security.logger.js';
+import { isUniqueViolation } from '../lib/tx-hash.js';
 import { UserRole, UserStatus, type RegisterData, type LoginCredentials, type AuthTokens } from '../types/index.js';
 
 const { sign, verify } = jwt;
@@ -49,16 +50,7 @@ export class AuthService {
             },
         });
 
-        // Create verification token (6-digit OTP)
-        const token = Math.floor(100000 + Math.random() * 900000).toString();
-        await prisma.verificationToken.create({
-            data: {
-                identifier: user.email,
-                token,
-                type: 'EMAIL_VERIFICATION',
-                expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-            },
-        });
+        const token = await this.createOtp(user.email, 'EMAIL_VERIFICATION');
 
         // Log audit
         await prisma.auditLog.create({
@@ -231,21 +223,12 @@ export class AuthService {
         // Delete any existing reset tokens
         await prisma.verificationToken.deleteMany({
             where: {
-                identifier: email,
+                identifier: email.toLowerCase(),
                 type: 'PASSWORD_RESET',
             },
         });
 
-        // Create new reset token (6-digit OTP)
-        const token = Math.floor(100000 + Math.random() * 900000).toString();
-        await prisma.verificationToken.create({
-            data: {
-                identifier: email,
-                token,
-                type: 'PASSWORD_RESET',
-                expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-            },
-        });
+        const token = await this.createOtp(email.toLowerCase(), 'PASSWORD_RESET');
 
         // Email is sent by the route using the returned token
         return { success: true, token };
@@ -299,6 +282,21 @@ export class AuthService {
         return { success: true };
     }
 
+    async validatePasswordResetToken(token: string) {
+        const resetToken = await prisma.verificationToken.findFirst({
+            where: {
+                token,
+                type: 'PASSWORD_RESET',
+                expires: { gt: new Date() },
+            },
+            select: { identifier: true, expires: true },
+        });
+        if (!resetToken) {
+            throw new ValidationError('Invalid or expired reset code');
+        }
+        return { valid: true, email: resetToken.identifier, expires: resetToken.expires };
+    }
+
     /**
      * Refresh access token
      */
@@ -333,13 +331,56 @@ export class AuthService {
             const accessToken = this.generateAccessToken(
                 payload.sub,
                 payload.email,
-                payload.role
+                payload.role,
+                payload.jti,
             );
 
             return { accessToken };
         } catch (error) {
             throw new UnauthorizedError('Invalid refresh token');
         }
+    }
+
+    /**
+     * Send a new verification code. Answers the same way whether or not the
+     * account exists, so it cannot be used to discover emails.
+     */
+    async resendVerification(email: string): Promise<{ token?: string; email: string }> {
+        const normalized = email.toLowerCase();
+        const user = await prisma.user.findUnique({ where: { email: normalized } });
+        if (!user || user.status !== UserStatus.REGISTERED) {
+            return { email: normalized };
+        }
+
+        await prisma.verificationToken.deleteMany({
+            where: { identifier: normalized, type: 'EMAIL_VERIFICATION' },
+        });
+        const token = await this.createOtp(normalized, 'EMAIL_VERIFICATION');
+
+        await prisma.auditLog.create({
+            data: { userId: user.id, action: 'VERIFICATION_CODE_RESENT', entity: 'User', entityId: user.id },
+        });
+
+        return { token, email: normalized };
+    }
+
+    /**
+     * A 6-digit code, valid for an hour. Codes are unique across every live code,
+     * so a collision just means drawing again.
+     */
+    private async createOtp(identifier: string, type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET'): Promise<string> {
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const token = randomInt(100000, 1_000_000).toString();
+            try {
+                await prisma.verificationToken.create({
+                    data: { identifier, token, type, expires: new Date(Date.now() + 60 * 60 * 1000) },
+                });
+                return token;
+            } catch (err) {
+                if (!isUniqueViolation(err)) throw err;
+            }
+        }
+        throw new Error('Could not allocate a unique verification code');
     }
 
     /**
@@ -368,8 +409,8 @@ export class AuthService {
      * Generate JWT tokens
      */
     private generateTokens(userId: string, email: string, role: string): TokenPair & { jti: string } {
-        const accessToken = this.generateAccessToken(userId, email, role);
         const { token: refreshToken, jti } = this.generateRefreshToken(userId, email, role);
+        const accessToken = this.generateAccessToken(userId, email, role, jti);
         return { accessToken, refreshToken, jti };
     }
 
@@ -418,13 +459,15 @@ export class AuthService {
             data: { passwordHash },
         });
 
+        await prisma.session.deleteMany({ where: { userId } });
+
         return { message: 'Password changed successfully' };
     }
 
-    private generateAccessToken(userId: string, email: string, role: string): string {
+    private generateAccessToken(userId: string, email: string, role: string, jti: string): string {
         const expiresIn = this.parseDuration(env.JWT_ACCESS_EXPIRY);
         return sign(
-            { userId, email, role, type: 'access' },
+            { userId, email, role, type: 'access', jti },
             env.JWT_SECRET,
             { expiresIn }
         );

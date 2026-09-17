@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import fs from 'fs/promises';
 import { prisma } from '../lib/prisma.js';
 import { UserStatus, LoanStatus } from '../types/index.js';
 
@@ -195,22 +196,39 @@ userRoutes.get('/me/stats', authMiddleware, async (c) => {
 userRoutes.delete('/me', authMiddleware, async (c) => {
     const userId = c.get('userId');
 
-    // Check for active loans
-    const activeLoans = await prisma.loan.count({
+    // An application under review would otherwise be approved for an erased user
+    const openLoans = await prisma.loan.count({
         where: {
             userId,
-            status: { in: [LoanStatus.PENDING_COLLATERAL, LoanStatus.COLLATERAL_DEPOSITED, LoanStatus.ACTIVE] },
+            status: { in: [LoanStatus.PENDING_APPROVAL, LoanStatus.PENDING_COLLATERAL, LoanStatus.COLLATERAL_DEPOSITED, LoanStatus.ACTIVE] },
         },
     });
 
-    if (activeLoans > 0) {
+    if (openLoans > 0) {
         return c.json({
             success: false,
             error: {
                 code: 'VALIDATION_ERROR',
-                message: 'Cannot delete account with active loans',
+                message: 'Cancel or finish your open loans before deleting your account',
             },
         }, 400);
+    }
+
+    // KYC images go first; the rows that point at them go with them
+    const documents = await prisma.document.findMany({ where: { userId }, select: { id: true, storagePath: true } });
+    for (const doc of documents) {
+        try { await fs.unlink(doc.storagePath); } catch { /* already gone */ }
+    }
+    await prisma.document.deleteMany({ where: { userId } });
+
+    // Loan history still points at these wallets, so they stay as rows, but the
+    // address is released so the owner can link it to a new account.
+    const wallets = await prisma.wallet.findMany({ where: { userId }, select: { id: true } });
+    for (const wallet of wallets) {
+        await prisma.wallet.update({
+            where: { id: wallet.id },
+            data: { address: `deleted:${wallet.id}`, isVerified: false, isPrimary: false },
+        });
     }
 
     // Anonymize user data (soft delete for compliance)
@@ -226,21 +244,35 @@ userRoutes.delete('/me', authMiddleware, async (c) => {
             legalName: null,
             address: null,
             monthlyIncome: null,
+            employmentType: null,
+            birthDate: null,
+            dateOfBirth: null,
+            gender: null,
+            civilStatus: null,
+            educationLevel: null,
+            country: null,
+            region: null,
+            province: null,
+            cityTown: null,
+            barangay: null,
+            contactNumber: null,
+            secondaryEmail: null,
+            idType: null,
+            kycRejectionReason: null,
         },
     });
 
-    // Delete sessions
     await prisma.session.deleteMany({
         where: { userId },
     });
 
-    // Log audit
     await prisma.auditLog.create({
         data: {
             userId,
             action: 'ACCOUNT_DELETED',
             entity: 'User',
             entityId: userId,
+            metadata: { documentsRemoved: documents.length, walletsReleased: wallets.length },
         },
     });
 

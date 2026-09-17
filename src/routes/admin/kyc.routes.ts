@@ -2,10 +2,12 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
+import { deriveTier } from '../../services/kyc-verification.service.js';
 import { UserStatus } from '../../types/index.js';
 import { notificationService } from '../../services/notification.service.js';
 import { NotFoundError, AppError } from '../../middleware/error.middleware.js';
 import fs from 'fs/promises';
+import { env } from '../../config/env.js';
 
 const adminKycRoutes = new Hono();
 
@@ -29,6 +31,8 @@ adminKycRoutes.get('/pending', async (c) => {
                 name: true,
                 status: true,
                 kycSubmittedAt: true,
+                kycRejectionReason: true,
+                legalName: true,
                 dateOfBirth: true,
                 gender: true,
                 civilStatus: true,
@@ -112,9 +116,10 @@ adminKycRoutes.get('/:userId', async (c) => {
 });
 
 // Validation for KYC approval
+// The tier is derived from the score so it always matches the plan floors
 const approveSchema = z.object({
     creditScore: z.number().int().min(0).max(100),
-    tier: z.enum(['BASIC', 'STANDARD', 'PREMIUM', 'VIP']),
+    tier: z.enum(['BASIC', 'STANDARD', 'PREMIUM', 'VIP']).optional(),
 });
 
 /**
@@ -124,7 +129,8 @@ const approveSchema = z.object({
 adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async (c) => {
     const userId = c.req.param('userId');
     const adminId = c.get('userId');
-    const { creditScore, tier } = c.req.valid('json');
+    const { creditScore } = c.req.valid('json');
+    const tier = deriveTier(creditScore);
 
     // Validate user exists and is in correct state
     const user = await prisma.user.findUnique({
@@ -144,7 +150,22 @@ adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async 
         );
     }
 
-    // Update all pending documents to APPROVED
+    // Conditional, so a late AI result or a second admin cannot also decide
+    const decided = await prisma.user.updateMany({
+        where: { id: userId, status: UserStatus.PENDING_KYC },
+        data: {
+            status: UserStatus.APPROVED,
+            kycLevel: 'BASIC',
+            creditScore,
+            creditTier: tier,
+            kycApprovedAt: new Date(),
+            kycRejectionReason: null,
+        },
+    });
+    if (decided.count !== 1) {
+        throw new AppError(409, 'INVALID_STATUS', 'This verification was already decided');
+    }
+
     await prisma.document.updateMany({
         where: { userId, status: 'PENDING' },
         data: {
@@ -154,17 +175,8 @@ adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async 
         },
     });
 
-    // Update user status, credit score, and KYC level
-    const updated = await prisma.user.update({
+    const updated = await prisma.user.findUnique({
         where: { id: userId },
-        data: {
-            status: UserStatus.APPROVED,
-            kycLevel: 'BASIC',
-            creditScore,
-            creditTier: tier,
-            kycApprovedAt: new Date(),
-            kycRejectionReason: null, // Clear any previous rejection
-        },
         select: {
             id: true,
             email: true,
@@ -234,7 +246,17 @@ adminKycRoutes.put('/:userId/reject', zValidator('json', rejectSchema), async (c
         );
     }
 
-    // Update all pending documents to REJECTED
+    const decided = await prisma.user.updateMany({
+        where: { id: userId, status: UserStatus.PENDING_KYC },
+        data: {
+            status: UserStatus.REJECTED,
+            kycRejectionReason: reason,
+        },
+    });
+    if (decided.count !== 1) {
+        throw new AppError(409, 'INVALID_STATUS', 'This verification was already decided');
+    }
+
     await prisma.document.updateMany({
         where: { userId, status: 'PENDING' },
         data: {
@@ -245,13 +267,8 @@ adminKycRoutes.put('/:userId/reject', zValidator('json', rejectSchema), async (c
         },
     });
 
-    // Update user status
-    const updated = await prisma.user.update({
+    const updated = await prisma.user.findUnique({
         where: { id: userId },
-        data: {
-            status: UserStatus.REJECTED,
-            kycRejectionReason: reason,
-        },
         select: {
             id: true,
             email: true,
@@ -291,6 +308,12 @@ adminKycRoutes.put('/:userId/reject', zValidator('json', rejectSchema), async (c
  * Stream a KYC document file (admin access — any user's document)
  */
 adminKycRoutes.get('/documents/:id/file', async (c) => {
+    if (env.NODE_ENV === 'production' && env.KYC_STORAGE_MODE !== 'object') {
+        throw new AppError(503, 'KYC_STORAGE_UNAVAILABLE', 'KYC document storage is unavailable.');
+    }
+    if (env.KYC_STORAGE_MODE === 'object') {
+        throw new AppError(503, 'KYC_STORAGE_UNAVAILABLE', 'Object storage adapter is not configured.');
+    }
     const id = c.req.param('id');
 
     const document = await prisma.document.findUnique({
@@ -314,7 +337,7 @@ adminKycRoutes.get('/documents/:id/file', async (c) => {
     // Strip control characters and quotes to prevent response header injection
     const safeDisplayName = document.fileName.replace(/[\r\n"\\]/g, '_');
     c.header('Content-Disposition', `inline; filename="${safeDisplayName}"`);
-    c.header('Cache-Control', 'private, max-age=3600');
+    c.header('Cache-Control', 'private, no-store');
 
     return c.body(fileBuffer);
 });

@@ -1,8 +1,7 @@
 import { Hono } from 'hono';
 import { prisma } from '../../lib/prisma.js';
-import { notificationService } from '../../services/notification.service.js';
-import { contractService, LiquidationReason } from '../../services/contract.service.js';
 import { NotFoundError, ValidationError } from '../../middleware/error.middleware.js';
+import { loanService } from '../../services/loan.service.js';
 
 const adminLoansRoutes = new Hono();
 
@@ -23,6 +22,11 @@ const loanSelect = {
     interestOwed: true,
     feesOwed: true,
     status: true,
+    // The admin decides on these, so the review screen has to show them
+    purpose: true,
+    rejectionReason: true,
+    approvedAt: true,
+    rejectedAt: true,
     createdAt: true,
     collateralDepositedAt: true,
     disbursedAt: true,
@@ -168,81 +172,98 @@ adminLoansRoutes.get('/:id', async (c) => {
 });
 
 /**
+ * POST /admin/loans/:id/approve
+ * Approve a pending application. This is where the on-chain loan is created.
+ */
+adminLoansRoutes.post('/:id/approve', async (c) => {
+    const id = c.req.param('id');
+    const adminId = (c.get as (key: string) => string)('userId');
+
+    const loan = await loanService.approveLoan(id, adminId);
+
+    return c.json({
+        success: true,
+        message: 'Loan approved',
+        data: {
+            id: loan.id,
+            status: loan.status,
+            contractLoanId: loan.contractLoanId,
+            collateralRequired: loan.collateralRequired.toString(),
+        },
+    });
+});
+
+/**
+ * POST /admin/loans/:id/reject
+ * Reject a pending application with a reason the borrower sees.
+ */
+adminLoansRoutes.post('/:id/reject', async (c) => {
+    const id = c.req.param('id');
+    const adminId = (c.get as (key: string) => string)('userId');
+
+    const body = await c.req.json().catch(() => null);
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    if (reason.length < 5) {
+        throw new ValidationError('A rejection reason of at least 5 characters is required');
+    }
+
+    const loan = await loanService.rejectLoan(id, adminId, reason);
+
+    return c.json({
+        success: true,
+        message: 'Loan rejected',
+        data: { id: loan.id, status: loan.status, rejectionReason: loan.rejectionReason },
+    });
+});
+
+/**
  * POST /admin/loans/:id/liquidate
- * Manually trigger liquidation
+ * Seize the stake of an overdue loan
  */
 adminLoansRoutes.post('/:id/liquidate', async (c) => {
     const id = c.req.param('id');
     const adminId = (c.get as (key: string) => string)('userId');
-
-    const loan = await prisma.loan.findUnique({ where: { id } });
-    if (!loan) {
-        throw new NotFoundError('Loan not found');
-    }
-
-    if (loan.status !== 'ACTIVE') {
-        throw new ValidationError('Only active loans can be liquidated');
-    }
-
-    if (loan.contractLoanId === null) {
-        throw new ValidationError('Loan has no on-chain counterpart and cannot be liquidated');
-    }
-
     const body = await c.req.json().catch(() => ({}));
-    const reason = body?.reason === 'SHORTFALL'
-        ? LiquidationReason.Shortfall
-        : LiquidationReason.Default;
-    const observedRatioBps = reason === LiquidationReason.Shortfall
-        ? Number(body?.observedRatioBps ?? 0)
-        : 0;
+    const reason = typeof body?.reason === 'string' ? body.reason : undefined;
 
-    // Seize on-chain first. A failure here must abort the status change — the DB
-    // used to be flipped on its own, which left it claiming a liquidation that
-    // never happened. The contract re-checks the due date for a Default.
-    const txHash = await contractService.liquidateLoan(
-        loan.contractLoanId,
-        reason,
-        observedRatioBps
-    );
-
-    await prisma.loan.update({
-        where: { id },
-        data: {
-            status: 'LIQUIDATED',
-            liquidatedAt: new Date(),
-        },
-    });
-
-    // Record audit trail — liquidation is irreversible and must be traceable
-    await prisma.auditLog.create({
-        data: {
-            userId: adminId,
-            action: 'LOAN_LIQUIDATED',
-            entity: 'Loan',
-            entityId: id,
-            metadata: {
-                borrowerId: loan.userId,
-                principal: loan.principal?.toString(),
-                reason: LiquidationReason[reason],
-                observedRatioBps,
-                txHash,
-            },
-        },
-    });
-
-    // Notify: liquidation executed
-    await notificationService.notify(loan.userId, {
-        type: 'LOAN_LIQUIDATED',
-        title: '⚠️ Loan Liquidated',
-        message: 'Your loan has been liquidated and your stake has been seized.',
-        metadata: { loanId: id, txHash },
-    });
+    const result = await loanService.liquidateLoan(id, adminId, reason);
 
     return c.json({
         success: true,
-        message: 'Liquidation triggered',
-        data: { txHash },
+        message: result.settlementPending
+            ? 'Stake seized. Pool settlement failed and needs a retry.'
+            : 'Loan liquidated',
+        data: result,
     });
+});
+
+/**
+ * POST /admin/loans/:id/settle
+ * Retry the pool write-off and recovery after a liquidation
+ */
+adminLoansRoutes.post('/:id/settle', async (c) => {
+    const id = c.req.param('id');
+    const adminId = (c.get as (key: string) => string)('userId');
+    const result = await loanService.settleLiquidation(id, adminId);
+    return c.json({ success: true, message: result.settlementPending ? 'Settlement still pending' : 'Settled', data: result });
+});
+
+/**
+ * POST /admin/loans/:id/disburse
+ * Send a payout that the pool could not make when collateral arrived
+ */
+adminLoansRoutes.post('/:id/disburse', async (c) => {
+    const loan = await loanService.retryDisbursement(c.req.param('id'));
+    return c.json({ success: true, message: 'Payout sent', data: { id: loan?.id, status: loan?.status } });
+});
+
+/**
+ * POST /admin/loans/:id/release-collateral
+ * Return the stake of a paid-off loan whose release failed earlier
+ */
+adminLoansRoutes.post('/:id/release-collateral', async (c) => {
+    const loan = await loanService.completeRepaidLoan(c.req.param('id'));
+    return c.json({ success: true, message: 'Stake released', data: { id: loan?.id, status: loan?.status } });
 });
 
 export { adminLoansRoutes };

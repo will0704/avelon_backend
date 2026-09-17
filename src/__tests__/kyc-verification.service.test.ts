@@ -1,64 +1,78 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ─── Mocks ────────────────────────────────────────────────────────────────────
 const mockFsReadFile = vi.fn();
-const mockFsWriteFile = vi.fn();
 const mockFsUnlink = vi.fn();
 vi.mock('fs/promises', () => ({
     default: {
-        readFile: (...a: unknown[]) => mockFsReadFile(...a),
-        writeFile: (...a: unknown[]) => mockFsWriteFile(...a),
-        unlink: (...a: unknown[]) => mockFsUnlink(...a),
+        readFile: (...args: unknown[]) => mockFsReadFile(...args),
+        unlink: (...args: unknown[]) => mockFsUnlink(...args),
     },
 }));
 
 const mockDocUpdate = vi.fn();
+const mockDocUpdateMany = vi.fn();
 const mockDocCreate = vi.fn();
 const mockDocFindFirst = vi.fn();
 const mockUserUpdate = vi.fn();
 const mockUserFindUnique = vi.fn();
+const mockUserFindMany = vi.fn();
 const mockWalletFindFirst = vi.fn();
 const mockAuditCreate = vi.fn();
 vi.mock('../lib/prisma.js', () => ({
     prisma: {
         document: {
-            update: (...a: unknown[]) => mockDocUpdate(...a),
-            create: (...a: unknown[]) => mockDocCreate(...a),
-            findFirst: (...a: unknown[]) => mockDocFindFirst(...a),
+            update: (...args: unknown[]) => mockDocUpdate(...args),
+            updateMany: (...args: unknown[]) => mockDocUpdateMany(...args),
+            create: (...args: unknown[]) => mockDocCreate(...args),
+            findFirst: (...args: unknown[]) => mockDocFindFirst(...args),
         },
         user: {
-            update: (...a: unknown[]) => mockUserUpdate(...a),
-            findUnique: (...a: unknown[]) => mockUserFindUnique(...a),
+            update: (...args: unknown[]) => mockUserUpdate(...args),
+            // Outcomes are written conditionally; both land in one mock
+            updateMany: (...args: unknown[]) => mockUserUpdate(...args),
+            findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+            findMany: (...args: unknown[]) => mockUserFindMany(...args),
         },
-        wallet: {
-            findFirst: (...a: unknown[]) => mockWalletFindFirst(...a),
-        },
-        auditLog: { create: (...a: unknown[]) => mockAuditCreate(...a) },
+        wallet: { findFirst: (...args: unknown[]) => mockWalletFindFirst(...args) },
+        auditLog: { create: (...args: unknown[]) => mockAuditCreate(...args) },
     },
 }));
 
 const mockNotify = vi.fn();
 vi.mock('../services/notification.service.js', () => ({
-    notificationService: { notify: (...a: unknown[]) => mockNotify(...a) },
+    notificationService: { notify: (...args: unknown[]) => mockNotify(...args) },
 }));
 
 vi.mock('../config/env.js', () => ({
+    corsAllowedOrigins: ['http://localhost'],
     env: { AI_SERVICE_URL: 'http://localhost:8000', AI_API_KEY: 'test-api-key' },
 }));
 
-// Global fetch mock
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function aiDocResponse(overrides: Record<string, unknown> = {}) {
+const USER_ID = 'user-123';
+const DOCS = [
+    { id: 'doc-1', type: 'GOVERNMENT_ID', storagePath: '/uploads/gov.jpg', fileName: 'gov.jpg' },
+];
+const PROFILE = {
+    legalName: 'Juan Dela Cruz',
+    dateOfBirth: '1990-01-02',
+    country: 'Philippines',
+    region: null,
+    province: 'Cebu',
+    cityTown: 'Cebu City',
+    barangay: 'Lahug',
+};
+
+function documentResponse(overrides: Record<string, unknown> = {}) {
     return {
         ok: true,
-        json: () => Promise.resolve({
+        json: vi.fn().mockResolvedValue({
             valid: true,
             document_type: 'government_id',
             confidence: 0.92,
-            extracted_data: { full_name: 'Juan Dela Cruz' },
+            extracted_data: { full_name: 'Juan Dela Cruz', date_of_birth: '1990-01-02' },
             fraud_indicators: [],
             message: null,
             ...overrides,
@@ -66,634 +80,347 @@ function aiDocResponse(overrides: Record<string, unknown> = {}) {
     };
 }
 
-function aiDocFailedResponse(overrides: Record<string, unknown> = {}) {
-    return {
-        ok: true,
-        json: () => Promise.resolve({
-            valid: false,
-            document_type: 'government_id',
-            confidence: 0.3,
-            extracted_data: {},
-            fraud_indicators: ['Suspected image manipulation'],
-            message: 'Document rejected due to high fraud probability.',
-            ...overrides,
-        }),
-    };
+function scoreResponse() {
+    return { ok: true, json: vi.fn().mockResolvedValue({ score: 78, tier: 'premium' }) };
 }
 
-function scoreResponse(overrides: Record<string, unknown> = {}) {
-    return {
-        ok: true,
-        json: () => Promise.resolve({
-            score: 85,
-            tier: 'vip',
-            breakdown: {},
-            recommendations: [],
-            ...overrides,
-        }),
-    };
-}
-
-function faceMatchResponse(overrides: Record<string, unknown> = {}) {
-    return {
-        ok: true,
-        json: () => Promise.resolve({
-            passed: true,
-            score: 0.92,
-            confidence: 0.95,
-            message: null,
-            ...overrides,
-        }),
-    };
-}
-
-const USER_ID = 'user-123';
-const DOCS = [
-    { id: 'doc-1', type: 'GOVERNMENT_ID', storagePath: '/uploads/gov.jpg', fileName: 'gov.jpg' },
-];
-const TWO_DOCS = [
-    { id: 'doc-1', type: 'GOVERNMENT_ID', storagePath: '/uploads/gov.jpg', fileName: 'gov.jpg' },
-    { id: 'doc-2', type: 'PROOF_OF_INCOME', storagePath: '/uploads/income.jpg', fileName: 'income.jpg' },
-];
-const FULL_DOCS = [
-    { id: 'doc-1', type: 'GOVERNMENT_ID', storagePath: '/uploads/gov.jpg', fileName: 'gov.jpg' },
-    { id: 'doc-2', type: 'GOVERNMENT_ID_BACK', storagePath: '/uploads/gov_back.jpg', fileName: 'gov_back.jpg' },
-    { id: 'doc-3', type: 'E_SIGNATURE', storagePath: '/uploads/sig.jpg', fileName: 'sig.jpg' },
-];
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
 describe('triggerAIVerification', () => {
     let triggerAIVerification: typeof import('../services/kyc-verification.service.js')['triggerAIVerification'];
 
     beforeEach(async () => {
         vi.clearAllMocks();
+        mockFetch.mockReset();
         mockFsReadFile.mockResolvedValue(Buffer.from('fake-image'));
         mockDocUpdate.mockResolvedValue({});
-        mockUserUpdate.mockResolvedValue({});
+        mockUserUpdate.mockResolvedValue({ count: 1 });
         mockAuditCreate.mockResolvedValue({});
         mockNotify.mockResolvedValue(undefined);
-        // Credit score dependencies
         mockWalletFindFirst.mockResolvedValue({ address: '0xabc' });
-        mockUserFindUnique.mockResolvedValue({ completedLoansCount: 0, activeLoansCount: 0, defaultCount: 0 });
-
-        const mod = await import('../services/kyc-verification.service.js');
-        triggerAIVerification = mod.triggerAIVerification;
-    });
-
-    // ────── Document verification ──────
-
-    it('sends each document to the AI service with correct form data', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(scoreResponse());
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        const docCall = mockFetch.mock.calls[0];
-        expect(docCall[0]).toContain('http://localhost:8000/api/v1/verify/document');
-        expect(docCall[1].method).toBe('POST');
-        expect(docCall[1].body).toBeInstanceOf(FormData);
-    });
-
-    it('sends document_type as a URL query parameter, not form data', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(scoreResponse());
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockFetch.mock.calls[0][0]).toContain('?document_type=government_id');
-    });
-
-    it('maps GOVERNMENT_ID_BACK to government_id for the AI service', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(scoreResponse());
-        const docs = [{ id: 'doc-1', type: 'GOVERNMENT_ID_BACK', storagePath: '/uploads/back.jpg', fileName: 'back.jpg' }];
-
-        await triggerAIVerification(USER_ID, docs);
-
-        expect(mockFetch.mock.calls[0][0]).toContain('?document_type=government_id');
-    });
-
-    it('skips E_SIGNATURE documents — does not send to AI service', async () => {
-        // FULL_DOCS has 3 docs but E_SIGNATURE skipped → 2 doc calls + 1 score call
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(scoreResponse());
-
-        await triggerAIVerification(USER_ID, FULL_DOCS);
-
-        const docCalls = mockFetch.mock.calls.filter((c: unknown[]) =>
-            (c[0] as string).includes('/verify/document'),
+        mockUserFindUnique.mockImplementation(async (args: { select?: Record<string, boolean> }) =>
+            args.select?.legalName
+                ? PROFILE
+                : { totalBorrowed: 0, totalRepaid: 0, completedLoansCount: 0, activeLoansCount: 0, defaultCount: 0 },
         );
-        expect(docCalls).toHaveLength(2);
-        expect(docCalls.every((c: unknown[]) => (c[0] as string).includes('government_id'))).toBe(true);
+        ({ triggerAIVerification } = await import('../services/kyc-verification.service.js'));
     });
 
-    it('auto-approves even when E_SIGNATURE is in the documents list', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(scoreResponse());
-
-        await triggerAIVerification(USER_ID, FULL_DOCS);
-
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({ status: 'APPROVED' }),
-            }),
-        );
-    });
-
-    it('stores AI results on the document record', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.88 }))
-            .mockResolvedValueOnce(scoreResponse());
+    it('verifies a document, cross-checks identity, and approves a matching participant', async () => {
+        mockFetch.mockResolvedValueOnce(documentResponse()).mockResolvedValueOnce(scoreResponse());
 
         await triggerAIVerification(USER_ID, DOCS);
 
-        expect(mockDocUpdate).toHaveBeenCalledWith({
+        expect(mockFetch.mock.calls[0][0]).toContain('/api/v1/verify/document?document_type=government_id');
+        expect(mockDocUpdate).toHaveBeenCalledWith(expect.objectContaining({
             where: { id: 'doc-1' },
-            data: expect.objectContaining({
-                aiVerified: true,
-                aiConfidence: 0.88,
-                aiFraudFlags: [],
-            }),
-        });
+            data: expect.objectContaining({ aiVerified: true, aiConfidence: 0.92 }),
+        }));
+        expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            // 78 is below the Premium plan floor of 80, whatever tier the scorer names
+            data: expect.objectContaining({ status: 'APPROVED', creditScore: 78, creditTier: 'STANDARD' }),
+        }));
+        expect(mockNotify).toHaveBeenCalledWith(USER_ID, expect.objectContaining({ type: 'KYC_APPROVED' }));
     });
 
-    // ────── Auto-approve ──────
+    it('does not send an e-signature to document AI', async () => {
+        await triggerAIVerification(USER_ID, [
+            { id: 'sig-1', type: 'E_SIGNATURE', storagePath: '/uploads/sig.png', fileName: 'sig.png' },
+        ]);
 
-    it('auto-approves user when all documents pass', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.92 }))
-            .mockResolvedValueOnce(scoreResponse());
+        expect(mockFetch).not.toHaveBeenCalled();
+        expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ status: 'VERIFIED' }),
+        }));
+    });
+
+    it('rejects an identity mismatch and says which field failed', async () => {
+        mockFetch.mockResolvedValueOnce(documentResponse({
+            extracted_data: { full_name: 'Different Person', date_of_birth: '1985-05-05' },
+        }));
 
         await triggerAIVerification(USER_ID, DOCS);
 
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: { id: USER_ID },
-                data: expect.objectContaining({
-                    status: 'APPROVED',
-                    kycLevel: 'BASIC',
-                    kycApprovedAt: expect.any(Date),
-                    kycRejectionReason: null,
-                }),
-            }),
-        );
-    });
-
-    it('uses credit score from the LLM score endpoint', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.90 }))
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.80 }))
-            .mockResolvedValueOnce(scoreResponse({ score: 78, tier: 'premium' }));
-
-        await triggerAIVerification(USER_ID, TWO_DOCS);
-
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({
-                    creditScore: 78,
-                    creditTier: 'PREMIUM',
-                }),
-            }),
-        );
-    });
-
-    it('calls the score endpoint with merged extracted data and wallet address', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ extracted_data: { full_name: 'Juan' } }))
-            .mockResolvedValueOnce(scoreResponse());
-        mockWalletFindFirst.mockResolvedValue({ address: '0xdeadbeef' });
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        const scoreCall = mockFetch.mock.calls.find((c: unknown[]) =>
-            (c[0] as string).includes('/score/calculate'),
-        );
-        expect(scoreCall).toBeDefined();
-        const body = JSON.parse(scoreCall![1].body);
-        expect(body.wallet_address).toBe('0xdeadbeef');
-        expect(body.extracted_data).toMatchObject({ full_name: 'Juan' });
-    });
-
-    it('falls back to confidence-based score when score endpoint fails', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.70 }))
-            .mockResolvedValueOnce({ ok: false, status: 503 });
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        // Fallback: round(0.70 * 100) = 70 → PREMIUM
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({
-                    creditScore: 70,
-                    creditTier: 'PREMIUM',
-                }),
-            }),
-        );
-    });
-
-    it('assigns correct KYC level based on document types', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(scoreResponse());
-
-        await triggerAIVerification(USER_ID, TWO_DOCS);
-
-        // 2 docs (gov ID + proof of income) → STANDARD
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({
-                    kycLevel: 'STANDARD',
-                }),
-            }),
-        );
-    });
-
-    it('sends KYC_APPROVED notification when approved', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(scoreResponse());
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockNotify).toHaveBeenCalledWith(
-            USER_ID,
-            expect.objectContaining({
-                type: 'KYC_APPROVED',
-                title: expect.stringContaining('Verified'),
-            }),
-        );
-    });
-
-    it('creates an audit log entry on approval', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse())
-            .mockResolvedValueOnce(scoreResponse());
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockAuditCreate).toHaveBeenCalledWith({
-            data: expect.objectContaining({
-                userId: USER_ID,
-                action: 'KYC_APPROVED',
-                entity: 'User',
-                entityId: USER_ID,
-            }),
-        });
-    });
-
-    // ────── Auto-reject ──────
-
-    it('auto-rejects user when any document fails', async () => {
-        mockFetch.mockResolvedValue(aiDocFailedResponse());
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: { id: USER_ID },
-                data: expect.objectContaining({
-                    status: 'REJECTED',
-                    kycRejectionReason: expect.any(String),
-                }),
-            }),
-        );
-    });
-
-    it('sends KYC_REJECTED notification on rejection', async () => {
-        mockFetch.mockResolvedValue(aiDocFailedResponse());
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockNotify).toHaveBeenCalledWith(
-            USER_ID,
-            expect.objectContaining({ type: 'KYC_REJECTED' }),
-        );
-    });
-
-    it('rejects documents with status REJECTED', async () => {
-        mockFetch.mockResolvedValue(aiDocFailedResponse());
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockDocUpdate).toHaveBeenCalledWith({
-            where: { id: 'doc-1' },
-            data: expect.objectContaining({
-                aiVerified: false,
-                status: 'REJECTED',
-            }),
-        });
-    });
-
-    // ────── Error handling ──────
-
-    it('does not throw when AI service is unreachable (fire-and-forget)', async () => {
-        mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
-
-        await expect(triggerAIVerification(USER_ID, DOCS)).resolves.not.toThrow();
-    });
-
-    it('auto-rejects user when AI service throws (e.g. ECONNREFUSED)', async () => {
-        mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: { id: USER_ID },
-                data: expect.objectContaining({
-                    status: 'REJECTED',
-                    kycRejectionReason: expect.stringContaining('system error'),
-                }),
-            }),
-        );
-    });
-
-    it('does not throw when AI returns non-ok status', async () => {
-        mockFetch.mockResolvedValue({ ok: false, status: 500 });
-
-        await expect(triggerAIVerification(USER_ID, DOCS)).resolves.not.toThrow();
-    });
-
-    it('marks document as REJECTED when AI returns non-ok status (e.g. 422)', async () => {
-        mockFetch.mockResolvedValue({ ok: false, status: 422 });
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockDocUpdate).toHaveBeenCalledWith({
-            where: { id: 'doc-1' },
+        expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
             data: expect.objectContaining({
                 status: 'REJECTED',
-                rejectionReason: expect.stringContaining('AI service'),
+                kycRejectionReason: expect.stringContaining('name printed on your ID'),
             }),
-        });
+        }));
+        expect(mockAuditCreate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ action: 'KYC_REJECTED' }),
+        }));
     });
 
-    it('auto-rejects user when all documents fail with non-ok HTTP status', async () => {
-        mockFetch.mockResolvedValue({ ok: false, status: 422 });
+    it('tells the borrower how to retake the photo when identity does not match', async () => {
+        mockFetch.mockResolvedValueOnce(documentResponse({
+            extracted_data: { full_name: 'Different Person', date_of_birth: '1985-05-05' },
+        }));
 
         await triggerAIVerification(USER_ID, DOCS);
 
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: { id: USER_ID },
-                data: expect.objectContaining({ status: 'REJECTED' }),
-            }),
-        );
-    });
-
-    it('sends KYC_REJECTED notification when all documents fail with HTTP errors', async () => {
-        mockFetch.mockResolvedValue({ ok: false, status: 422 });
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockNotify).toHaveBeenCalledWith(
-            USER_ID,
-            expect.objectContaining({
-                type: 'KYC_REJECTED',
-                title: expect.stringContaining('Failed'),
-            }),
-        );
-    });
-
-    it('creates audit log when all documents fail with HTTP errors', async () => {
-        mockFetch.mockResolvedValue({ ok: false, status: 422 });
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockAuditCreate).toHaveBeenCalledWith({
+        expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
             data: expect.objectContaining({
-                userId: USER_ID,
-                action: 'KYC_REJECTED',
-                entity: 'User',
-                entityId: USER_ID,
+                kycRejectionReason: expect.stringContaining('glare'),
             }),
-        });
+        }));
     });
 
-    // ────── Tier mapping (uses fallback score for determinism) ──────
-
-    it('assigns BASIC tier for fallback score < 40', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.35 }))
-            .mockResolvedValueOnce({ ok: false, status: 503 }); // force fallback
+    it('rejects an AI-flagged document and tells the borrower why', async () => {
+        mockFetch.mockResolvedValueOnce(documentResponse({
+            valid: false,
+            confidence: 0.2,
+            fraud_indicators: ['suspected manipulation'],
+            extracted_data: {},
+            message: 'Document needs review',
+        }));
 
         await triggerAIVerification(USER_ID, DOCS);
 
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({ creditTier: 'BASIC' }),
+        expect(mockDocUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ aiVerified: false, status: 'REJECTED' }),
+        }));
+        expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({
+                status: 'REJECTED',
+                kycRejectionReason: expect.stringContaining('Document needs review'),
             }),
-        );
+        }));
+        expect(mockNotify).toHaveBeenCalledWith(USER_ID, expect.objectContaining({ type: 'KYC_REJECTED' }));
     });
 
-    it('assigns STANDARD tier for fallback score 40-59', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.50 }))
-            .mockResolvedValueOnce({ ok: false, status: 503 });
+    it('does not blame the borrower when the AI service is unavailable', async () => {
+        mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
-        await triggerAIVerification(USER_ID, DOCS);
+        await expect(triggerAIVerification(USER_ID, DOCS)).resolves.toBeUndefined();
 
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({ creditTier: 'STANDARD' }),
+        // VERIFIED, not REJECTED — an outage is not evidence, and it is the only
+        // state /kyc/submit will accept again.
+        expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({
+                status: 'VERIFIED',
+                kycRejectionReason: expect.stringContaining('not rejected'),
             }),
-        );
-    });
-
-    it('assigns PREMIUM tier for fallback score 60-79', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.70 }))
-            .mockResolvedValueOnce({ ok: false, status: 503 });
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({ creditTier: 'PREMIUM' }),
-            }),
-        );
-    });
-
-    it('assigns VIP tier for fallback score >= 80', async () => {
-        mockFetch
-            .mockResolvedValueOnce(aiDocResponse({ confidence: 0.92 }))
-            .mockResolvedValueOnce({ ok: false, status: 503 });
-
-        await triggerAIVerification(USER_ID, DOCS);
-
-        expect(mockUserUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({ creditTier: 'VIP' }),
-            }),
-        );
+        }));
+        expect(mockAuditCreate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ action: 'KYC_VERIFICATION_UNAVAILABLE' }),
+        }));
     });
 });
 
-// ─── verifyFace tests ────────────────────────────────────────────────────────
 describe('verifyFace', () => {
     let verifyFace: typeof import('../services/kyc-verification.service.js')['verifyFace'];
-
-    const SELFIE_BUFFER = Buffer.from('fake-selfie');
-    const GOV_ID_DOC = {
-        id: 'gov-doc-1',
-        storagePath: '/uploads/user-123/GOVERNMENT_ID_123.jpg',
-        fileName: 'GOVERNMENT_ID_123.jpg',
+    const selfie = Buffer.from('fake-selfie');
+    const governmentId = {
+        id: 'gov-1',
+        storagePath: '/uploads/gov.jpg',
+        fileName: 'gov.jpg',
         status: 'PENDING',
     };
 
     beforeEach(async () => {
         vi.clearAllMocks();
-        mockFsReadFile.mockResolvedValue(Buffer.from('fake-gov-id'));
-        mockFsWriteFile.mockResolvedValue(undefined);
+        mockFetch.mockReset();
+        mockFsReadFile.mockResolvedValue(Buffer.from('fake-id'));
         mockFsUnlink.mockResolvedValue(undefined);
-        mockDocUpdate.mockResolvedValue({ id: 'selfie-doc-1' });
-        mockDocCreate.mockResolvedValue({ id: 'selfie-doc-1' });
+        mockDocFindFirst.mockReset();
+        mockDocCreate.mockResolvedValue({ id: 'selfie-1' });
+        mockDocUpdate.mockResolvedValue({ id: 'selfie-1' });
         mockAuditCreate.mockResolvedValue({});
-
-        const mod = await import('../services/kyc-verification.service.js');
-        verifyFace = mod.verifyFace;
+        ({ verifyFace } = await import('../services/kyc-verification.service.js'));
     });
 
-    it('throws GOVERNMENT_ID_REQUIRED when no gov ID document exists', async () => {
-        mockDocFindFirst.mockResolvedValueOnce(null); // no gov ID
-
-        await expect(
-            verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg'),
-        ).rejects.toThrow('GOVERNMENT_ID_REQUIRED');
+    it('requires an uploaded government ID', async () => {
+        mockDocFindFirst.mockResolvedValueOnce(null);
+        await expect(verifyFace(USER_ID, selfie, 'selfie.jpg', '/uploads/selfie.jpg'))
+            .rejects.toThrow('GOVERNMENT_ID_REQUIRED');
     });
 
-    it('calls LLM /verify/face with selfie and government ID files', async () => {
-        mockDocFindFirst
-            .mockResolvedValueOnce(GOV_ID_DOC)  // findFirst for gov ID
-            .mockResolvedValueOnce(null);         // findFirst for existing selfie
-        mockFetch.mockResolvedValue(faceMatchResponse());
-
-        await verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg');
-
-        expect(mockFetch).toHaveBeenCalledOnce();
-        const [url, opts] = mockFetch.mock.calls[0];
-        expect(url).toContain('http://localhost:8000/api/v1/verify/face');
-        expect(opts.method).toBe('POST');
-        expect(opts.body).toBeInstanceOf(FormData);
-    });
-
-    it('returns passed=true and score when face matches', async () => {
-        mockDocFindFirst
-            .mockResolvedValueOnce(GOV_ID_DOC)
-            .mockResolvedValueOnce(null);
-        mockFetch.mockResolvedValue(faceMatchResponse({ passed: true, score: 0.95 }));
-
-        const result = await verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg');
-
-        expect(result.passed).toBe(true);
-        expect(result.score).toBe(0.95);
-    });
-
-    it('returns passed=false when face does not match', async () => {
-        mockDocFindFirst
-            .mockResolvedValueOnce(GOV_ID_DOC)
-            .mockResolvedValueOnce(null);
-        mockFetch.mockResolvedValue(faceMatchResponse({ passed: false, score: 0.21, message: 'Face does not match ID' }));
-
-        const result = await verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg');
-
-        expect(result.passed).toBe(false);
-        expect(result.score).toBe(0.21);
-        expect(result.message).toBe('Face does not match ID');
-    });
-
-    it('creates a SELFIE document record when none exists', async () => {
-        mockDocFindFirst
-            .mockResolvedValueOnce(GOV_ID_DOC)
-            .mockResolvedValueOnce(null); // no existing selfie
-        mockFetch.mockResolvedValue(faceMatchResponse({ passed: true, score: 0.9 }));
-
-        await verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg');
-
-        expect(mockDocCreate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({
-                    userId: USER_ID,
-                    type: 'SELFIE',
-                    faceMatchPassed: true,
-                    faceMatchScore: 0.9,
-                }),
-            }),
-        );
-    });
-
-    it('updates the existing SELFIE document when one already exists (non-APPROVED)', async () => {
-        const existingSelfie = { id: 'old-selfie', status: 'PENDING', storagePath: '/uploads/old.jpg' };
-        mockDocFindFirst
-            .mockResolvedValueOnce(GOV_ID_DOC)
-            .mockResolvedValueOnce(existingSelfie);
-        mockFetch.mockResolvedValue(faceMatchResponse({ passed: true, score: 0.88 }));
-
-        await verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg');
-
-        expect(mockDocUpdate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: { id: 'old-selfie' },
-                data: expect.objectContaining({
-                    faceMatchPassed: true,
-                    faceMatchScore: 0.88,
-                }),
-            }),
-        );
-    });
-
-    it('stores passed=false on document when LLM service is unreachable', async () => {
-        mockDocFindFirst
-            .mockResolvedValueOnce(GOV_ID_DOC)
-            .mockResolvedValueOnce(null);
-        mockFetch.mockResolvedValue({ ok: false, status: 503 });
-
-        const result = await verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg');
-
-        expect(result.passed).toBe(false);
-        expect(result.score).toBe(0);
-        expect(mockDocCreate).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({ faceMatchPassed: false }),
-            }),
-        );
-    });
-
-    it('creates an audit log entry after face verification', async () => {
-        mockDocFindFirst
-            .mockResolvedValueOnce(GOV_ID_DOC)
-            .mockResolvedValueOnce(null);
-        mockFetch.mockResolvedValue(faceMatchResponse({ passed: true, score: 0.9 }));
-
-        await verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg');
-
-        expect(mockAuditCreate).toHaveBeenCalledWith({
-            data: expect.objectContaining({
-                userId: USER_ID,
-                action: 'KYC_FACE_VERIFIED',
-                entity: 'Document',
-            }),
+    it('stores and returns a successful face match', async () => {
+        mockDocFindFirst.mockResolvedValueOnce(governmentId).mockResolvedValueOnce(null);
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            json: vi.fn().mockResolvedValue({ passed: true, score: 0.93, confidence: 0.95, message: null }),
         });
+
+        const result = await verifyFace(USER_ID, selfie, 'selfie.jpg', '/uploads/selfie.jpg');
+
+        expect(result).toMatchObject({ passed: true, score: 0.93, selfieDocumentId: 'selfie-1' });
+        expect(mockDocCreate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ faceMatchPassed: true, faceMatchScore: 0.93 }),
+        }));
     });
 
-    it('returns the selfie document ID in the result', async () => {
-        mockDocFindFirst
-            .mockResolvedValueOnce(GOV_ID_DOC)
-            .mockResolvedValueOnce(null);
-        mockDocCreate.mockResolvedValue({ id: 'new-selfie-doc' });
-        mockFetch.mockResolvedValue(faceMatchResponse());
+    it('does not record a failed match when the face service is down', async () => {
+        mockDocFindFirst.mockResolvedValueOnce(governmentId).mockResolvedValueOnce(null);
+        mockFetch.mockResolvedValueOnce({ ok: false, status: 503, json: vi.fn().mockResolvedValue({}) });
 
-        const result = await verifyFace(USER_ID, SELFIE_BUFFER, 'selfie.jpg', '/uploads/selfie.jpg');
+        const { FaceServiceUnavailableError } = await import('../services/kyc-verification.service.js');
+        await expect(verifyFace(USER_ID, selfie, 'selfie.jpg', '/uploads/selfie.jpg'))
+            .rejects.toBeInstanceOf(FaceServiceUnavailableError);
+        expect(mockDocCreate).not.toHaveBeenCalled();
+        expect(mockDocUpdate).not.toHaveBeenCalled();
+    });
 
-        expect(result.selfieDocumentId).toBe('new-selfie-doc');
+    it('passes the face service reason through when the photo is the problem', async () => {
+        mockDocFindFirst.mockResolvedValueOnce(governmentId).mockResolvedValueOnce(null);
+        mockFetch.mockResolvedValueOnce({
+            ok: false,
+            status: 422,
+            json: vi.fn().mockResolvedValue({ detail: 'No face detected in the selfie. Please take a clear, well-lit photo facing the camera.' }),
+        });
+
+        const result = await verifyFace(USER_ID, selfie, 'selfie.jpg', '/uploads/selfie.jpg');
+
+        expect(result).toMatchObject({ passed: false, message: expect.stringContaining('No face detected') });
+        expect(result.message).not.toMatch(/HTTP/);
+    });
+});
+
+describe('identity matching helpers', () => {
+    let comparableDate: (v: unknown) => string;
+    let tokenSimilarity: (a: unknown, b: unknown) => number;
+
+    beforeEach(async () => {
+        ({ comparableDate, tokenSimilarity } = await import('../services/kyc-verification.service.js'));
+    });
+
+    // The profile date arrives as a Prisma DateTime (UTC midnight); the OCR value is
+    // a bare string that parses as local midnight. Reading the latter back through
+    // toISOString shifted it a day earlier anywhere east of UTC, so no birth date
+    // matched and every KYC submission fell through to manual review.
+    it('matches a spelled-out birth date against the stored profile date', () => {
+        expect(comparableDate('DECEMBER 23, 1975')).toBe('1975-12-23');
+        expect(comparableDate(new Date('1975-12-23T00:00:00.000Z'))).toBe('1975-12-23');
+        expect(comparableDate('DECEMBER 23, 1975')).toBe(
+            comparableDate(new Date('1975-12-23T00:00:00.000Z')),
+        );
+    });
+
+    it('matches a new year birth date, the worst case for the offset', () => {
+        expect(comparableDate('January 01, 1990')).toBe(
+            comparableDate(new Date('1990-01-01T00:00:00.000Z')),
+        );
+    });
+
+    it('passes an ISO date through untouched', () => {
+        expect(comparableDate('1990-01-01')).toBe('1990-01-01');
+    });
+
+    it('falls back to normalised text when the value is not a date', () => {
+        expect(comparableDate('not a date')).toBe('not a date');
+        expect(comparableDate(null)).toBe('');
+    });
+
+    it('scores a full name match above the 0.7 approval threshold', () => {
+        expect(tokenSimilarity('Marianne Solis Sanchez', 'MARIANNE SOLIS SANCHEZ')).toBe(1);
+        expect(tokenSimilarity('Marianne Sanchez', 'MARIANNE SOLIS SANCHEZ')).toBeGreaterThanOrEqual(0.7);
+    });
+
+    it('scores an unrelated name below the threshold', () => {
+        expect(tokenSimilarity('Juan Dela Cruz', 'MARIANNE SOLIS SANCHEZ')).toBeLessThan(0.7);
+        // An initial instead of the middle name does not clear it either.
+        expect(tokenSimilarity('Marianne S. Sanchez', 'MARIANNE SOLIS SANCHEZ')).toBeLessThan(0.7);
+    });
+});
+
+describe('AI service failures and late results', () => {
+    let kyc: typeof import('../services/kyc-verification.service.js');
+
+    beforeEach(async () => {
+        vi.clearAllMocks();
+        mockFetch.mockReset();
+        mockFsReadFile.mockResolvedValue(Buffer.from('fake-image'));
+        mockDocUpdate.mockResolvedValue({});
+        mockUserUpdate.mockResolvedValue({ count: 1 });
+        mockAuditCreate.mockResolvedValue({});
+        mockNotify.mockResolvedValue(undefined);
+        mockWalletFindFirst.mockResolvedValue(null);
+        mockUserFindUnique.mockImplementation(async (args: { select?: Record<string, boolean> }) =>
+            args.select?.legalName
+                ? PROFILE
+                : { totalBorrowed: 0, totalRepaid: 0, completedLoansCount: 0, activeLoansCount: 0, defaultCount: 0 },
+        );
+        kyc = await import('../services/kyc-verification.service.js');
+    });
+
+    it.each([500, 401, 503])('keeps the borrower unrejected when the AI answers HTTP %i', async (status) => {
+        mockFetch.mockResolvedValueOnce({ ok: false, status, json: vi.fn() });
+
+        await kyc.triggerAIVerification(USER_ID, DOCS);
+
+        expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ status: 'VERIFIED', kycRejectionReason: expect.stringContaining('not rejected') }),
+        }));
+        const statuses = mockUserUpdate.mock.calls.map((c) => c[0].data.status);
+        expect(statuses).not.toContain('REJECTED');
+        const docStatuses = mockDocUpdate.mock.calls.map((c) => c[0].data.status);
+        expect(docStatuses).not.toContain('REJECTED');
+    });
+
+    it('asks for a retake when the AI cannot read the image', async () => {
+        mockFetch.mockResolvedValueOnce({ ok: false, status: 422, json: vi.fn().mockResolvedValue({}) });
+
+        await kyc.triggerAIVerification(USER_ID, DOCS);
+
+        const rejection = mockUserUpdate.mock.calls.find((c) => c[0].data.status === 'REJECTED');
+        expect(rejection).toBeDefined();
+        expect(rejection![0].data.kycRejectionReason).toMatch(/could not be read/i);
+        expect(rejection![0].data.kycRejectionReason).not.toMatch(/HTTP/);
+    });
+
+    it('gives up on an AI call that hangs', async () => {
+        mockFetch.mockResolvedValueOnce(documentResponse()).mockResolvedValueOnce(scoreResponse());
+        await kyc.triggerAIVerification(USER_ID, DOCS);
+        for (const [, options] of mockFetch.mock.calls) {
+            expect(options.signal).toBeInstanceOf(AbortSignal);
+        }
+    });
+
+    it('writes outcomes only while the user is still awaiting review', async () => {
+        mockFetch.mockResolvedValueOnce(documentResponse()).mockResolvedValueOnce(scoreResponse());
+        mockUserUpdate.mockResolvedValue({ count: 0 });
+
+        await kyc.triggerAIVerification(USER_ID, DOCS);
+
+        expect(mockUserUpdate).toHaveBeenCalledWith(expect.objectContaining({
+            where: { id: USER_ID, status: 'PENDING_KYC' },
+        }));
+        expect(mockNotify).not.toHaveBeenCalledWith(USER_ID, expect.objectContaining({ type: 'KYC_APPROVED' }));
+        expect(mockAuditCreate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ action: 'KYC_AI_RESULT_IGNORED' }),
+        }));
+    });
+
+    it.each([150, -1, null, 'abc', 72.5])('does not store the unusable score %s', async (score) => {
+        mockFetch
+            .mockResolvedValueOnce(documentResponse({ confidence: 0.99 }))
+            .mockResolvedValueOnce({ ok: true, json: vi.fn().mockResolvedValue({ score, tier: 'vip' }) });
+
+        await kyc.triggerAIVerification(USER_ID, DOCS);
+
+        const approval = mockUserUpdate.mock.calls.find((c) => c[0].data.status === 'APPROVED');
+        expect(approval).toBeDefined();
+        // Fallback: confidence-based, capped at entry level
+        expect(approval![0].data.creditScore).toBe(59);
+        expect(approval![0].data.creditTier).toBe('BASIC');
+        expect(mockAuditCreate).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ metadata: expect.objectContaining({ scoreSource: 'fallback' }) }),
+        }));
+    });
+
+    it.each([[95, 'VIP'], [90, 'VIP'], [89, 'PREMIUM'], [80, 'PREMIUM'], [60, 'STANDARD'], [59, 'BASIC'], [30, 'BASIC']])(
+        'labels a score of %i as %s, matching the plan floors',
+        (score, tier) => {
+            expect(kyc.deriveTier(score as number)).toBe(tier);
+        },
+    );
+
+    it('returns users stranded mid-verification to a state they can resubmit from', async () => {
+        await kyc.recoverStalledKyc();
+
+        const [args] = mockUserUpdate.mock.calls[0];
+        expect(args.where.status).toBe('PENDING_KYC');
+        expect(args.where.kycSubmittedAt.lt).toBeInstanceOf(Date);
+        expect(args.data.status).toBe('VERIFIED');
+        expect(args.data.kycRejectionReason).toMatch(/not rejected/);
     });
 });

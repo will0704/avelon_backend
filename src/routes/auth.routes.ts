@@ -5,11 +5,12 @@ import jwt from 'jsonwebtoken';
 import { authService } from '../services/auth.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
-import { env } from '../config/env.js';
+import { env, exposeDemoOtp } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { emailService } from '../services/email.service.js';
 import type { TokenPayload } from '../types/index.js';
 import { UserRole } from '../types/index.js';
+import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 
 const { verify } = jwt;
 
@@ -53,9 +54,24 @@ const resetPasswordSchema = z.object({
         .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
 });
 
-const refreshTokenSchema = z.object({
-    refreshToken: z.string().min(1, 'Refresh token is required'),
+const validateResetTokenSchema = z.object({
+    token: z.string().regex(/^\d{6}$/, 'Reset code must contain exactly 6 digits'),
 });
+
+const refreshTokenSchema = z.object({
+    refreshToken: z.string().min(1, 'Refresh token is required').optional(),
+});
+
+function authCookieOptions(maxAge: number) {
+    const secure = env.NODE_ENV === 'production';
+    return {
+        path: '/',
+        maxAge,
+        httpOnly: true,
+        secure,
+        sameSite: secure ? 'None' as const : 'Lax' as const,
+    };
+}
 
 // =====================================================
 // ROUTES
@@ -80,10 +96,12 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
         success: true,
         message: emailSent
             ? 'Registration successful. Please check your email to verify your account.'
-            : 'Registration successful. We could not send the verification email — please use the resend option.',
+            : 'Registration successful. We could not send the verification email — tap "Send a new code" to try again.',
         data: {
             email: result.user.email,
             emailSent,
+            // Development-only escape hatch for demos with no mailbox attached.
+            ...(exposeDemoOtp ? { demoVerificationCode: result.verificationToken } : {}),
         },
     }, 201);
 });
@@ -99,12 +117,10 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
 
     const result = await authService.login(body, ipAddress, userAgent);
 
-    // Set HttpOnly cookie to protect access token from XSS (C-3)
-    const isSecure = env.NODE_ENV === 'production';
-    c.header(
-        'Set-Cookie',
-        `accessToken=${result.accessToken}; Path=/; Max-Age=3600; HttpOnly; SameSite=Strict${isSecure ? '; Secure' : ''}`
-    );
+    // Browser clients use HttpOnly cookies; native clients continue to use the
+    // response-body tokens with Authorization headers.
+    setCookie(c, 'accessToken', result.accessToken, authCookieOptions(15 * 60));
+    setCookie(c, 'refreshToken', result.refreshToken, authCookieOptions(7 * 24 * 60 * 60));
 
     return c.json({
         success: true,
@@ -121,8 +137,8 @@ authRoutes.post('/logout', authMiddleware, async (c) => {
 
     await authService.logout(userId);
 
-    // Clear the HttpOnly cookie on logout
-    c.header('Set-Cookie', 'accessToken=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict');
+    deleteCookie(c, 'accessToken', { path: '/' });
+    deleteCookie(c, 'refreshToken', { path: '/' });
 
     return c.json({
         success: true,
@@ -149,6 +165,22 @@ authRoutes.post('/verify-email', zValidator('json', verifyEmailSchema), async (c
  * POST /auth/forgot-password
  * Request password reset email
  */
+authRoutes.post('/resend-verification', zValidator('json', forgotPasswordSchema), async (c) => {
+    const { email } = c.req.valid('json');
+    const result = await authService.resendVerification(email);
+
+    if (result.token) {
+        const sent = await emailService.sendVerificationEmail(result.email, result.token);
+        if (!sent) console.warn(`[Auth] Resent verification email failed for ${result.email}`);
+    }
+
+    return c.json({
+        success: true,
+        message: 'If an unverified account uses this email, a new code is on its way.',
+        ...(exposeDemoOtp && result.token ? { data: { demoVerificationCode: result.token } } : {}),
+    });
+});
+
 authRoutes.post('/forgot-password', zValidator('json', forgotPasswordSchema), async (c) => {
     const { email } = c.req.valid('json');
 
@@ -160,8 +192,17 @@ authRoutes.post('/forgot-password', zValidator('json', forgotPasswordSchema), as
 
     return c.json({
         success: true,
-        message: 'If an account exists with this email, you will receive a password reset link.',
+        message: 'If an account exists with this email, you will receive a password reset code.',
+        // Still says nothing about whether the account exists — result.token is
+        // undefined when it does not. Development only.
+        ...(exposeDemoOtp && result.token ? { data: { demoResetCode: result.token } } : {}),
     });
+});
+
+authRoutes.post('/validate-reset-token', zValidator('json', validateResetTokenSchema), async (c) => {
+    const { token } = c.req.valid('json');
+    const result = await authService.validatePasswordResetToken(token);
+    return c.json({ success: true, data: result });
 });
 
 /**
@@ -210,8 +251,11 @@ authRoutes.post('/change-password', authMiddleware, zValidator('json', z.object(
  */
 authRoutes.get('/session', async (c) => {
     const authHeader = c.req.header('Authorization');
+    const token = authHeader?.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : getCookie(c, 'accessToken');
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
         return c.json({
             success: true,
             data: {
@@ -224,9 +268,22 @@ authRoutes.get('/session', async (c) => {
     // Try to validate token
     try {
         // Reuse auth middleware logic but don't throw
-        const token = authHeader.substring(7);
-
         const payload = verify(token, env.JWT_SECRET) as TokenPayload;
+        if (payload.type !== 'access' || !payload.jti) {
+            throw new Error('Invalid access token');
+        }
+
+        const session = await prisma.session.findFirst({
+            where: {
+                userId: payload.userId,
+                sessionToken: payload.jti,
+                expires: { gt: new Date() },
+            },
+            select: { id: true },
+        });
+        if (!session) {
+            throw new Error('Session expired or revoked');
+        }
 
         const user = await prisma.user.findUnique({
             where: { id: payload.userId },
@@ -275,9 +332,11 @@ authRoutes.get('/session', async (c) => {
  * Refresh access token
  */
 authRoutes.post('/refresh', zValidator('json', refreshTokenSchema), async (c) => {
-    const { refreshToken } = c.req.valid('json');
+    const refreshToken = c.req.valid('json').refreshToken ?? getCookie(c, 'refreshToken');
+    if (!refreshToken) throw new AppError(401, 'UNAUTHORIZED', 'Refresh token is required');
 
     const result = await authService.refreshToken(refreshToken);
+    setCookie(c, 'accessToken', result.accessToken, authCookieOptions(15 * 60));
 
     return c.json({
         success: true,

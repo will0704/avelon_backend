@@ -1,9 +1,7 @@
 name: Keep Backend Alive
 
 on:
-  schedule:
-    - cron: '*/13 * * * *'  # Every 13 minutes
-  workflow_dispatch:  # Allow manual trigger via GitHub UI
+  workflow_dispatch:  # Manual diagnostics only; no recurring traffic
 
 jobs:
   ping-backend:

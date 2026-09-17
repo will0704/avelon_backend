@@ -332,6 +332,10 @@ adminRoutes.post('/price', zValidator('json', updatePriceSchema), async (c) => {
             },
         });
 
+        await prisma.auditLog.create({
+            data: { userId: adminId, action: 'PRICE_UPDATED', entity: 'SystemConfig', entityId: 'ETH_PHP_RATE', metadata: { price } },
+        });
+
         return c.json({
             success: true,
             message: 'Price updated',

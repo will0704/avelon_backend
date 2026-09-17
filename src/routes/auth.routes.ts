@@ -96,7 +96,7 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
         success: true,
         message: emailSent
             ? 'Registration successful. Please check your email to verify your account.'
-            : 'Registration successful. We could not send the verification email — please use the resend option.',
+            : 'Registration successful. We could not send the verification email — tap "Send a new code" to try again.',
         data: {
             email: result.user.email,
             emailSent,
@@ -165,6 +165,22 @@ authRoutes.post('/verify-email', zValidator('json', verifyEmailSchema), async (c
  * POST /auth/forgot-password
  * Request password reset email
  */
+authRoutes.post('/resend-verification', zValidator('json', forgotPasswordSchema), async (c) => {
+    const { email } = c.req.valid('json');
+    const result = await authService.resendVerification(email);
+
+    if (result.token) {
+        const sent = await emailService.sendVerificationEmail(result.email, result.token);
+        if (!sent) console.warn(`[Auth] Resent verification email failed for ${result.email}`);
+    }
+
+    return c.json({
+        success: true,
+        message: 'If an unverified account uses this email, a new code is on its way.',
+        ...(exposeDemoOtp && result.token ? { data: { demoVerificationCode: result.token } } : {}),
+    });
+});
+
 authRoutes.post('/forgot-password', zValidator('json', forgotPasswordSchema), async (c) => {
     const { email } = c.req.valid('json');
 

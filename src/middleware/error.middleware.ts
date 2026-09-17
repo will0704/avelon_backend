@@ -126,7 +126,8 @@ export const errorHandler = (err: Error, c: Context) => {
     }
 
     // Handle unknown errors
-    const isDev = env.NODE_ENV === 'development';
+    // Details only on a developer's own machine, never through a tunnel
+    const isDev = env.NODE_ENV === 'development' && env.TRUSTED_PROXY_COUNT === 0;
     return c.json({
         success: false,
         ...(requestId ? { requestId } : {}),

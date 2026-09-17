@@ -61,8 +61,7 @@ async function handle(req: RpcRequest) {
 }
 
 rpcRoutes.post('/', async (c) => {
-    // Local chain only; on a real deployment this route doesn't exist.
-    if (chain.id !== LOCAL_CHAIN_ID || env.NODE_ENV === 'production') {
+    if (!isRpcProxyEnabled(chain.id, env.NODE_ENV)) {
         return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Not found' } }, 404);
     }
 
@@ -86,5 +85,10 @@ rpcRoutes.post('/', async (c) => {
         return c.json({ jsonrpc: '2.0', id: null, error: { code: -32603, message: 'Local chain unreachable' } }, 502);
     }
 });
+
+// Local chain only; on a real deployment this route doesn't exist
+export function isRpcProxyEnabled(chainId: number, nodeEnv: string): boolean {
+    return chainId === LOCAL_CHAIN_ID && nodeEnv !== 'production';
+}
 
 export { rpcRoutes };

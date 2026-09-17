@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 import { randomBytes } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
 import { ConflictError, NotFoundError, ValidationError } from '../middleware/error.middleware.js';
-import { UserStatus, LoanStatus } from '../types/index.js';
+import { UserStatus } from '../types/index.js';
 
 export class WalletService {
     /**
@@ -223,22 +223,25 @@ export class WalletService {
             throw new NotFoundError('Wallet not found');
         }
 
-        // Check if wallet has active loans
-        const activeLoans = await prisma.loan.count({
-            where: {
-                walletId,
-                status: { in: [LoanStatus.PENDING_COLLATERAL, LoanStatus.COLLATERAL_DEPOSITED, LoanStatus.ACTIVE] },
-            },
-        });
-
-        if (activeLoans > 0) {
-            throw new ValidationError('Cannot remove wallet with active loans');
+        // Loans keep a hard reference to their wallet, whatever their status
+        const linkedLoans = await prisma.loan.count({ where: { walletId } });
+        if (linkedLoans > 0) {
+            throw new ValidationError('This wallet is part of your loan history and cannot be removed');
         }
 
-        // Delete wallet
         await prisma.wallet.delete({
             where: { id: walletId },
         });
+
+        if (wallet.isPrimary) {
+            const next = await prisma.wallet.findFirst({
+                where: { userId },
+                orderBy: { createdAt: 'desc' },
+            });
+            if (next) {
+                await prisma.wallet.update({ where: { id: next.id }, data: { isPrimary: true } });
+            }
+        }
 
         // Log audit
         await prisma.auditLog.create({

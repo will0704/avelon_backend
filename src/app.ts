@@ -99,6 +99,7 @@ app.use('/api/v1/auth/forgot-password', authRateLimiter);
 app.use('/api/v1/auth/validate-reset-token', authRateLimiter);
 app.use('/api/v1/auth/reset-password', authRateLimiter);
 app.use('/api/v1/auth/verify-email', authRateLimiter);
+app.use('/api/v1/auth/resend-verification', authRateLimiter);
 
 // Error handler
 app.onError(errorHandler);

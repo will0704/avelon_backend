@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import { z } from 'zod';
+import { localOnlyFlags } from './exposure.js';
 
 // Load environment variables
 config();
@@ -35,7 +36,8 @@ const envSchema = z.object({
     DATABASE_URL: z.string().url(),
 
     // Redis
-    REDIS_URL: z.string().url().optional(),
+    // Empty means unset: the rate limiter falls back to memory
+    REDIS_URL: z.union([z.string().url(), z.literal('')]).optional(),
 
     // JWT
     JWT_SECRET: z.string().min(32),
@@ -114,16 +116,16 @@ export const env = parseEnv();
  * Whether verification codes may be returned to the caller.
  *
  * Handing an OTP back over the API defeats the point of sending it out of band, so
- * this is refused outside development no matter what the variable says. It exists
- * because the capstone demo runs with no mailbox attached.
+ * it only happens on a development server with no proxy or tunnel in front. It
+ * exists because the capstone demo can run with no mailbox attached.
  */
-export const exposeDemoOtp = env.DEMO_EXPOSE_OTP && env.NODE_ENV === 'development';
+export const { isLocalOnly, exposeDemoOtp } = localOnlyFlags(env);
 
 if (env.DEMO_EXPOSE_OTP && !exposeDemoOtp) {
-    console.warn('[env] DEMO_EXPOSE_OTP is set but ignored — it only applies in development.');
+    console.warn('[env] DEMO_EXPOSE_OTP is ignored — it only applies in development with TRUSTED_PROXY_COUNT=0.');
 }
 if (exposeDemoOtp) {
-    console.warn('[env] DEMO_EXPOSE_OTP is on: verification codes are returned in API responses. Development only.');
+    console.warn('[env] DEMO_EXPOSE_OTP is on: verification codes are returned in API responses. Local only.');
 }
 
 export const corsAllowedOrigins = env.CORS_ALLOWED_ORIGINS

@@ -7,6 +7,7 @@ import { prisma } from '../lib/prisma.js';
 import { ConflictError, UnauthorizedError, ValidationError } from '../middleware/error.middleware.js';
 import { isAccountLocked, recordFailedLogin, resetLoginAttempts } from '../middleware/rate-limit.middleware.js';
 import { securityLogger } from '../lib/security.logger.js';
+import { isUniqueViolation } from '../lib/tx-hash.js';
 import { UserRole, UserStatus, type RegisterData, type LoginCredentials, type AuthTokens } from '../types/index.js';
 
 const { sign, verify } = jwt;
@@ -49,16 +50,7 @@ export class AuthService {
             },
         });
 
-        // Create verification token (6-digit OTP)
-        const token = randomInt(100000, 1_000_000).toString();
-        await prisma.verificationToken.create({
-            data: {
-                identifier: user.email,
-                token,
-                type: 'EMAIL_VERIFICATION',
-                expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-            },
-        });
+        const token = await this.createOtp(user.email, 'EMAIL_VERIFICATION');
 
         // Log audit
         await prisma.auditLog.create({
@@ -236,16 +228,7 @@ export class AuthService {
             },
         });
 
-        // Create new reset token (6-digit OTP)
-        const token = randomInt(100000, 1_000_000).toString();
-        await prisma.verificationToken.create({
-            data: {
-                identifier: email.toLowerCase(),
-                token,
-                type: 'PASSWORD_RESET',
-                expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-            },
-        });
+        const token = await this.createOtp(email.toLowerCase(), 'PASSWORD_RESET');
 
         // Email is sent by the route using the returned token
         return { success: true, token };
@@ -356,6 +339,48 @@ export class AuthService {
         } catch (error) {
             throw new UnauthorizedError('Invalid refresh token');
         }
+    }
+
+    /**
+     * Send a new verification code. Answers the same way whether or not the
+     * account exists, so it cannot be used to discover emails.
+     */
+    async resendVerification(email: string): Promise<{ token?: string; email: string }> {
+        const normalized = email.toLowerCase();
+        const user = await prisma.user.findUnique({ where: { email: normalized } });
+        if (!user || user.status !== UserStatus.REGISTERED) {
+            return { email: normalized };
+        }
+
+        await prisma.verificationToken.deleteMany({
+            where: { identifier: normalized, type: 'EMAIL_VERIFICATION' },
+        });
+        const token = await this.createOtp(normalized, 'EMAIL_VERIFICATION');
+
+        await prisma.auditLog.create({
+            data: { userId: user.id, action: 'VERIFICATION_CODE_RESENT', entity: 'User', entityId: user.id },
+        });
+
+        return { token, email: normalized };
+    }
+
+    /**
+     * A 6-digit code, valid for an hour. Codes are unique across every live code,
+     * so a collision just means drawing again.
+     */
+    private async createOtp(identifier: string, type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET'): Promise<string> {
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const token = randomInt(100000, 1_000_000).toString();
+            try {
+                await prisma.verificationToken.create({
+                    data: { identifier, token, type, expires: new Date(Date.now() + 60 * 60 * 1000) },
+                });
+                return token;
+            } catch (err) {
+                if (!isUniqueViolation(err)) throw err;
+            }
+        }
+        throw new Error('Could not allocate a unique verification code');
     }
 
     /**

@@ -96,15 +96,21 @@ adminUsersRoutes.get('/:id', async (c) => {
 
 /**
  * PUT /admin/users/:id/status
- * Update user status (suspend / unsuspend)
+ * { status: 'SUSPENDED' } suspends; { status: 'RESTORED' } puts back the status
+ * the user had before. Nothing else can be set here — KYC and wallet status only
+ * change through their own flows.
  */
 adminUsersRoutes.put('/:id/status', async (c) => {
     const id = c.req.param('id');
-    const { status } = await c.req.json();
+    const adminId = c.get('userId');
+    const body = await c.req.json().catch(() => null);
+    const requested = body?.status;
 
-    const validStatuses = Object.values(UserStatus);
-    if (!validStatuses.includes(status)) {
-        throw new ValidationError(`Invalid status: ${status}`);
+    if (requested !== 'SUSPENDED' && requested !== 'RESTORED') {
+        throw new ValidationError('Status must be SUSPENDED or RESTORED');
+    }
+    if (id === adminId) {
+        throw new ValidationError('You cannot change your own status');
     }
 
     const user = await prisma.user.findUnique({ where: { id } });
@@ -112,12 +118,67 @@ adminUsersRoutes.put('/:id/status', async (c) => {
         throw new NotFoundError('User not found');
     }
 
-    await prisma.user.update({
-        where: { id },
-        data: { status },
+    if (requested === 'SUSPENDED') {
+        if (user.status === UserStatus.SUSPENDED) {
+            throw new ValidationError('User is already suspended');
+        }
+        await prisma.user.update({ where: { id }, data: { status: UserStatus.SUSPENDED } });
+        await prisma.session.deleteMany({ where: { userId: id } });
+        await prisma.auditLog.create({
+            data: {
+                userId: adminId,
+                action: 'USER_SUSPENDED',
+                entity: 'User',
+                entityId: id,
+                metadata: { previousStatus: user.status, by: adminId },
+            },
+        });
+        return c.json({ success: true, message: 'User suspended' });
+    }
+
+    if (user.status !== UserStatus.SUSPENDED) {
+        throw new ValidationError('User is not suspended');
+    }
+
+    const lastSuspension = await prisma.auditLog.findFirst({
+        where: { action: 'USER_SUSPENDED', entityId: id },
+        orderBy: { createdAt: 'desc' },
+    });
+    const restored = restoredStatus(
+        (lastSuspension?.metadata as { previousStatus?: string } | null)?.previousStatus,
+        user,
+    );
+
+    await prisma.user.update({ where: { id }, data: { status: restored } });
+    await prisma.auditLog.create({
+        data: {
+            userId: adminId,
+            action: 'USER_RESTORED',
+            entity: 'User',
+            entityId: id,
+            metadata: { restoredStatus: restored, by: adminId },
+        },
     });
 
-    return c.json({ success: true, message: 'User status updated' });
+    return c.json({ success: true, message: 'User restored', data: { status: restored } });
 });
+
+/**
+ * The status to come back to. A verification that was in flight when the user
+ * was suspended is not running any more, so that user resubmits from VERIFIED.
+ */
+function restoredStatus(
+    previous: string | undefined,
+    user: { emailVerified: Date | null; kycApprovedAt: Date | null },
+): UserStatus {
+    if (previous === UserStatus.PENDING_KYC) return UserStatus.VERIFIED;
+    if (previous && previous !== UserStatus.SUSPENDED && (Object.values(UserStatus) as string[]).includes(previous)) {
+        return previous as UserStatus;
+    }
+    // No record of the suspension: fall back to what the account has proven
+    if (user.kycApprovedAt) return UserStatus.APPROVED;
+    if (user.emailVerified) return UserStatus.VERIFIED;
+    return UserStatus.REGISTERED;
+}
 
 export { adminUsersRoutes };

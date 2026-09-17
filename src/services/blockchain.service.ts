@@ -11,6 +11,7 @@ const AVELON_LENDING_ABI = [
     { inputs: [{ internalType: 'address', name: 'borrower', type: 'address' }, { internalType: 'uint128', name: 'principal', type: 'uint128' }, { internalType: 'uint128', name: 'collateralRequired', type: 'uint128' }, { internalType: 'uint16', name: 'interestRate', type: 'uint16' }, { internalType: 'uint32', name: 'duration', type: 'uint32' }], name: 'createLoan', outputs: [{ internalType: 'uint32', name: '', type: 'uint32' }], stateMutability: 'nonpayable', type: 'function' },
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint128', name: 'amount', type: 'uint128' }], name: 'recordRepayment', outputs: [], stateMutability: 'nonpayable', type: 'function' },
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'cancelLoan', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint32', name: 'extraSeconds', type: 'uint32' }, { internalType: 'uint128', name: 'fee', type: 'uint128' }], name: 'extendLoan', outputs: [], stateMutability: 'nonpayable', type: 'function' },
     // View
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'getLoan', outputs: [{ components: [{ internalType: 'address', name: 'borrower', type: 'address' }, { internalType: 'uint48', name: 'createdAt', type: 'uint48' }, { internalType: 'uint48', name: 'activatedAt', type: 'uint48' }, { internalType: 'uint48', name: 'dueDate', type: 'uint48' }, { internalType: 'uint32', name: 'duration', type: 'uint32' }, { internalType: 'uint16', name: 'interestRate', type: 'uint16' }, { internalType: 'uint8', name: 'status', type: 'uint8' }, { internalType: 'uint128', name: 'principal', type: 'uint128' }, { internalType: 'uint128', name: 'collateralRequired', type: 'uint128' }, { internalType: 'uint128', name: 'principalOwed', type: 'uint128' }, { internalType: 'uint128', name: 'interestOwed', type: 'uint128' }], internalType: 'struct AvelonLending.Loan', name: '', type: 'tuple' }], stateMutability: 'view', type: 'function' },
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'getTotalOwed', outputs: [{ internalType: 'uint128', name: '', type: 'uint128' }], stateMutability: 'view', type: 'function' },
@@ -26,6 +27,7 @@ const AVELON_LENDING_ABI = [
     { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint128', name: 'amount', type: 'uint128' }, { internalType: 'uint128', name: 'remainingOwed', type: 'uint128' }], name: 'RepaymentRecorded', type: 'event' },
     { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint48', name: 'repaidAt', type: 'uint48' }], name: 'LoanRepaid', type: 'event' },
     { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'LoanCancelled', type: 'event' },
+    { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint48', name: 'newDueDate', type: 'uint48' }, { internalType: 'uint128', name: 'fee', type: 'uint128' }], name: 'LoanExtended', type: 'event' },
 ] as const;
 
 const COLLATERAL_MANAGER_ABI = [
@@ -34,6 +36,7 @@ const COLLATERAL_MANAGER_ABI = [
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }, { internalType: 'uint8', name: 'reason', type: 'uint8' }, { internalType: 'uint16', name: 'observedRatioBps', type: 'uint16' }], name: 'liquidate', outputs: [], stateMutability: 'nonpayable', type: 'function' },
     // Mutating (borrower — payable)
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'depositCollateral', outputs: [], stateMutability: 'payable', type: 'function' },
+    { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'addCollateral', outputs: [], stateMutability: 'payable', type: 'function' },
     // View
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'getCollateral', outputs: [{ internalType: 'uint128', name: '', type: 'uint128' }], stateMutability: 'view', type: 'function' },
     { inputs: [{ internalType: 'uint32', name: 'loanId', type: 'uint32' }], name: 'getCollateralRatio', outputs: [{ internalType: 'uint256', name: 'ratio', type: 'uint256' }], stateMutability: 'view', type: 'function' },
@@ -41,6 +44,7 @@ const COLLATERAL_MANAGER_ABI = [
     { inputs: [], name: 'getBalance', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
     // Events
     { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { indexed: true, internalType: 'address', name: 'depositor', type: 'address' }, { internalType: 'uint128', name: 'amount', type: 'uint128' }], name: 'CollateralDeposited', type: 'event' },
+    { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { indexed: true, internalType: 'address', name: 'depositor', type: 'address' }, { internalType: 'uint128', name: 'amount', type: 'uint128' }], name: 'CollateralAdded', type: 'event' },
     { anonymous: false, inputs: [{ indexed: true, internalType: 'uint32', name: 'loanId', type: 'uint32' }, { indexed: true, internalType: 'address', name: 'recipient', type: 'address' }, { internalType: 'uint128', name: 'amount', type: 'uint128' }], name: 'CollateralReleased', type: 'event' },
 ] as const;
 
@@ -501,6 +505,12 @@ export class BlockchainService {
         return 0;
     }
 
+    /** False when nothing is deployed at the address, as after a node restart. */
+    async hasContractCode(address: string): Promise<boolean> {
+        const code = await this.provider.getCode(address);
+        return code !== '0x';
+    }
+
     /**
      * Verify wallet message signature
      */
@@ -509,10 +519,10 @@ export class BlockchainService {
     }
 
     /** Decode a CollateralManager deposit call using the deployed ABI. */
-    decodeCollateralDeposit(data: string): number | null {
+    decodeCollateralDeposit(data: string, method: 'depositCollateral' | 'addCollateral' = 'depositCollateral'): number | null {
         try {
             const parsed = new ethers.Interface(COLLATERAL_MANAGER_ABI).parseTransaction({ data });
-            if (!parsed || parsed.name !== 'depositCollateral') return null;
+            if (!parsed || parsed.name !== method) return null;
             return Number(parsed.args[0]);
         } catch {
             return null;
@@ -600,6 +610,7 @@ export class BlockchainService {
         contractAddress: string,
         loanId: number,
         borrowerAddress: string,
+        eventName: 'CollateralDeposited' | 'CollateralAdded' = 'CollateralDeposited',
     ): Promise<{ amount: string } | null> {
         const receipt = await this.provider.getTransactionReceipt(txHash);
         if (!receipt) return null;
@@ -610,7 +621,7 @@ export class BlockchainService {
             try {
                 const parsed = iface.parseLog({ topics: [...log.topics], data: log.data });
                 if (
-                    parsed?.name === 'CollateralDeposited' &&
+                    parsed?.name === eventName &&
                     Number(parsed.args.loanId) === loanId &&
                     String(parsed.args.depositor).toLowerCase() === borrowerAddress.toLowerCase()
                 ) {

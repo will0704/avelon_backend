@@ -32,7 +32,11 @@ const planSelect = {
 
 const amountSchema = z.union([z.string(), z.number()])
     .refine((value) => Number.isFinite(Number(value)) && Number(value) > 0, 'Amount must be greater than zero')
+    .refine((value) => /^\d+(\.\d{1,18})?$/.test(String(value)), 'Amount can have at most 18 decimal places')
     .transform(String);
+
+// The contract stores the rate in whole basis points
+const isWholeBasisPoints = (rate: number) => Math.abs(rate * 100 - Math.round(rate * 100)) < 1e-9;
 
 // Accept both number and string for amount fields (frontend sends number, schema stores Decimal)
 const createPlanSchema = z.object({
@@ -42,12 +46,14 @@ const createPlanSchema = z.object({
     minAmount: amountSchema,
     maxAmount: amountSchema,
     durationOptions: z.array(z.number().int().min(1).max(365)).min(1).max(12),
-    interestRate: z.number().positive().max(100),
+    interestRate: z.number().positive().max(100)
+        .refine(isWholeBasisPoints, 'Interest rate can have at most two decimal places'),
     interestType: z.literal('FLAT').default('FLAT'),
     // Borrower's own stake, floored at the platform minimum (revision 5). Above
     // 100 is allowed — that is a fully secured plan, not a mistake.
     collateralRatio: z.number().min(env.MIN_COLLATERAL_RATIO).max(200),
-    originationFee: z.number().min(0).max(100),
+    // A 100% fee would leave nothing to pay out
+    originationFee: z.number().min(0).lt(100),
     latePenaltyRate: z.number().min(0).max(100).default(0.5),
     gracePeriodDays: z.number().int().min(0).default(3),
     extensionAllowed: z.boolean().default(false),
@@ -134,6 +140,10 @@ adminPlansRoutes.post('/', zValidator('json', createPlanSchema), async (c) => {
             select: planSelect,
         });
 
+        await prisma.auditLog.create({
+            data: { userId: createdBy, action: 'PLAN_CREATED', entity: 'LoanPlan', entityId: plan.id, metadata: { name: plan.name } },
+        });
+
         return c.json({
             success: true,
             message: 'Plan created',
@@ -185,6 +195,16 @@ adminPlansRoutes.put('/:id', zValidator('json', createPlanSchema.partial()), asy
             select: planSelect,
         });
 
+        await prisma.auditLog.create({
+            data: {
+                userId: (c.get('userId' as never) as string) ?? null,
+                action: 'PLAN_UPDATED',
+                entity: 'LoanPlan',
+                entityId: id,
+                metadata: { changes: Object.keys(body) },
+            },
+        });
+
         return c.json({
             success: true,
             message: 'Plan updated',
@@ -222,6 +242,9 @@ adminPlansRoutes.delete('/:id', async (c) => {
         await prisma.loanPlan.update({
             where: { id },
             data: { isActive: false },
+        });
+        await prisma.auditLog.create({
+            data: { userId: (c.get('userId' as never) as string) ?? null, action: 'PLAN_DEACTIVATED', entity: 'LoanPlan', entityId: id },
         });
 
         return c.json({
@@ -263,6 +286,9 @@ adminPlansRoutes.delete('/:id/permanent', async (c) => {
         }
 
         await prisma.loanPlan.delete({ where: { id } });
+        await prisma.auditLog.create({
+            data: { userId: (c.get('userId' as never) as string) ?? null, action: 'PLAN_DELETED', entity: 'LoanPlan', entityId: id, metadata: { name: existing.name } },
+        });
 
         return c.json({ success: true, message: 'Plan permanently deleted' });
     } catch (err) {

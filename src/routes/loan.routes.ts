@@ -14,26 +14,30 @@ const loanRoutes = new Hono();
 // VALIDATION SCHEMAS
 // ============================================
 
+// Whole digits with at most 18 decimals — anything finer than a wei cannot go on-chain
+const ETH_AMOUNT = /^\d+(\.\d{1,18})?$/;
+const TX_HASH = z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash').transform((h) => h.toLowerCase());
+
 const createLoanSchema = z.object({
     planId: z.string().min(1, 'Plan ID is required'),
-    amount: z.string().regex(/^\d+\.?\d*$/, 'Invalid amount format'),
+    amount: z.string().regex(ETH_AMOUNT, 'Enter an amount like 0.05, with at most 18 decimals'),
     duration: z.number().int().positive('Duration must be a positive integer'),
     walletId: z.string().min(1, 'Wallet ID is required'),
     purpose: z.string().trim().min(3, 'Loan purpose is required').max(500),
 });
 
 const recordCollateralSchema = z.object({
-    txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash'),
+    txHash: TX_HASH,
 });
 
 const recordRepaymentSchema = z.object({
-    amount: z.string().regex(/^\d+\.?\d*$/, 'Invalid amount format'),
-    txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash'),
+    amount: z.string().regex(ETH_AMOUNT, 'Invalid amount format'),
+    txHash: TX_HASH,
 });
 
 const calculateLoanSchema = z.object({
     planId: z.string().min(1, 'Plan ID is required'),
-    amount: z.string().regex(/^\d+\.?\d*$/, 'Invalid amount format'),
+    amount: z.string().regex(ETH_AMOUNT, 'Invalid amount format'),
     duration: z.string().regex(/^\d+$/, 'Duration must be a positive integer').transform(Number),
 });
 
@@ -144,10 +148,20 @@ loanRoutes.get('/blockchain/status', authMiddleware, async (c) => {
         const networkInfo = await blockchainService.getNetworkInfo();
         const blockNumber = await blockchainService.getBlockNumber();
 
+        // A restarted local node keeps its chain id but loses every contract
+        const addresses = [
+            process.env.AVELON_LENDING_ADDRESS,
+            process.env.COLLATERAL_MANAGER_ADDRESS,
+            process.env.LIQUIDITY_POOL_ADDRESS,
+        ].filter((a): a is string => Boolean(a));
+        const deployed = await Promise.all(addresses.map((a) => blockchainService.hasContractCode(a)));
+        const contractsDeployed = addresses.length > 0 && deployed.every(Boolean);
+
         return c.json({
             success: true,
             data: {
                 connected: true,
+                contractsDeployed,
                 network: networkInfo.name,
                 chainId: networkInfo.chainId,
                 blockNumber,
@@ -222,22 +236,26 @@ loanRoutes.post(
 
         const result = await loanService.recordCollateralDeposit(loanId, userId, txHash);
 
-        // Notify: collateral deposited
-        await notificationService.notify(userId, {
-            type: 'COLLATERAL_DEPOSITED',
-            title: '💰 Collateral Deposited',
-            message: `Your collateral of ${result.loan.collateralDeposited} ETH has been recorded. Your loan is now being activated.`,
-            metadata: { loanId: result.loan.id, txHash },
-        });
+        if (!result.payoutPending) {
+            await notificationService.notify(userId, {
+                type: 'COLLATERAL_DEPOSITED',
+                title: '💰 Collateral Deposited',
+                message: `Your collateral of ${result.loan.collateralDeposited} ETH has been recorded and your loan is active.`,
+                metadata: { loanId: result.loan.id, txHash },
+            });
+        }
 
         return c.json({
             success: true,
-            message: 'Collateral deposit recorded',
+            message: result.payoutPending
+                ? 'Your stake is recorded. The payout is waiting on pool funds and will be sent as soon as it can.'
+                : 'Collateral deposit recorded',
             data: {
                 loanId: result.loan.id,
                 status: result.loan.status,
                 collateralDeposited: result.loan.collateralDeposited.toString(),
                 collateralRequired: result.loan.collateralRequired.toString(),
+                payoutPending: result.payoutPending,
                 txHash,
             },
         });
@@ -265,7 +283,9 @@ loanRoutes.post(
             ? {
                 type: 'LOAN_REPAID',
                 title: '🏆 Loan Fully Repaid!',
-                message: 'Congratulations! Your loan has been fully repaid. Your collateral has been released.',
+                message: result.collateralReleasePending
+                    ? 'Your loan is fully repaid. Your stake is being returned and will arrive shortly.'
+                    : 'Congratulations! Your loan has been fully repaid. Your collateral has been released.',
                 metadata: { loanId, amount, txHash },
             }
             : {
@@ -287,6 +307,7 @@ loanRoutes.post(
                 txHash,
                 remainingOwed: result.remainingOwed,
                 isFullyRepaid,
+                collateralReleasePending: result.collateralReleasePending,
             },
         });
     }
@@ -305,8 +326,7 @@ loanRoutes.post(
         const loanId = c.req.param('id');
         const { txHash } = c.req.valid('json');
 
-        // Use same flow as initial collateral deposit
-        const result = await loanService.recordCollateralDeposit(loanId, userId, txHash);
+        const result = await loanService.recordAdditionalCollateral(loanId, userId, txHash);
 
         // Notify: additional collateral added
         await notificationService.notify(userId, {
@@ -330,7 +350,7 @@ loanRoutes.post(
 
 /**
  * DELETE /loans/:id
- * Cancel loan (before collateral deposit)
+ * Withdraw an application under review, or cancel before collateral
  */
 loanRoutes.delete('/:id', authMiddleware, async (c) => {
     const userId = c.get('userId');

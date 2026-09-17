@@ -277,3 +277,75 @@ describe('investor position reporting', () => {
         expect('depositAddress' in stats).toBe(false);
     });
 });
+
+describe('investor transaction hashes', () => {
+    const TX_UPPER = '0x' + 'AA'.repeat(32);
+    const TX_LOWER = '0x' + 'aa'.repeat(32);
+
+    function goodWithdrawal() {
+        mockVerifyTransaction.mockResolvedValue({
+            valid: true,
+            chainId: 31337,
+            from: INVESTOR,
+            to: POOL_ADDRESS,
+            blockNumber: 14,
+            value: '0',
+            data: '0x2e1a7d4d',
+        });
+        mockDecodePoolCall.mockReturnValue({ name: 'withdraw', args: [1n] });
+        mockFindPoolEvent.mockResolvedValue({ assets: '2.0', shares: '2.0' });
+    }
+
+    beforeEach(() => {
+        const m = mockPrismaClient as any;
+        m.$executeRaw = vi.fn().mockResolvedValue(1);
+        m.$transaction = vi.fn().mockImplementation((arg: unknown) =>
+            typeof arg === 'function' ? (arg as (tx: unknown) => unknown)(m) : Promise.resolve([{ id: 'dep1' }, {}, {}]),
+        );
+        m.auditLog.create = vi.fn().mockResolvedValue({});
+    });
+
+    it('looks deposits up by the lowercase hash', async () => {
+        goodDeposit();
+        await investorService.recordDeposit('inv1', TX_UPPER);
+
+        expect(mockPrismaClient.poolTransaction.findFirst).toHaveBeenCalledWith({ where: { txHash: TX_LOWER } });
+        expect(mockPrismaClient.investorDeposit.findUnique).toHaveBeenCalledWith({ where: { txHash: TX_LOWER } });
+    });
+
+    it('refuses an uppercase copy of a filed withdrawal', async () => {
+        goodWithdrawal();
+        mockPrismaClient.poolTransaction.findFirst = vi.fn(({ where }) =>
+            Promise.resolve(where.txHash === TX_LOWER ? { id: 'filed' } : null));
+
+        await expect(investorService.recordWithdrawal('inv1', TX_UPPER)).rejects.toThrow(/already been recorded/i);
+        expect(mockVerifyTransaction).not.toHaveBeenCalled();
+    });
+
+    it('files a withdrawal under a lock so a parallel copy cannot slip in', async () => {
+        goodWithdrawal();
+        // Free at the first look, taken by the time the lock is held
+        mockPrismaClient.poolTransaction.findFirst = vi.fn()
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce({ id: 'filed-by-the-other-request' });
+
+        await expect(investorService.recordWithdrawal('inv1', TX_LOWER)).rejects.toThrow(/already been recorded/i);
+        expect(mockPrismaClient.$executeRaw).toHaveBeenCalled();
+        expect(mockPrismaClient.poolTransaction.create).not.toHaveBeenCalled();
+    });
+
+    it('files a yield claim under the same lock', async () => {
+        mockVerifyTransaction.mockResolvedValue({
+            valid: true, chainId: 31337, from: INVESTOR, to: POOL_ADDRESS, blockNumber: 15, value: '0', data: '0x406cf229',
+        });
+        mockDecodePoolCall.mockReturnValue({ name: 'claimYield', args: [] });
+        mockFindPoolEvent.mockResolvedValue({ assets: '0.1', shares: '0.09' });
+
+        await investorService.recordYieldClaim('inv1', TX_UPPER);
+
+        expect(mockPrismaClient.$executeRaw).toHaveBeenCalled();
+        expect(mockPrismaClient.poolTransaction.create).toHaveBeenCalledWith(
+            expect.objectContaining({ data: expect.objectContaining({ txHash: TX_LOWER }) }),
+        );
+    });
+});

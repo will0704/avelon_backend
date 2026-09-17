@@ -5,6 +5,7 @@ import { chain } from '../config/env.js';
 import { blockchainService } from './blockchain.service.js';
 import { poolService } from './pool.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { normalizeTxHash } from '../lib/tx-hash.js';
 
 const PrismaDecimal = Prisma.Decimal;
 
@@ -49,22 +50,20 @@ export class InvestorService {
         userId: string,
         txHash: string,
         action: PoolAction,
-    ): Promise<{ address: string; blockNumber: number; value: string }> {
+    ): Promise<{ address: string; blockNumber: number; value: string; hash: string }> {
         const poolAddress = poolService.getAddress();
         if (!poolAddress) {
             throw new AppError(503, 'INVESTOR_POOL_UNAVAILABLE', 'No liquidity pool is configured.');
         }
 
-        if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
-            throw new ValidationError('Transaction hash is malformed');
-        }
+        const hash = normalizeTxHash(txHash);
 
-        const already = await prisma.poolTransaction.findFirst({ where: { txHash } });
+        const already = await prisma.poolTransaction.findFirst({ where: { txHash: hash } });
         if (already) {
             throw new ValidationError('This transaction has already been recorded');
         }
 
-        const info = await blockchainService.verifyTransaction(txHash);
+        const info = await blockchainService.verifyTransaction(hash);
         if (!info.valid) {
             throw new ValidationError(
                 `Transaction is not successful or has fewer than ${chain.minConfirmations} confirmation(s)`,
@@ -92,6 +91,7 @@ export class InvestorService {
             address: info.from,
             blockNumber: info.blockNumber ?? 0,
             value: info.value ?? '0',
+            hash,
         };
     }
 
@@ -272,8 +272,8 @@ export class InvestorService {
      * The amount and the shares both come from the pool's own Deposited event, not
      * from the request body, so a client cannot claim more than it paid.
      */
-    async recordDeposit(userId: string, txHash: string) {
-        const { address, blockNumber } = await this.verifyPoolTransaction(userId, txHash, 'deposit');
+    async recordDeposit(userId: string, rawTxHash: string) {
+        const { address, blockNumber, hash: txHash } = await this.verifyPoolTransaction(userId, rawTxHash, 'deposit');
 
         const existing = await prisma.investorDeposit.findUnique({ where: { txHash } });
         if (existing) {
@@ -346,8 +346,8 @@ export class InvestorService {
      * this only records what happened and marks deposits as withdrawn once the
      * position is empty.
      */
-    async recordWithdrawal(userId: string, txHash: string) {
-        const { address } = await this.verifyPoolTransaction(userId, txHash, 'withdraw');
+    async recordWithdrawal(userId: string, rawTxHash: string) {
+        const { address, hash: txHash } = await this.verifyPoolTransaction(userId, rawTxHash, 'withdraw');
 
         const event = await blockchainService.findPoolEvent(
             txHash,
@@ -359,14 +359,12 @@ export class InvestorService {
             throw new ValidationError('No matching Withdrawn event for this wallet in that transaction');
         }
 
-        await prisma.poolTransaction.create({
-            data: {
-                type: 'WITHDRAWAL',
-                amount: new PrismaDecimal(event.assets),
-                sharesDelta: new PrismaDecimal(`-${event.shares}`),
-                txHash,
-                userId,
-            },
+        await this.fileOnce(txHash, {
+            type: 'WITHDRAWAL',
+            amount: new PrismaDecimal(event.assets),
+            sharesDelta: new PrismaDecimal(`-${event.shares}`),
+            txHash,
+            userId,
         });
 
         // A position back at zero means every deposit behind it is now closed.
@@ -394,8 +392,8 @@ export class InvestorService {
     }
 
     /** File a yield claim the investor already signed. */
-    async recordYieldClaim(userId: string, txHash: string) {
-        const { address } = await this.verifyPoolTransaction(userId, txHash, 'claim');
+    async recordYieldClaim(userId: string, rawTxHash: string) {
+        const { address, hash: txHash } = await this.verifyPoolTransaction(userId, rawTxHash, 'claim');
 
         const event = await blockchainService.findPoolEvent(
             txHash,
@@ -407,14 +405,12 @@ export class InvestorService {
             throw new ValidationError('No matching YieldClaimed event for this wallet in that transaction');
         }
 
-        await prisma.poolTransaction.create({
-            data: {
-                type: 'YIELD_CLAIMED',
-                amount: new PrismaDecimal(event.assets),
-                sharesDelta: new PrismaDecimal(`-${event.shares}`),
-                txHash,
-                userId,
-            },
+        await this.fileOnce(txHash, {
+            type: 'YIELD_CLAIMED',
+            amount: new PrismaDecimal(event.assets),
+            sharesDelta: new PrismaDecimal(`-${event.shares}`),
+            txHash,
+            userId,
         });
 
         await prisma.auditLog.create({
@@ -430,6 +426,21 @@ export class InvestorService {
         await this._syncPoolMirror();
 
         return { amount: Number(event.assets), sharesBurned: Number(event.shares), txHash };
+    }
+
+    /**
+     * PoolTransaction.txHash is not unique (a repayment and its yield row share
+     * one), so the duplicate check and the insert run under a lock on the hash.
+     */
+    private async fileOnce(txHash: string, data: Prisma.PoolTransactionUncheckedCreateInput) {
+        await prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${txHash}))`;
+            const already = await tx.poolTransaction.findFirst({ where: { txHash } });
+            if (already) {
+                throw new ValidationError('This transaction has already been recorded');
+            }
+            await tx.poolTransaction.create({ data });
+        });
     }
 
     /**

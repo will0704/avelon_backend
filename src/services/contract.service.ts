@@ -130,6 +130,14 @@ export class ContractService {
         return receipt.hash;
     }
 
+    /** Move the due date back and add the fee to what is owed on-chain. */
+    async extendLoan(loanId: number, extraSeconds: number, feeEth: string): Promise<string> {
+        const contract = blockchainService.getAvelonLending();
+        const tx = await contract.extendLoan(loanId, extraSeconds, ethers.parseEther(feeEth));
+        const receipt = await tx.wait();
+        return receipt.hash;
+    }
+
     /**
      * Check if a loan is overdue
      */
@@ -251,6 +259,45 @@ export class ContractService {
                 verified: false,
                 error: error instanceof Error ? error.message : 'Verification failed'
             };
+        }
+    }
+
+    /** Verify a borrower's addCollateral(loanId) top-up. */
+    async verifyAdditionalCollateral(
+        loanId: number,
+        txHash: string,
+        borrowerAddress: string,
+    ): Promise<{ verified: boolean; amount?: string; blockNumber?: number; gasUsed?: string; error?: string }> {
+        try {
+            const txInfo = await blockchainService.verifyTransaction(txHash);
+            if (!txInfo.valid) {
+                return { verified: false, error: `Transaction is not successful or lacks ${chain.minConfirmations} confirmation(s)` };
+            }
+            if (txInfo.chainId !== chain.id) {
+                return { verified: false, error: `Transaction is on chain ${txInfo.chainId}, expected ${chain.id}` };
+            }
+            if (txInfo.from?.toLowerCase() !== borrowerAddress.toLowerCase()) {
+                return { verified: false, error: 'Transaction sender is not the verified borrower wallet' };
+            }
+            const cmAddress = process.env.COLLATERAL_MANAGER_ADDRESS;
+            if (!cmAddress || txInfo.to?.toLowerCase() !== cmAddress.toLowerCase()) {
+                return { verified: false, error: 'Transaction not sent to CollateralManager' };
+            }
+            if (!txInfo.data || blockchainService.decodeCollateralDeposit(txInfo.data, 'addCollateral') !== loanId) {
+                return { verified: false, error: 'Transaction did not call addCollateral for this loan' };
+            }
+            const event = await blockchainService.findCollateralDepositEvent(
+                txHash, cmAddress, loanId, borrowerAddress, 'CollateralAdded',
+            );
+            if (!event) {
+                return { verified: false, error: 'Expected CollateralAdded event was not emitted' };
+            }
+            if (txInfo.value !== event.amount) {
+                return { verified: false, error: 'Transaction value does not match the collateral event' };
+            }
+            return { verified: true, amount: event.amount, blockNumber: txInfo.blockNumber, gasUsed: txInfo.gasUsed };
+        } catch (error) {
+            return { verified: false, error: error instanceof Error ? error.message : 'Verification failed' };
         }
     }
 

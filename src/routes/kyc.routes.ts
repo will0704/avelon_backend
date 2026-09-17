@@ -9,7 +9,7 @@ import { UserStatus } from '../types/index.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { notificationService } from '../services/notification.service.js';
-import { triggerAIVerification, verifyFace } from '../services/kyc-verification.service.js';
+import { triggerAIVerification, verifyFace, FaceServiceUnavailableError } from '../services/kyc-verification.service.js';
 import { createRateLimiter } from '../middleware/rate-limit.middleware.js';
 
 const kycRoutes = new Hono();
@@ -567,7 +567,10 @@ kycRoutes.post('/verify/face', kycUploadRateLimiter, async (c) => {
         }
 
         // Handle AI service / network errors with a descriptive message
-        if (err instanceof Error && (err.message.includes('fetch') || err.message.includes('ECONNREFUSED') || err.message.includes('network'))) {
+        if (
+            err instanceof FaceServiceUnavailableError ||
+            (err instanceof Error && (err.name === 'TimeoutError' || err.message.includes('fetch') || err.message.includes('ECONNREFUSED') || err.message.includes('network')))
+        ) {
             console.error('[KYC] Face verify: AI service unreachable —', err.message);
             throw new AppError(502, 'AI_SERVICE_ERROR', 'Face verification service is currently unavailable. Please try again later.');
         }
@@ -630,25 +633,36 @@ kycRoutes.post('/submit', zValidator('json', submitKycSchema), async (c) => {
         throw new ValidationError('A government ID document is required for KYC submission');
     }
 
-    // Require completed and passed face verification
+    // The face match has to be against the ID being submitted now
     const selfieDoc = await prisma.document.findFirst({
         where: { userId, type: 'SELFIE' },
-        orderBy: { createdAt: 'desc' },
-        select: { faceMatchPassed: true },
+        orderBy: { updatedAt: 'desc' },
+        select: { faceMatchPassed: true, aiExtractedData: true },
     });
 
     if (!selfieDoc || selfieDoc.faceMatchPassed !== true) {
         throw new ValidationError('Face verification must be completed and passed before submitting KYC');
     }
 
-    // Update user status to pending KYC
-    await prisma.user.update({
-        where: { id: userId },
+    const currentIds = documents
+        .filter((d: { type: string }) => d.type === 'GOVERNMENT_ID')
+        .map((d: { id: string }) => d.id);
+    const comparedWith = (selfieDoc.aiExtractedData as { comparedWithDocumentId?: string } | null)?.comparedWithDocumentId;
+    if (!comparedWith || !currentIds.includes(comparedWith)) {
+        throw new ValidationError('Your ID changed after your face check. Please complete face verification again.');
+    }
+
+    // Only one submission wins; a double tap must not start two verifications
+    const moved = await prisma.user.updateMany({
+        where: { id: userId, status: { in: [UserStatus.VERIFIED, UserStatus.REJECTED] } },
         data: {
             status: UserStatus.PENDING_KYC,
             kycSubmittedAt: new Date(),
         },
     });
+    if (moved.count !== 1) {
+        throw new AppError(409, 'KYC_ALREADY_SUBMITTED', 'KYC is already pending review');
+    }
 
     // Create notification (non-blocking — don't fail submission if notification fails)
     notificationService.notify(userId, {

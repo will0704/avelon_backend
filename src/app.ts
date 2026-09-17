@@ -18,10 +18,11 @@ import { marketRoutes } from './routes/market.routes.js';
 // Import admin routes
 import { adminRoutes } from './routes/admin/index.js';
 import { investorRoutes } from './routes/investor.routes.js';
+import { rpcRoutes } from './routes/rpc.routes.js';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware.js';
-import { globalRateLimiter, adminRateLimiter, authRateLimiter } from './middleware/rate-limit.middleware.js';
+import { globalRateLimiter, adminRateLimiter, authRateLimiter, rpcRateLimiter } from './middleware/rate-limit.middleware.js';
 import { bodySizeLimiter, requestId, enforceContentType } from './middleware/security.middleware.js';
 import { corsAllowedOrigins, env } from './config/env.js';
 import { adminMiddleware, authMiddleware } from './middleware/auth.middleware.js';
@@ -84,8 +85,12 @@ app.use('*', enforceContentType);
 app.use('/api/v1/admin/*', adminRateLimiter);
 
 // Global rate limiter (OWASP A04 — 100 req/15min per IP)
-// Scoped to /api/* to exclude health check endpoints
-app.use('/api/*', globalRateLimiter);
+// Scoped to /api/* to exclude health check endpoints. The RPC proxy has its own
+// limit: a wallet polls the chain every few seconds and would exhaust this one.
+app.use('/api/*', (c, next) =>
+    c.req.path.startsWith('/api/v1/rpc') ? next() : globalRateLimiter(c, next)
+);
+app.use('/api/v1/rpc', rpcRateLimiter);
 
 // Auth-specific rate limiter (OWASP A07 — 5 req/15min per IP)
 app.use('/api/v1/auth/login', authRateLimiter);
@@ -165,6 +170,9 @@ api.route('/admin', adminRoutes);
 
 // Investor routes
 api.route('/investor', investorRoutes);
+
+// JSON-RPC for phone wallets on the local chain
+api.route('/rpc', rpcRoutes);
 
 // Mount API under /api/v1
 app.route('/api/v1', api);

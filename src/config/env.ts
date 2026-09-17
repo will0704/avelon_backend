@@ -27,6 +27,9 @@ const envSchema = z.object({
     // anything else lets a client forge its own rate-limit identity.
     // Render puts exactly one load balancer in front, so set this to 1 there.
     TRUSTED_PROXY_COUNT: z.coerce.number().int().min(0).default(0),
+    // Per-IP cap on /api/* per 15 minutes. A room of phones on one Wi-Fi shares
+    // a public IP, so a group demo needs more than the default.
+    RATE_LIMIT_GLOBAL_MAX: z.coerce.number().int().min(1).default(100),
 
     // Database
     DATABASE_URL: z.string().url(),

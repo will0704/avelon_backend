@@ -184,11 +184,18 @@ export function createRateLimiter(config: RateLimitConfig) {
 
 // ─── Named limiters ──────────────────────────────────
 
-/** Global — 100 requests per 15 minutes per IP */
+/** Global — 100 requests per 15 minutes per IP unless RATE_LIMIT_GLOBAL_MAX says otherwise */
 export const globalRateLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
-    maxRequests: 100,
+    maxRequests: env.RATE_LIMIT_GLOBAL_MAX,
     keyPrefix: 'global',
+});
+
+/** Local-chain RPC proxy — 3000 requests per 15 minutes per IP, wallets poll */
+export const rpcRateLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    maxRequests: 3000,
+    keyPrefix: 'rpc',
 });
 
 /** Admin — 500 requests per 15 minutes per IP */

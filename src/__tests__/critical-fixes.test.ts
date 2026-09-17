@@ -68,6 +68,7 @@ vi.mock('../middleware/rate-limit.middleware.js', () => ({
     globalRateLimiter: vi.fn((_c: unknown, next: () => Promise<void>) => next()),
     adminRateLimiter: vi.fn((_c: unknown, next: () => Promise<void>) => next()),
     authRateLimiter: vi.fn((_c: unknown, next: () => Promise<void>) => next()),
+    rpcRateLimiter: vi.fn((_c: unknown, next: () => Promise<void>) => next()),
     createRateLimiter: vi.fn(() => (_c: unknown, next: () => Promise<void>) => next()),
 }));
 

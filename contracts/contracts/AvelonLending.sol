@@ -86,6 +86,7 @@ contract AvelonLending is Ownable, ReentrancyGuard {
     event LoanRepaid(uint32 indexed loanId, uint48 repaidAt);
     event LoanLiquidated(uint32 indexed loanId, uint48 liquidatedAt);
     event LoanCancelled(uint32 indexed loanId);
+    event LoanExtended(uint32 indexed loanId, uint48 newDueDate, uint128 fee);
     event CollateralManagerUpdated(address indexed oldManager, address indexed newManager);
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
 
@@ -233,6 +234,21 @@ contract AvelonLending is Ownable, ReentrancyGuard {
             loan.status = LoanStatus.Repaid;
             emit LoanRepaid(loanId, uint48(block.timestamp));
         }
+    }
+
+    /**
+     * @dev Push the due date back and add the extension fee to what is owed.
+     *      The fee is booked as interest so the pool counts it as yield.
+     */
+    function extendLoan(uint32 loanId, uint32 extraSeconds, uint128 fee) external onlyOwner loanExists(loanId) {
+        Loan storage loan = loans[loanId];
+        if (loan.status != LoanStatus.Active) revert InvalidLoanStatus();
+        if (extraSeconds == 0) revert InvalidDuration();
+
+        loan.dueDate += extraSeconds;
+        loan.interestOwed += fee;
+
+        emit LoanExtended(loanId, loan.dueDate, fee);
     }
 
     /**

@@ -153,6 +153,26 @@ export const approvedMiddleware = createMiddleware(async (c, next) => {
     await next();
 });
 
+// Investors have no KYC step, so a verified email is enough for them to link a
+// wallet. Everyone else still needs KYC approval first.
+export const walletLinkMiddleware = createMiddleware(async (c, next) => {
+    const user = c.get('user');
+
+    if (!user) {
+        throw new UnauthorizedError('Authentication required');
+    }
+
+    if (user.role === UserRole.INVESTOR) {
+        if (user.status === UserStatus.REGISTERED) {
+            throw new ForbiddenError('Please verify your email first');
+        }
+    } else if (user.status !== UserStatus.APPROVED && user.status !== UserStatus.CONNECTED) {
+        throw new ForbiddenError('KYC approval required to access this feature');
+    }
+
+    await next();
+});
+
 /**
  * Investor-only middleware
  * Must be used after authMiddleware

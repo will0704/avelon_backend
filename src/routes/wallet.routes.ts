@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
-import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, walletLinkMiddleware } from '../middleware/auth.middleware.js';
 import { walletService } from '../services/wallet.service.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -39,7 +39,7 @@ walletRoutes.get('/', authMiddleware, async (c) => {
  * POST /wallets/connect
  * Initiate wallet connection - returns message to sign
  */
-walletRoutes.post('/connect', authMiddleware, approvedMiddleware, zValidator('json', connectWalletSchema), async (c) => {
+walletRoutes.post('/connect', authMiddleware, walletLinkMiddleware, zValidator('json', connectWalletSchema), async (c) => {
     const userId = c.get('userId');
     const { address, chainId } = c.req.valid('json');
 
@@ -59,7 +59,7 @@ walletRoutes.post('/connect', authMiddleware, approvedMiddleware, zValidator('js
  * POST /wallets/verify
  * Verify wallet signature
  */
-walletRoutes.post('/verify', authMiddleware, approvedMiddleware, zValidator('json', verifyWalletSchema), async (c) => {
+walletRoutes.post('/verify', authMiddleware, walletLinkMiddleware, zValidator('json', verifyWalletSchema), async (c) => {
     const userId = c.get('userId');
     const { address, signature, message, chainId } = c.req.valid('json');
 

@@ -17,6 +17,10 @@ services:
       # trailing X-Forwarded-For entry is trustworthy. Rate limiting keys on it.
       - key: TRUSTED_PROXY_COUNT
         value: 1
+      # Hourly ETH/PHP prices. A free instance sleeps, so the feed also backfills
+      # the missed hours whenever it wakes. A throttled request only logs a warning.
+      - key: PRICE_FEED_ENABLED
+        value: "true"
       # Neon connection string, set in the dashboard. Render's own free Postgres is
       # deleted 30 days after creation — that is what killed the last deployment.
       - key: DATABASE_URL

@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server';
 import { app } from './app.js';
 import { env } from './config/env.js';
-import { startJobs } from './jobs/index.js';
+import { startJobs, startPriceFeed } from './jobs/index.js';
 import { recoverStalledKyc } from './services/kyc-verification.service.js';
 
 const port = env.PORT;
@@ -41,5 +41,9 @@ serve({
         startJobs();
     } else {
         console.log('Background jobs disabled (set ENABLE_BACKGROUND_JOBS=true to opt in)');
+    }
+
+    if (env.PRICE_FEED_ENABLED) {
+        startPriceFeed();
     }
 });

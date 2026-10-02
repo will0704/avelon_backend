@@ -290,13 +290,17 @@ async function main() {
     // PRICE HISTORY
     // =====================================================
 
-    await prisma.priceHistory.create({
-        data: {
-            ethPricePHP: 150000,
-            source: 'manual',
-        },
-    });
-    console.log('✅ Created initial price history (1 ETH = ₱150,000)');
+    // Only a placeholder for an empty table. Re-seeding next to real feed data
+    // would put a fake ₱150,000 point into every chart.
+    if ((await prisma.priceHistory.count()) === 0) {
+        await prisma.priceHistory.create({
+            data: {
+                ethPricePHP: 150000,
+                source: 'manual',
+            },
+        });
+        console.log('✅ Created initial price history (1 ETH = ₱150,000)');
+    }
 
     // =====================================================
     // SYSTEM CONFIGS
@@ -313,7 +317,10 @@ async function main() {
     for (const cfg of configs) {
         await prisma.systemConfig.upsert({
             where: { key: cfg.key },
-            update: { value: cfg.value, description: cfg.description },
+            // The price feed owns the live rate; the seed only provides a first value
+            update: cfg.key === 'ETH_PHP_RATE'
+                ? { description: cfg.description }
+                : { value: cfg.value, description: cfg.description },
             create: cfg,
         });
         console.log('✅ Created system config:', cfg.key);

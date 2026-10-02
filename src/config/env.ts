@@ -11,6 +11,9 @@ const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     PORT: z.coerce.number().default(3001),
     ENABLE_BACKGROUND_JOBS: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),
+    // Hourly ETH/PHP prices from CoinGecko into PriceHistory. On by default, unlike
+    // the jobs above, because the price charts are empty without it.
+    PRICE_FEED_ENABLED: z.enum(['true', 'false']).default('true').transform((value) => value === 'true'),
     // Returns the email/reset OTP in the API response so a local demo can verify an
     // account with no mailbox. Ignored outside development — see exposeDemoOtp.
     DEMO_EXPOSE_OTP: z.enum(['true', 'false']).default('false').transform((value) => value === 'true'),

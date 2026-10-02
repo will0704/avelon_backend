@@ -15,11 +15,10 @@ import { prisma } from '../../lib/prisma.js';
 import { blockchainService } from '../../services/blockchain.service.js';
 import { NotificationType } from '../../generated/prisma/enums.js';
 import { contractService } from '../../services/contract.service.js';
-import { env } from '../../config/env.js';
 import { poolService } from '../../services/pool.service.js';
+import { getVolatilityForecast, parseHorizon } from '../../services/volatility.service.js';
 
 const adminRoutes = new Hono();
-const volatilityCache = new Map<number, { expiresAt: number; data: Record<string, any> }>();
 
 // Protect ALL admin routes with auth + admin role check (OWASP A01)
 adminRoutes.use('*', authMiddleware);
@@ -572,62 +571,8 @@ adminRoutes.get('/pool', async (c) => {
  * ratio, so this endpoint is advisory and never drives liquidation.
  */
 adminRoutes.get('/volatility', async (c) => {
-    const horizonDays = Math.min(30, Math.max(1, Number(c.req.query('horizon') ?? 7)));
-
-    try {
-        const cached = volatilityCache.get(horizonDays);
-        let baseline = cached && cached.expiresAt > Date.now() ? cached.data : null;
-        if (!baseline) {
-            const url = new URL(`${env.AI_SERVICE_URL}/api/v1/predict/volatility`);
-            url.searchParams.set('horizon_days', String(horizonDays));
-
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 15000);
-            try {
-                const res = await fetch(url, {
-                    headers: { 'X-API-Key': env.AI_API_KEY },
-                    signal: controller.signal,
-                });
-                if (!res.ok) throw new Error(`AI service returned ${res.status}`);
-                baseline = await res.json() as Record<string, any>;
-                volatilityCache.set(horizonDays, {
-                    expiresAt: Date.now() + 15 * 60 * 1000,
-                    data: baseline,
-                });
-            } finally {
-                clearTimeout(timeout);
-            }
-        }
-
-        return c.json({
-            success: true,
-            data: {
-                online: true,
-                horizonDays,
-                advisoryOnly: true,
-                liquidationEnabled: false,
-                economicNote: 'ETH volatility does not change an ETH-collateral/ETH-debt ratio; liquidation is based only on an overdue default.',
-                currentPricePHP: baseline.current_price_php,
-                priceSource: baseline.price_source,
-                model: baseline.model,
-                predictedVolatility: baseline.predicted_volatility,
-                realizedVolatility24h: baseline.realized_volatility_24h,
-                horizonVolatility: baseline.horizon_volatility,
-                riskLevel: baseline.risk_level,
-                priceRange68: baseline.price_range_68,
-                priceRange95: baseline.price_range_95,
-                recentPrices: baseline.recent_prices,
-                modelMetadata: baseline.model_metadata,
-            },
-        });
-    } catch (err) {
-        console.error('[admin/volatility] error:', err);
-        // The AI service being down must not blank the page — the UI shows a banner.
-        return c.json({
-            success: true,
-            data: { online: false, horizonDays, advisoryOnly: true, liquidationEnabled: false },
-        });
-    }
+    const data = await getVolatilityForecast(parseHorizon(c.req.query('horizon')));
+    return c.json({ success: true, data });
 });
 
 export { adminRoutes };

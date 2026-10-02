@@ -1,3 +1,4 @@
+import { ethers } from 'ethers';
 import { prisma } from '../lib/prisma.js';
 import { AppError, NotFoundError, ValidationError } from '../middleware/error.middleware.js';
 import { DepositStatus } from '../types/index.js';
@@ -19,6 +20,14 @@ const PrismaDecimal = Prisma.Decimal;
 // =====================================================
 
 type PoolAction = 'deposit' | 'withdraw' | 'claim';
+
+// Plain decimal ETH as typed into a form: "1", "1.5" or ".5", at most 18 places
+const ETH_AMOUNT = /^(\d+(\.\d{1,18})?|\.\d{1,18})$/;
+
+// formatEther gives "10.0"; show limits the way people type them
+function ethString(wei: bigint): string {
+    return ethers.formatEther(wei).replace(/\.0$/, '');
+}
 
 export class InvestorService {
     /**
@@ -125,10 +134,15 @@ export class InvestorService {
                 custodyMode: 'UNCONFIGURED' as const,
                 depositsEnabled: false,
                 withdrawalsEnabled: false,
+                minDeposit: null,
+                maxDeposit: null,
             };
         }
 
-        const state = await poolService.getPoolState();
+        const [state, limits] = await Promise.all([
+            poolService.getPoolState(),
+            poolService.getDepositLimits(),
+        ]);
 
         return {
             tvl: Number(state.totalAssets),
@@ -148,6 +162,9 @@ export class InvestorService {
             custodyMode: 'SELF_CUSTODY_ONCHAIN' as const,
             depositsEnabled: true,
             withdrawalsEnabled: true,
+            // Decimal ETH strings, null when the pool predates the limits
+            minDeposit: limits ? ethString(limits.min) : null,
+            maxDeposit: limits ? ethString(limits.max) : null,
         };
     }
 
@@ -447,10 +464,16 @@ export class InvestorService {
      * The calldata and target an investor's wallet has to sign. Returned so the web
      * and mobile clients never hand-assemble a function selector.
      */
-    async getCallData(action: 'deposit' | 'claim' | 'withdraw', shares?: string) {
+    async getCallData(action: 'deposit' | 'claim' | 'withdraw', shares?: string, amount?: string) {
         const address = poolService.getAddress();
         if (!address) {
             throw new AppError(503, 'INVESTOR_POOL_UNAVAILABLE', 'No liquidity pool is configured.');
+        }
+
+        // Optional so a client that predates the limits still gets its calldata;
+        // the contract enforces the same bounds either way.
+        if (action === 'deposit' && amount !== undefined) {
+            await this._checkDepositAmount(amount);
         }
 
         if (action === 'withdraw') {
@@ -466,6 +489,28 @@ export class InvestorService {
             value: '0',
             chainId: chain.id,
         };
+    }
+
+    /** Refuse a deposit the pool would revert, before the investor pays gas for it. */
+    private async _checkDepositAmount(amount: string) {
+        const typed = amount.trim();
+        if (!ETH_AMOUNT.test(typed)) {
+            throw new ValidationError('Enter the amount in ETH, with at most 18 decimal places');
+        }
+        // Compared in wei; Number would round 18-decimal amounts
+        const wei = ethers.parseEther(typed.startsWith('.') ? `0${typed}` : typed);
+        if (wei === 0n) {
+            throw new ValidationError('Enter an amount greater than zero');
+        }
+
+        const limits = await poolService.getDepositLimits();
+        if (!limits) return;
+        if (wei < limits.min) {
+            throw new ValidationError(`Minimum deposit is ${ethString(limits.min)} ETH`);
+        }
+        if (wei > limits.max) {
+            throw new ValidationError(`Maximum deposit is ${ethString(limits.max)} ETH per transaction`);
+        }
     }
 
     // ============================================

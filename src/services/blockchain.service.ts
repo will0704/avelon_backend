@@ -86,6 +86,11 @@ const LIQUIDITY_POOL_ABI = [
     { inputs: [{ internalType: 'address', name: 'investor', type: 'address' }], name: 'yieldOf', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
     { inputs: [{ internalType: 'address', name: 'investor', type: 'address' }], name: 'maxWithdrawableAssets', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
     { inputs: [{ internalType: 'uint32', name: '', type: 'uint32' }], name: 'loanPrincipal', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [], name: 'minDeposit', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    { inputs: [], name: 'maxDeposit', outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+    // Errors
+    { inputs: [{ internalType: 'uint256', name: 'sent', type: 'uint256' }, { internalType: 'uint256', name: 'minimum', type: 'uint256' }], name: 'DepositBelowMinimum', type: 'error' },
+    { inputs: [{ internalType: 'uint256', name: 'sent', type: 'uint256' }, { internalType: 'uint256', name: 'maximum', type: 'uint256' }], name: 'DepositAboveMaximum', type: 'error' },
     // Events
     { anonymous: false, inputs: [{ indexed: true, internalType: 'address', name: 'investor', type: 'address' }, { internalType: 'uint256', name: 'assets', type: 'uint256' }, { internalType: 'uint256', name: 'sharesMinted', type: 'uint256' }], name: 'Deposited', type: 'event' },
     { anonymous: false, inputs: [{ indexed: true, internalType: 'address', name: 'investor', type: 'address' }, { internalType: 'uint256', name: 'assets', type: 'uint256' }, { internalType: 'uint256', name: 'sharesBurned', type: 'uint256' }], name: 'Withdrawn', type: 'event' },

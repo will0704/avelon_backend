@@ -29,6 +29,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  *   repayments. maxWithdrawableAssets() reports what is actually available.
  * - No interest accrual on outstanding principal. A loan contributes yield only
  *   when it is repaid, so share price steps rather than drifts.
+ * - Each deposit must fall between minDeposit and maxDeposit. The cap is per
+ *   transaction, not per investor. Plain transfers to receive() skip the limits,
+ *   but they mint no shares.
  * - No upgrade path, no emergency exit for investors, no fee switch.
  */
 contract AvelonLiquidityPool is Ownable, Pausable, ReentrancyGuard {
@@ -47,10 +50,16 @@ contract AvelonLiquidityPool is Ownable, Pausable, ReentrancyGuard {
     error PrincipalExceedsOutstanding();
     error NoYieldToClaim();
     error TransferFailed();
+    error DepositBelowMinimum(uint256 sent, uint256 minimum);
+    error DepositAboveMaximum(uint256 sent, uint256 maximum);
 
     // ============================================
     // STATE
     // ============================================
+
+    /// @dev Per-deposit bounds, in wei. The owner can move them with setDepositLimits.
+    uint256 public minDeposit = 0.01 ether;
+    uint256 public maxDeposit = 10 ether;
 
     /// @dev Shares held per investor.
     mapping(address => uint256) public shares;
@@ -79,6 +88,7 @@ contract AvelonLiquidityPool is Ownable, Pausable, ReentrancyGuard {
     event RepaymentReceived(uint32 indexed loanId, uint256 principal, uint256 interest);
     event LoanWrittenOff(uint32 indexed loanId, uint256 amount);
     event RecoveryReceived(uint32 indexed loanId, uint256 amount);
+    event DepositLimitsUpdated(uint256 minDeposit, uint256 maxDeposit);
 
     constructor() Ownable(msg.sender) {}
 
@@ -152,6 +162,8 @@ contract AvelonLiquidityPool is Ownable, Pausable, ReentrancyGuard {
      */
     function deposit() external payable nonReentrant whenNotPaused {
         if (msg.value == 0) revert MustSendETH();
+        if (msg.value < minDeposit) revert DepositBelowMinimum(msg.value, minDeposit);
+        if (msg.value > maxDeposit) revert DepositAboveMaximum(msg.value, maxDeposit);
 
         // balance already includes msg.value, so price the shares off the pool as
         // it stood before this deposit landed.
@@ -302,6 +314,14 @@ contract AvelonLiquidityPool is Ownable, Pausable, ReentrancyGuard {
 
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    function setDepositLimits(uint256 _min, uint256 _max) external onlyOwner {
+        // A zero minimum would let a 1-wei deposit through; max below min locks deposits
+        if (_min == 0 || _max < _min) revert InvalidAmount();
+        minDeposit = _min;
+        maxDeposit = _max;
+        emit DepositLimitsUpdated(_min, _max);
     }
 
     // ============================================

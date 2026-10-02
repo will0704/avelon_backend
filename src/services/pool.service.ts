@@ -105,6 +105,20 @@ export class PoolService {
         };
     }
 
+    /** Per-deposit bounds in wei, or null when the pool is unset or predates them. */
+    async getDepositLimits(): Promise<{ min: bigint; max: bigint } | null> {
+        if (!this.isConfigured()) return null;
+        // Kept apart from getPoolState so an older pool without these views still
+        // serves the investor pages, just without limits.
+        try {
+            const pool = this.requirePool();
+            const [min, max] = await Promise.all([pool.minDeposit(), pool.maxDeposit()]);
+            return { min: BigInt(min), max: BigInt(max) };
+        } catch {
+            return null;
+        }
+    }
+
     /** Principal still outstanding on one loan, in ETH. */
     async getLoanPrincipal(contractLoanId: number): Promise<string> {
         const pool = this.requirePool();

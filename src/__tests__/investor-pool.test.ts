@@ -41,10 +41,11 @@ vi.mock('../services/blockchain.service.js', () => ({
     },
 }));
 
-const { mockGetPoolState, mockGetPosition, mockIsConfigured } = vi.hoisted(() => ({
+const { mockGetPoolState, mockGetPosition, mockIsConfigured, mockGetDepositLimits } = vi.hoisted(() => ({
     mockGetPoolState: vi.fn(),
     mockGetPosition: vi.fn(),
     mockIsConfigured: vi.fn(),
+    mockGetDepositLimits: vi.fn(),
 }));
 
 vi.mock('../services/pool.service.js', () => ({
@@ -53,6 +54,8 @@ vi.mock('../services/pool.service.js', () => ({
         isConfigured: mockIsConfigured,
         getPoolState: mockGetPoolState,
         getPosition: mockGetPosition,
+        getDepositLimits: mockGetDepositLimits,
+        encodeCall: () => '0xd0e30db0',
     },
 }));
 
@@ -78,6 +81,8 @@ beforeEach(() => {
     chainState.id = 31337;
 
     mockIsConfigured.mockReturnValue(true);
+    // The contract defaults: 0.01 ETH to 10 ETH per deposit
+    mockGetDepositLimits.mockResolvedValue({ min: 10n ** 16n, max: 10n ** 19n });
     mockGetPoolState.mockResolvedValue({
         address: POOL_ADDRESS,
         totalAssets: '8.0',
@@ -275,6 +280,66 @@ describe('investor position reporting', () => {
         expect(stats.tvl).toBe(8);
         // No deposit address is handed out — the calldata endpoint is the only path.
         expect('depositAddress' in stats).toBe(false);
+    });
+});
+
+describe('investor deposit limits', () => {
+    it('reports the pool limits as plain ETH strings', async () => {
+        const stats = await investorService.getPoolStats();
+
+        expect(stats.minDeposit).toBe('0.01');
+        expect(stats.maxDeposit).toBe('10');
+    });
+
+    it('still serves pool stats when the pool predates the limits', async () => {
+        mockGetDepositLimits.mockResolvedValue(null);
+
+        const stats = await investorService.getPoolStats();
+
+        expect(stats.tvl).toBe(8);
+        expect(stats.minDeposit).toBeNull();
+        expect(stats.maxDeposit).toBeNull();
+    });
+
+    it('refuses deposit calldata below the minimum', async () => {
+        await expect(investorService.getCallData('deposit', undefined, '0.001'))
+            .rejects.toThrow('Minimum deposit is 0.01 ETH');
+    });
+
+    it('refuses deposit calldata above the maximum', async () => {
+        await expect(investorService.getCallData('deposit', undefined, '10.000000000000000001'))
+            .rejects.toThrow('Maximum deposit is 10 ETH per transaction');
+    });
+
+    it('accepts amounts exactly at the limits and a leading-dot amount', async () => {
+        for (const amount of ['0.01', '10', '.5']) {
+            const data = await investorService.getCallData('deposit', undefined, amount);
+            expect(data.to).toBe(POOL_ADDRESS);
+        }
+    });
+
+    it('rejects amounts that are not plain decimal ETH', async () => {
+        for (const amount of ['1e3', '-1', 'abc', '', '0.0000000000000000001']) {
+            await expect(investorService.getCallData('deposit', undefined, amount))
+                .rejects.toThrow(/Enter the amount in ETH/);
+        }
+        await expect(investorService.getCallData('deposit', undefined, '0'))
+            .rejects.toThrow(/greater than zero/);
+    });
+
+    it('skips the check for a client that sends no amount', async () => {
+        const data = await investorService.getCallData('deposit');
+
+        expect(data.to).toBe(POOL_ADDRESS);
+        expect(mockGetDepositLimits).not.toHaveBeenCalled();
+    });
+
+    it('lets a deposit through when the pool has no limits to read', async () => {
+        mockGetDepositLimits.mockResolvedValue(null);
+
+        const data = await investorService.getCallData('deposit', undefined, '50');
+
+        expect(data.to).toBe(POOL_ADDRESS);
     });
 });
 

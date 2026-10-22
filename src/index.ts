@@ -3,6 +3,7 @@ import { app } from './app.js';
 import { env } from './config/env.js';
 import { startJobs, startPriceFeed } from './jobs/index.js';
 import { recoverStalledKyc } from './services/kyc-verification.service.js';
+import { syncClock } from './lib/clock.js';
 
 const port = env.PORT;
 
@@ -30,6 +31,9 @@ serve({
 }, (info) => {
     console.log(`Server is running on http://localhost:${info.port}`);
     console.log(`API Documentation: http://localhost:${info.port}/api/v1`);
+
+    // Pick up any demo fast-forward the local chain already has
+    void syncClock();
 
     // A restart drops any verification that was in flight, so always sweep once
     recoverStalledKyc().catch((err) => console.error('[KYC] Startup recovery failed:', err));

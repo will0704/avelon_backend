@@ -33,6 +33,8 @@ prisma/*.db-journal
 
 # Uploads
 uploads/
+# Local email outbox (EMAIL_DELIVERY=outbox)
+outbox/
 temp/
 
 # Testing
@@ -61,4 +63,5 @@ CLAUDE.md
 
 # Backup of the Base Sepolia chain block, taken when this checkout moved to the
 # local Hardhat node. Contains real keys.
-.env.basesepolia.bak
+# local .env backups, including the one gmail:token writes
+.env*.bak

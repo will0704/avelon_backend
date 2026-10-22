@@ -57,6 +57,8 @@ const poolMocks = vi.hoisted(() => ({
 }));
 vi.mock('../services/pool.service.js', () => ({ poolService: poolMocks }));
 
+vi.mock('../lib/clock.js', () => ({ now: () => new Date(), syncClock: vi.fn().mockResolvedValue(0) }));
+
 const notifyMock = vi.hoisted(() => vi.fn());
 vi.mock('../services/notification.service.js', () => ({ notificationService: { notify: notifyMock } }));
 
@@ -412,6 +414,20 @@ describe('applications and approval', () => {
         const [loan] = await loanService.getUserLoans('u1');
         expect(loan.totalOwed).toBe('0.050328767123287671');
     });
+
+    it('marks a loan overdue only once its due date has passed with money still owed', async () => {
+        const past = new Date(Date.now() - 3600_000);
+        mockPrismaClient.loan.findMany = vi.fn().mockResolvedValue([
+            loanRow(),
+            loanRow({ id: 'late', dueDate: past }),
+            loanRow({ id: 'settled', dueDate: past, principalOwed: D('0'), interestOwed: D('0') }),
+            loanRow({ id: 'gone', dueDate: past, status: 'LIQUIDATED' }),
+        ]);
+        const loans = await loanService.getUserLoans('u1');
+        expect(loans.map((l) => [l.id, l.isOverdue])).toEqual([
+            ['loan1', false], ['late', true], ['settled', false], ['gone', false],
+        ]);
+    });
 });
 
 // ─── extension ──────────────────────────────────────────────────────────
@@ -474,6 +490,49 @@ describe('liquidating a loan', () => {
             where: { id: 'u1' },
             data: { activeLoansCount: { decrement: 1 }, defaultCount: { increment: 1 } },
         });
+    });
+
+    it('seizes the stake on-chain, writes off the pool and recovers the stake into it', async () => {
+        const result = await loanService.liquidateLoan('loan1', 'admin1');
+
+        expect(contractMocks.liquidateLoan).toHaveBeenCalledWith(7, 0, 0);
+        expect(mockPrismaClient.loan.update).toHaveBeenCalledWith(expect.objectContaining({
+            where: { id: 'loan1' },
+            data: expect.objectContaining({ status: 'LIQUIDATED' }),
+        }));
+        expect(poolMocks.writeOffLoan).toHaveBeenCalledWith(7, '0.049');
+        expect(poolMocks.recordRecovery).toHaveBeenCalledWith(7, '0.03');
+        expect(result).toEqual({ txHash: '0xliq', writeOffTxHash: '0xoff', recoveryTxHash: '0xrecover', settlementPending: false });
+    });
+
+    it("adds the seizure to the loan's transaction history", async () => {
+        await loanService.liquidateLoan('loan1', 'admin1');
+        expect((mockPrismaClient as any).loanTransaction.create).toHaveBeenCalledWith({
+            data: expect.objectContaining({ loanId: 'loan1', type: 'LIQUIDATION', amount: D('0.03'), txHash: '0xliq', confirmed: true }),
+        });
+    });
+
+    it('tells the borrower how much stake was seized', async () => {
+        await loanService.liquidateLoan('loan1', 'admin1');
+        expect(notifyMock).toHaveBeenCalledWith('u1', expect.objectContaining({
+            type: 'LOAN_LIQUIDATED',
+            metadata: expect.objectContaining({ collateralSeized: '0.03', txHash: '0xliq' }),
+        }));
+    });
+
+    it('runs from the auto-liquidation job with no admin attached', async () => {
+        await loanService.liquidateLoan('loan1', null);
+        const audit = (mockPrismaClient.auditLog.create as any).mock.calls
+            .map(([arg]: [any]) => arg.data)
+            .find((d: any) => d.action === 'LOAN_LIQUIDATED');
+        expect(audit.userId).toBeNull();
+        expect(audit.metadata.trigger).toBe('auto');
+    });
+
+    it('refuses a loan that is already paid off', async () => {
+        mockPrismaClient.loan.findUnique = vi.fn().mockResolvedValue(loanRow({ principalOwed: D(0), interestOwed: D(0), collateralDeposited: D('0.03') }));
+        await expect(loanService.liquidateLoan('loan1', 'admin1')).rejects.toThrow(/fully paid/);
+        expect(contractMocks.liquidateLoan).not.toHaveBeenCalled();
     });
 
     it('reports pool settlement that still has to be retried', async () => {

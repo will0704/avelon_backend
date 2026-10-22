@@ -52,6 +52,10 @@ const envSchema = z.object({
     GMAIL_CLIENT_SECRET: z.string().optional(),
     GMAIL_REFRESH_TOKEN: z.string().optional(),
     GMAIL_USER: z.string().email().optional(),
+    // auto = Gmail when the four values above are set, otherwise the local outbox
+    // in development. outbox writes each email to EMAIL_OUTBOX_DIR as HTML.
+    EMAIL_DELIVERY: z.enum(['auto', 'gmail', 'outbox', 'log']).default('auto'),
+    EMAIL_OUTBOX_DIR: z.string().default('./outbox'),
 
     // Blockchain — chain-neutral names. The deployment target is Base Sepolia
     // (84532); the SEPOLIA_* names below are the old ones and still work as a
@@ -98,6 +102,13 @@ const envSchema = z.object({
     WARNING_COLLATERAL_RATIO: z.coerce.number().default(40),
     GRACE_PERIOD_HOURS: z.coerce.number().default(24),
     LIQUIDATION_PENALTY_PERCENT: z.coerce.number().default(5),
+    // Days before the due date that the one-time repayment reminder goes out
+    REMINDER_DAYS_BEFORE: z.coerce.number().min(0).default(3),
+    // Advisory margin call when ETH/PHP moves this far from the price at application
+    MARGIN_CALL_MOVE_PERCENT: z.coerce.number().positive().default(15),
+    // Unset keeps liquidation a manual admin action. A number liquidates loans this
+    // many hours past their due date; the contract still checks the default itself.
+    AUTO_LIQUIDATE_AFTER_HOURS: z.coerce.number().min(0).optional(),
 });
 
 // Parse and validate environment

@@ -14,6 +14,9 @@ vi.mock('../config/env.js', () => ({
 const cancelLoan = vi.hoisted(() => vi.fn());
 vi.mock('../services/contract.service.js', () => ({ contractService: { cancelLoan } }));
 
+// Wall-clock time; the chain-following clock is covered in risk-jobs.test.ts
+vi.mock('../lib/clock.js', () => ({ now: () => new Date(), syncClock: vi.fn().mockResolvedValue(0) }));
+
 const notify = vi.hoisted(() => vi.fn());
 vi.mock('../services/notification.service.js', () => ({ notificationService: { notify } }));
 
@@ -49,7 +52,7 @@ describe('expiring loans nobody finished', () => {
             where: { id: 'a1', status: 'PENDING_APPROVAL', approvedBy: null },
             data: { status: 'EXPIRED' },
         });
-        expect(notify).toHaveBeenCalledWith('u1', expect.objectContaining({ title: expect.stringMatching(/expired/i) }));
+        expect(notify).toHaveBeenCalledWith('u1', expect.objectContaining({ title: expect.stringMatching(/expired/i) }), { wait: true });
     });
 
     it('cancels on-chain before expiring an approved loan that never got collateral', async () => {
@@ -88,6 +91,6 @@ describe('overdue warnings', () => {
         await flagOverdueLoans();
 
         expect(notify).toHaveBeenCalledTimes(1);
-        expect(notify).toHaveBeenCalledWith('u2', expect.anything());
+        expect(notify).toHaveBeenCalledWith('u2', expect.objectContaining({ type: 'REPAYMENT_OVERDUE' }), { wait: true });
     });
 });

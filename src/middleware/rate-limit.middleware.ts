@@ -80,7 +80,7 @@ async function incrementCounter(key: string, windowMs: number): Promise<number> 
 /**
  * Get the remaining TTL (seconds) for a key.
  */
-async function getTTL(key: string, windowMs: number): Promise<number> {
+async function getTTL(key: string): Promise<number> {
     if (redis) {
         try {
             const ttl = await redis.ttl(key);
@@ -155,7 +155,7 @@ export function createRateLimiter(config: RateLimitConfig) {
 
         const key = `rl:${keyPrefix}:${ip}`;
         const count = await incrementCounter(key, windowMs);
-        const resetSeconds = await getTTL(key, windowMs);
+        const resetSeconds = await getTTL(key);
         const remaining = Math.max(0, maxRequests - count);
 
         c.header('X-RateLimit-Limit', maxRequests.toString());

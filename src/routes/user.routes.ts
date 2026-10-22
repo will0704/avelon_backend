@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from '../lib/validate.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import fs from 'fs/promises';

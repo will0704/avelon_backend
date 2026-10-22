@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from '../lib/validate.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
@@ -161,7 +161,7 @@ kycRoutes.post('/profile', zValidator('json', kycProfileSchema), async (c) => {
 
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { status: true },
+        select: { status: true, name: true },
     });
 
     if (!user) {
@@ -182,6 +182,8 @@ kycRoutes.post('/profile', zValidator('json', kycProfileSchema), async (c) => {
         where: { id: userId },
         data: {
             legalName: [body.firstName, body.middleName, body.lastName].filter(Boolean).join(' '),
+            // The mobile sign-up asks for no name, so this is the first one we get
+            ...(user.name ? {} : { name: `${body.firstName} ${body.lastName}` }),
             dateOfBirth: body.dateOfBirth,
             gender: body.gender,
             civilStatus: body.civilStatus,

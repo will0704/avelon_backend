@@ -1,0 +1,8 @@
+-- AlterEnum
+ALTER TYPE "NotificationType" ADD VALUE 'POOL_DEPOSIT';
+ALTER TYPE "NotificationType" ADD VALUE 'POOL_WITHDRAWAL';
+ALTER TYPE "NotificationType" ADD VALUE 'POOL_YIELD_CLAIMED';
+
+-- AlterTable
+ALTER TABLE "Loan" ADD COLUMN "reminderSentAt" TIMESTAMP(3),
+ADD COLUMN "marginCallAt" TIMESTAMP(3);

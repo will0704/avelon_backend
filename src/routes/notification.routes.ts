@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from '../lib/validate.js';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
@@ -245,8 +245,8 @@ notificationRoutes.post('/test-push', async (c) => {
     }
 
     // Allow custom title/body/data for testing different notification types
-    let title = '🔔 Avelon Test Notification';
-    let body = 'Push notifications are working!';
+    let title = 'Avelon test notification';
+    let body = 'Push notifications are working.';
     let notifData: Record<string, string> = { type: 'TEST' };
 
     try {
@@ -302,23 +302,24 @@ notificationRoutes.post('/test-push-all', async (c) => {
 
     const tokens = deviceTokens.map((d) => d.token);
 
+    // Samples of what each real event sends, for checking push on a device
     const notifications: Array<{ title: string; body: string; data: Record<string, string> }> = [
-        { title: '✅ Identity Verified', body: 'Your KYC verification has been approved! You can now apply for loans.', data: { type: 'KYC_APPROVED' } },
-        { title: '❌ Verification Failed', body: 'Your KYC verification was rejected. Please re-submit your documents.', data: { type: 'KYC_REJECTED' } },
-        { title: '🎉 Loan Approved!', body: 'Your Starting Loan Plan for 0.00001452 ETH has been approved.', data: { type: 'LOAN_APPROVED', loanId: 'loan_001' } },
-        { title: '💰 Funds Disbursed', body: '0.00001452 ETH has been sent to your wallet.', data: { type: 'LOAN_DISBURSED', loanId: 'loan_001' } },
-        { title: '⏰ Repayment Due Soon', body: 'Your monthly payment of 0.00054312 ETH is due in 3 days.', data: { type: 'REPAYMENT_REMINDER', loanId: 'loan_001' } },
-        { title: '✅ Payment Received', body: 'Your repayment of 0.00054312 ETH has been confirmed.', data: { type: 'REPAYMENT_RECEIVED', loanId: 'loan_001' } },
-        { title: '🚨 Payment Overdue!', body: 'Your repayment was due on March 5. Please pay immediately.', data: { type: 'REPAYMENT_OVERDUE', loanId: 'loan_001' } },
-        { title: '⚠️ Collateral Value Dropping', body: 'Your collateral ratio has fallen to 135%. Add more collateral.', data: { type: 'COLLATERAL_WARNING', loanId: 'loan_001' } },
-        { title: '🔴 Liquidation Risk!', body: 'Collateral ratio critically low at 110%. Add collateral NOW.', data: { type: 'LIQUIDATION_WARNING', loanId: 'loan_001' } },
-        { title: '🏆 Loan Fully Repaid!', body: 'Congratulations! Your loan has been fully repaid. Collateral released.', data: { type: 'LOAN_REPAID', loanId: 'loan_001' } },
-        { title: '📈 ETH Price Update', body: 'ETH is up 8.5% in the last 24 hours. Current price: $3,216.74.', data: { type: 'PRICE_UPDATE', asset: 'ETH' } },
+        { title: 'Identity verified', body: 'Your verification was approved. Connect your wallet and choose a loan plan to apply.', data: { type: 'KYC_APPROVED' } },
+        { title: 'Verification failed', body: 'The name printed on your ID could not be matched to the name in your profile.', data: { type: 'KYC_REJECTED' } },
+        { title: 'Loan approved', body: 'Your 0.1 ETH loan was approved. Deposit your 0.06 ETH stake to receive the funds.', data: { type: 'LOAN_APPROVED' } },
+        { title: 'Funds disbursed', body: '0.098 ETH has been sent to your wallet from the investor pool. Repay 0.100658 ETH by the due date.', data: { type: 'LOAN_DISBURSED' } },
+        { title: 'Repayment due soon', body: 'Repay 0.100658 ETH within 3 days to get your stake back.', data: { type: 'REPAYMENT_REMINDER' } },
+        { title: 'Payment received', body: 'Your repayment of 0.05 ETH has been confirmed. Remaining balance: 0.050658 ETH.', data: { type: 'REPAYMENT_RECEIVED' } },
+        { title: 'Payment overdue', body: 'Your repayment of 0.100658 ETH is past its due date. Repay now to keep your stake.', data: { type: 'REPAYMENT_OVERDUE' } },
+        { title: 'Margin call: ETH price alert', body: 'ETH/PHP has fallen 20% since you applied. Price alone never seizes your stake; repay by the due date to keep it.', data: { type: 'COLLATERAL_WARNING' } },
+        { title: 'Loan liquidated', body: 'Your loan passed its due date unpaid, so the 0.06 ETH stake you locked has been seized.', data: { type: 'LOAN_LIQUIDATED' } },
+        { title: 'Loan fully repaid', body: 'Your loan is fully repaid and your stake has been returned to your wallet.', data: { type: 'LOAN_REPAID' } },
+        { title: 'Deposit confirmed', body: 'Your 1 ETH deposit is in the pool.', data: { type: 'POOL_DEPOSIT' } },
     ];
 
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     let sent = 0;
-    let totalInvalid: string[] = [];
+    const totalInvalid: string[] = [];
 
     for (const notif of notifications) {
         const invalid = await firebaseService.sendToMultiple(tokens, notif);

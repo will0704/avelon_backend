@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from '../lib/validate.js';
 import { z } from 'zod';
 import { authMiddleware, approvedMiddleware } from '../middleware/auth.middleware.js';
 import { AppError } from '../middleware/error.middleware.js';
@@ -7,6 +7,7 @@ import { loanService } from '../services/loan.service.js';
 import { LoanStatus } from '../types/index.js';
 import { blockchainService } from '../services/blockchain.service.js';
 import { notificationService } from '../services/notification.service.js';
+import { ethText } from '../lib/eth-text.js';
 
 const loanRoutes = new Hono();
 
@@ -104,8 +105,8 @@ loanRoutes.post(
         // Notify: loan application submitted
         await notificationService.notify(userId, {
             type: 'LOAN_APPLICATION_RECEIVED',
-            title: '🎉 Loan Application Submitted',
-            message: `Your loan application for ${body.amount} ETH has been submitted and is being processed.`,
+            title: 'Loan application submitted',
+            message: `Your application for ${body.amount} ETH was received. An administrator will review it and you will be notified of the decision.`,
             metadata: { loanId: loan.id, amount: body.amount },
         });
 
@@ -239,8 +240,8 @@ loanRoutes.post(
         if (!result.payoutPending) {
             await notificationService.notify(userId, {
                 type: 'COLLATERAL_DEPOSITED',
-                title: '💰 Collateral Deposited',
-                message: `Your collateral of ${result.loan.collateralDeposited} ETH has been recorded and your loan is active.`,
+                title: 'Stake deposited',
+                message: `Your ${result.loan.collateralDeposited} ETH stake has been recorded and your loan is active.`,
                 metadata: { loanId: result.loan.id, txHash },
             });
         }
@@ -282,16 +283,16 @@ loanRoutes.post(
         await notificationService.notify(userId, isFullyRepaid
             ? {
                 type: 'LOAN_REPAID',
-                title: '🏆 Loan Fully Repaid!',
+                title: 'Loan fully repaid',
                 message: result.collateralReleasePending
                     ? 'Your loan is fully repaid. Your stake is being returned and will arrive shortly.'
-                    : 'Congratulations! Your loan has been fully repaid. Your collateral has been released.',
-                metadata: { loanId, amount, txHash },
+                    : 'Your loan is fully repaid and your stake has been returned to your wallet.',
+                metadata: { loanId, amount, txHash, collateralReturned: result.collateralReturned },
             }
             : {
                 type: 'REPAYMENT_RECEIVED',
-                title: '✅ Payment Received',
-                message: `Your repayment of ${amount} ETH has been confirmed. Remaining balance: ${result.remainingOwed} ETH.`,
+                title: 'Payment received',
+                message: `Your repayment of ${amount} ETH has been confirmed. Remaining balance: ${ethText(result.remainingOwed)} ETH.`,
                 metadata: { loanId, amount, txHash, remainingOwed: result.remainingOwed },
             }
         );
@@ -331,8 +332,8 @@ loanRoutes.post(
         // Notify: additional collateral added
         await notificationService.notify(userId, {
             type: 'COLLATERAL_ADDED',
-            title: '✅ Additional Collateral Added',
-            message: `Additional collateral recorded. Total collateral: ${result.loan.collateralDeposited} ETH.`,
+            title: 'Stake topped up',
+            message: `Your stake top-up is recorded. Total stake: ${result.loan.collateralDeposited} ETH.`,
             metadata: { loanId: result.loan.id, txHash },
         });
 
@@ -361,7 +362,7 @@ loanRoutes.delete('/:id', authMiddleware, async (c) => {
     // Notify: loan cancelled
     await notificationService.notify(userId, {
         type: 'LOAN_CANCELLED',
-        title: 'Loan Cancelled',
+        title: 'Loan cancelled',
         message: 'Your loan application has been cancelled.',
         metadata: { loanId },
     });

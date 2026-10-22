@@ -10,6 +10,9 @@ const MAX_DAYS = 90;
 // tsx watch restarts the server on every save; one fetch per ten minutes is plenty
 const FRESH_FOR = 10 * 60 * 1000;
 
+// SystemConfig key: 'true' while a manually set demo price is in force
+export const PRICE_OVERRIDE_KEY = 'ETH_PHP_RATE_HELD';
+
 let isRunning = false;
 
 type Point = [timestampMs: number, pricePHP: number];
@@ -61,11 +64,15 @@ export async function syncEthPhpPrices(
         const price = isPrice(live) ? Number(live.toFixed(2)) : null;
         if (bars.length === 0 && price === null) return { added: 0, price: null };
 
+        // A demo price set from the admin controls holds until it is released
+        const override = await prisma.systemConfig.findUnique({ where: { key: PRICE_OVERRIDE_KEY } });
+        const held = override?.value === 'true';
+
         await prisma.$transaction([
             prisma.priceHistory.createMany({
                 data: bars.map(([t, p]) => ({ ethPricePHP: p.toFixed(2), source: SOURCE, createdAt: new Date(t) })),
             }),
-            ...(price === null
+            ...(price === null || held
                 ? []
                 : [
                       prisma.systemConfig.upsert({

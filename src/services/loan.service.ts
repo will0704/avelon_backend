@@ -8,6 +8,8 @@ import { notificationService } from './notification.service.js';
 import { chain } from '../config/env.js';
 import { poolService } from './pool.service.js';
 import { isUniqueViolation, normalizeTxHash } from '../lib/tx-hash.js';
+import { now, syncClock } from '../lib/clock.js';
+import { ethText } from '../lib/eth-text.js';
 
 // For Decimal type annotations
 type DecimalType = Prisma.Decimal;
@@ -25,6 +27,9 @@ const WEI_DP = 18;
 const toWei = (value: Prisma.Decimal) => value.toDecimalPlaces(WEI_DP, Prisma.Decimal.ROUND_DOWN);
 const totalOwedOf = (loan: { principalOwed: DecimalType; interestOwed: DecimalType; feesOwed: DecimalType }) =>
     loan.principalOwed.add(loan.interestOwed).add(loan.feesOwed);
+// By the chain-following clock, since that is the time liquidation is checked against
+const isOverdue = (loan: { status: string; dueDate: Date | null; principalOwed: DecimalType; interestOwed: DecimalType; feesOwed: DecimalType }) =>
+    loan.status === 'ACTIVE' && !!loan.dueDate && loan.dueDate < now() && totalOwedOf(loan).gt(0);
 
 // An approval claim older than this is treated as abandoned (the process died
 // between the claim and the chain write).
@@ -279,9 +284,9 @@ export class LoanService {
 
         await notificationService.notify(loan.userId, {
             type: 'LOAN_APPROVED',
-            title: '✅ Loan Approved',
+            title: 'Loan approved',
             message: `Your ${loan.principal} ETH loan was approved. Deposit your ${loan.collateralRequired} ETH stake to receive the funds.`,
-            metadata: { loanId, collateralRequired: loan.collateralRequired.toString() },
+            metadata: { loanId, principal: loan.principal.toString(), collateralRequired: loan.collateralRequired.toString() },
         });
 
         return approved;
@@ -330,7 +335,7 @@ export class LoanService {
 
         await notificationService.notify(loan.userId, {
             type: 'LOAN_REJECTED',
-            title: '❌ Loan Application Rejected',
+            title: 'Loan application not approved',
             message: `Your ${loan.principal} ETH application was not approved. Reason: ${reason}`,
             metadata: { loanId, reason },
         });
@@ -608,7 +613,8 @@ export class LoanService {
         }
 
         // ── Step 2: Update DB only after successful ETH transfer ────────
-        const dueDate = new Date();
+        await syncClock();
+        const dueDate = now();
         dueDate.setDate(dueDate.getDate() + loan.duration);
 
         // Calculate interest owed
@@ -658,12 +664,12 @@ export class LoanService {
             console.error('[LoanService] Failed to refresh pool mirror on disbursal:', err);
         }
 
-        // Notify: loan disbursed
+        const totalOwed = loan.principal.add(interestOwed).add(loan.feesOwed);
         await notificationService.notify(loan.userId, {
             type: 'LOAN_DISBURSED',
-            title: '💰 Funds Disbursed',
-            message: `${disbursementAmount} ETH has been released from the investor pool after withholding the ${loan.originationFee} ETH origination fee. Your repayment is due on ${dueDate.toLocaleDateString()}.`,
-            metadata: { loanId, grossPrincipal: loan.principal.toString(), disbursedAmount: disbursementAmount.toString(), originationFee: loan.originationFee.toString(), txHash: disbursementTxHash, dueDate: dueDate.toISOString() },
+            title: 'Funds disbursed',
+            message: `${disbursementAmount} ETH has been sent to your wallet from the investor pool, after the ${loan.originationFee} ETH origination fee. Repay ${ethText(totalOwed)} ETH by ${dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`,
+            metadata: { loanId, grossPrincipal: loan.principal.toString(), disbursedAmount: disbursementAmount.toString(), originationFee: loan.originationFee.toString(), totalOwed: totalOwed.toString(), txHash: disbursementTxHash, dueDate: dueDate.toISOString() },
         });
     }
 
@@ -679,7 +685,7 @@ export class LoanService {
         userId: string,
         amount: string,
         txHash: string
-    ): Promise<{ success: boolean; remainingOwed: string; collateralReleasePending: boolean }> {
+    ): Promise<{ success: boolean; remainingOwed: string; collateralReleasePending: boolean; collateralReturned: string }> {
         const hash = normalizeTxHash(txHash);
 
         const loan = await prisma.loan.findFirst({
@@ -888,6 +894,7 @@ export class LoanService {
             success: true,
             remainingOwed: newTotalOwed.toString(),
             collateralReleasePending,
+            collateralReturned: isFullyRepaid ? loan.collateralDeposited.toString() : '0',
         };
     }
 
@@ -974,7 +981,7 @@ export class LoanService {
         });
 
         // Exact to the wei — clients pay this figure, so they must not add floats
-        return loans.map((loan) => ({ ...loan, totalOwed: totalOwedOf(loan).toString() }));
+        return loans.map((loan) => ({ ...loan, totalOwed: totalOwedOf(loan).toString(), isOverdue: isOverdue(loan) }));
     }
 
     /**
@@ -997,7 +1004,7 @@ export class LoanService {
             throw new NotFoundError('Loan not found');
         }
 
-        return loan;
+        return { ...loan, isOverdue: isOverdue(loan) };
     }
 
     /**
@@ -1157,7 +1164,8 @@ export class LoanService {
             throw new ValidationError(`Maximum extension is ${loan.plan.maxExtensionDays} days`);
         }
         if (!loan.dueDate) throw new ValidationError('Loan has no due date');
-        if (loan.dueDate.getTime() < Date.now()) {
+        await syncClock();
+        if (loan.dueDate.getTime() < now().getTime()) {
             throw new ValidationError('This loan is past its due date and can no longer be extended');
         }
         if (loan.contractLoanId === null) {
@@ -1186,12 +1194,13 @@ export class LoanService {
                 extensionFee,
                 feesOwed: { increment: extensionFee },
                 liquidationWarningAt: null,
+                reminderSentAt: null,
             },
         });
 
         await notificationService.notify(userId, {
             type: 'LOAN_EXTENDED',
-            title: '📅 Loan Extended',
+            title: 'Loan extended',
             message: `Your loan has been extended by ${extensionDays} days. New due date: ${newDueDate.toLocaleDateString()}.`,
             metadata: { loanId, extensionDays: extensionDays.toString(), newDueDate: newDueDate.toISOString() },
         });
@@ -1215,7 +1224,7 @@ export class LoanService {
      * Seize the stake of an overdue loan and settle the loss with the pool.
      * Only a missed due date counts; the contract re-checks it.
      */
-    async liquidateLoan(loanId: string, adminId: string, reason?: string) {
+    async liquidateLoan(loanId: string, adminId: string | null, reason?: string) {
         if (reason && reason !== 'DEFAULT') {
             throw new ValidationError('Only a missed due date can trigger liquidation. Volatility signals are advisory.');
         }
@@ -1235,11 +1244,24 @@ export class LoanService {
             throw new ValidationError('This loan is not overdue on-chain yet');
         }
 
+        await syncClock();
         const txHash = await contractService.liquidateLoan(loan.contractLoanId, LiquidationReason.Default, 0);
 
         await prisma.loan.update({
             where: { id: loanId },
-            data: { status: LoanStatus.LIQUIDATED, liquidatedAt: new Date() },
+            data: { status: LoanStatus.LIQUIDATED, liquidatedAt: now() },
+        });
+        // So the borrower's history shows where the stake went
+        await prisma.loanTransaction.create({
+            data: {
+                loanId,
+                type: LoanTransactionType.LIQUIDATION,
+                amount: loan.collateralDeposited,
+                txHash,
+                confirmed: true,
+                confirmedAt: now(),
+                note: adminId ? 'Stake seized by an admin after the due date' : 'Stake seized automatically after the due date',
+            },
         });
         await prisma.user.update({
             where: { id: loan.userId },
@@ -1258,6 +1280,7 @@ export class LoanService {
                     borrowerId: loan.userId,
                     principal: loan.principal.toString(),
                     reason: 'DEFAULT',
+                    trigger: adminId ? 'admin' : 'auto',
                     txHash,
                     ...settlement,
                 },
@@ -1266,16 +1289,16 @@ export class LoanService {
 
         await notificationService.notify(loan.userId, {
             type: 'LOAN_LIQUIDATED',
-            title: '⚠️ Loan Liquidated',
-            message: 'Your loan passed its due date unpaid, so the stake you locked has been seized.',
-            metadata: { loanId, txHash },
+            title: 'Loan liquidated',
+            message: `Your loan passed its due date unpaid, so the ${loan.collateralDeposited} ETH stake you locked has been seized.`,
+            metadata: { loanId, txHash, collateralSeized: loan.collateralDeposited.toString() },
         });
 
         return { txHash, ...settlement };
     }
 
     /** Retry the pool write-off and recovery after a liquidation. */
-    async settleLiquidation(loanId: string, adminId: string) {
+    async settleLiquidation(loanId: string, adminId: string | null) {
         const loan = await prisma.loan.findUnique({ where: { id: loanId } });
         if (!loan) throw new NotFoundError('Loan not found');
         if (loan.status !== LoanStatus.LIQUIDATED) {
@@ -1290,7 +1313,7 @@ export class LoanService {
      */
     private async settlePool(
         loan: { id: string; contractLoanId: number | null; collateralDeposited: DecimalType },
-        adminId: string,
+        adminId: string | null,
     ) {
         let writeOffTxHash: string | null = null;
         let recoveryTxHash: string | null = null;

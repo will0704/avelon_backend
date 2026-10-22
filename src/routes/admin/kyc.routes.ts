@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from '../../lib/validate.js';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
 import { deriveTier } from '../../services/kyc-verification.service.js';
@@ -12,15 +12,21 @@ import { env } from '../../config/env.js';
 const adminKycRoutes = new Hono();
 
 /**
- * GET /admin/kyc/pending
- * List pending KYC reviews
+ * GET /admin/kyc/pending?status=pending|rejected|all
+ * The review queue: verifications still running, and ones the AI rejected that
+ * an admin may want to overturn.
  */
 adminKycRoutes.get('/pending', async (c) => {
     const page = Math.max(1, parseInt(c.req.query('page') || '1', 10));
     const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '20', 10)));
     const skip = (page - 1) * limit;
 
-    const where = { status: UserStatus.PENDING_KYC };
+    const filter = c.req.query('status') ?? 'pending';
+    const statuses = filter === 'rejected' ? [UserStatus.REJECTED]
+        : filter === 'all' ? [UserStatus.PENDING_KYC, UserStatus.REJECTED]
+        : [UserStatus.PENDING_KYC];
+    // REJECTED with a submission means a KYC decision, not a user who never applied
+    const where = { status: { in: statuses }, kycSubmittedAt: { not: null } };
 
     const [users, total] = await Promise.all([
         prisma.user.findMany({
@@ -32,6 +38,7 @@ adminKycRoutes.get('/pending', async (c) => {
                 status: true,
                 kycSubmittedAt: true,
                 kycRejectionReason: true,
+                creditScore: true,
                 legalName: true,
                 dateOfBirth: true,
                 gender: true,
@@ -124,7 +131,8 @@ const approveSchema = z.object({
 
 /**
  * PUT /admin/kyc/:userId/approve
- * Approve user's KYC — sets user to APPROVED, assigns credit score/tier, approves documents
+ * Approve a verification that is pending, or overturn one the AI rejected.
+ * Sets the user to APPROVED with the given credit score and approves the documents.
  */
 adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async (c) => {
     const userId = c.req.param('userId');
@@ -142,17 +150,18 @@ adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async 
         throw new NotFoundError('User not found');
     }
 
-    if (user.status !== UserStatus.PENDING_KYC) {
+    const overturning = user.status === UserStatus.REJECTED;
+    if (user.status !== UserStatus.PENDING_KYC && !overturning) {
         throw new AppError(
             409,
             'INVALID_STATUS',
-            `Cannot approve KYC for user in status: ${user.status}. Expected: PENDING_KYC`
+            `Cannot approve KYC for user in status: ${user.status}. Expected: PENDING_KYC or REJECTED`
         );
     }
 
     // Conditional, so a late AI result or a second admin cannot also decide
     const decided = await prisma.user.updateMany({
-        where: { id: userId, status: UserStatus.PENDING_KYC },
+        where: { id: userId, status: user.status },
         data: {
             status: UserStatus.APPROVED,
             kycLevel: 'BASIC',
@@ -167,9 +176,10 @@ adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async 
     }
 
     await prisma.document.updateMany({
-        where: { userId, status: 'PENDING' },
+        where: { userId, status: overturning ? { in: ['PENDING', 'REJECTED'] } : 'PENDING' },
         data: {
             status: 'APPROVED',
+            rejectionReason: null,
             reviewedBy: adminId,
             reviewedAt: new Date(),
         },
@@ -195,16 +205,16 @@ adminKycRoutes.put('/:userId/approve', zValidator('json', approveSchema), async 
             action: 'KYC_APPROVED',
             entity: 'User',
             entityId: userId,
-            metadata: { creditScore, tier, approvedBy: 'admin' },
+            metadata: { creditScore, tier, approvedBy: 'admin', adminId, overturnedAiRejection: overturning },
         },
     });
 
     // Send notification + push
     await notificationService.notify(userId, {
         type: 'KYC_APPROVED',
-        title: '✅ Identity Verified',
-        message: 'Your KYC verification has been approved! You can now apply for loans.',
-        metadata: { creditScore, tier },
+        title: 'Identity verified',
+        message: 'An administrator approved your verification. Connect your wallet and choose a loan plan to apply.',
+        metadata: { creditScore, creditTier: tier },
     });
 
     return c.json({
@@ -284,15 +294,15 @@ adminKycRoutes.put('/:userId/reject', zValidator('json', rejectSchema), async (c
             action: 'KYC_REJECTED',
             entity: 'User',
             entityId: userId,
-            metadata: { reason, rejectedBy: 'admin' },
+            metadata: { reason, rejectedBy: 'admin', adminId },
         },
     });
 
     // Send notification + push
     await notificationService.notify(userId, {
         type: 'KYC_REJECTED',
-        title: '❌ Verification Failed',
-        message: `Your KYC verification was rejected: ${reason}. Please re-submit your documents.`,
+        title: 'Verification not approved',
+        message: `An administrator could not approve your verification: ${reason.trim().replace(/\.?$/, '.')} Tap Re-verify in the app to submit again.`,
         metadata: { reason },
     });
 

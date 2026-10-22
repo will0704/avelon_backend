@@ -1,12 +1,13 @@
 import { ethers } from 'ethers';
 import { prisma } from '../lib/prisma.js';
-import { AppError, NotFoundError, ValidationError } from '../middleware/error.middleware.js';
+import { AppError, ValidationError } from '../middleware/error.middleware.js';
 import { DepositStatus } from '../types/index.js';
 import { chain } from '../config/env.js';
 import { blockchainService } from './blockchain.service.js';
 import { poolService } from './pool.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { normalizeTxHash } from '../lib/tx-hash.js';
+import { notificationService } from './notification.service.js';
 
 const PrismaDecimal = Prisma.Decimal;
 
@@ -345,6 +346,13 @@ export class InvestorService {
 
         await this._syncPoolMirror();
 
+        await notificationService.notify(userId, {
+            type: 'POOL_DEPOSIT',
+            title: 'Deposit confirmed',
+            message: `Your ${event.assets} ETH deposit is in the pool and earned you ${event.shares} shares.`,
+            metadata: { txHash, amount: event.assets, shares: event.shares },
+        });
+
         return {
             id: deposit.id,
             amount: Number(event.assets),
@@ -405,6 +413,13 @@ export class InvestorService {
 
         await this._syncPoolMirror();
 
+        await notificationService.notify(userId, {
+            type: 'POOL_WITHDRAWAL',
+            title: 'Withdrawal confirmed',
+            message: `${event.assets} ETH was paid to your wallet for ${event.shares} shares.`,
+            metadata: { txHash, amount: event.assets, shares: event.shares },
+        });
+
         return { amount: Number(event.assets), sharesBurned: Number(event.shares), txHash };
     }
 
@@ -441,6 +456,13 @@ export class InvestorService {
         });
 
         await this._syncPoolMirror();
+
+        await notificationService.notify(userId, {
+            type: 'POOL_YIELD_CLAIMED',
+            title: 'Yield claimed',
+            message: `${event.assets} ETH of earnings was paid to your wallet. Your original deposit stays in the pool.`,
+            metadata: { txHash, amount: event.assets, shares: event.shares },
+        });
 
         return { amount: Number(event.assets), sharesBurned: Number(event.shares), txHash };
     }

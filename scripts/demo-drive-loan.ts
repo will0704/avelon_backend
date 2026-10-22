@@ -146,7 +146,18 @@ async function main() {
         return;
     }
 
-    const signer = signerFor(index);
+    // Reuse whichever Hardhat account is already linked. Otherwise a run that
+    // forgets the index argument would link a second wallet and can repoint the
+    // primary, leaving the loan bound to an address the next run cannot sign for.
+    const linked = await prisma.wallet.findMany({
+        where: { userId: user.id, isVerified: true },
+        select: { address: true },
+    });
+    const already = linked
+        .map((w) => HARDHAT_INDEX.get(w.address.toLowerCase()))
+        .find((i): i is number => i !== undefined);
+
+    const signer = signerFor(already ?? index);
     const address = signer.address.toLowerCase();
 
     // ── wallet ───────────────────────────────────────────────────────────
@@ -158,12 +169,12 @@ async function main() {
         select: { id: true },
     });
     if (existing) {
-        console.log(`wallet    already linked  ${signer.address} (Hardhat #${index})`);
+        console.log(`wallet    already linked  ${signer.address} (Hardhat #${already ?? index})`);
     } else {
         const message = await walletService.generateAndStoreNonce(user.id, address, chainId);
         const signature = await signer.signMessage(message);
         await walletService.verifySignature(user.id, address, chainId, signature, message);
-        console.log(`wallet    linked          ${signer.address} (Hardhat #${index})`);
+        console.log(`wallet    linked          ${signer.address} (Hardhat #${already ?? index})`);
     }
 
     // ── loan ─────────────────────────────────────────────────────────────

@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { prisma } from '../../lib/prisma.js';
 import { NotFoundError, ValidationError } from '../../middleware/error.middleware.js';
 import { loanService } from '../../services/loan.service.js';
+import { assessLoan, currentEthPrice } from '../../jobs/risk-monitor.job.js';
+import { now, syncClock } from '../../lib/clock.js';
 
 const adminLoansRoutes = new Hono();
 
@@ -33,6 +35,9 @@ const loanSelect = {
     dueDate: true,
     repaidAt: true,
     liquidatedAt: true,
+    liquidationWarningAt: true,
+    reminderSentAt: true,
+    marginCallAt: true,
     extended: true,
     creditScoreSnapshot: true,
     ethPriceSnapshot: true,
@@ -87,8 +92,14 @@ adminLoansRoutes.get('/', async (c) => {
         prisma.loan.count({ where }),
     ]);
 
+    const ethPrice = await currentEthPrice();
+    // The chain's clock, which runs ahead of wall time after a demo fast-forward
+    await syncClock();
+    const serverTime = now();
     const mapped = loans.map((loan) => ({
         ...loan,
+        // LTV and price exposure for loans that hold a stake
+        risk: loan.status === 'ACTIVE' && loan.collateralDeposited.gt(0) ? assessLoan(loan, ethPrice) : null,
         principal: Number(loan.principal),
         collateralRequired: Number(loan.collateralRequired),
         collateralDeposited: Number(loan.collateralDeposited),
@@ -103,7 +114,7 @@ adminLoansRoutes.get('/', async (c) => {
 
     return c.json({
         success: true,
-        data: { loans: mapped },
+        data: { loans: mapped, serverTime: serverTime.toISOString() },
         meta: {
             total,
             page,

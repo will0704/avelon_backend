@@ -491,8 +491,8 @@ export async function triggerAIVerification(
 
             await notificationService.notify(userId, {
                 type: 'KYC_APPROVED',
-                title: '✅ Identity Verified',
-                message: 'Your KYC verification has been approved! You can now apply for loans.',
+                title: 'Identity verified',
+                message: 'Your verification was approved. Connect your wallet and choose a loan plan to apply.',
                 metadata: { creditScore, creditTier },
             });
         } else {

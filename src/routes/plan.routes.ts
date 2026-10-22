@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { prisma } from '../lib/prisma.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
 import { NotFoundError } from '../middleware/error.middleware.js';
 
 const planRoutes = new Hono();

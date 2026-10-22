@@ -1992,6 +1992,8 @@ export const LoanScalarFieldEnum = {
   repaidAt: 'repaidAt',
   liquidatedAt: 'liquidatedAt',
   liquidationWarningAt: 'liquidationWarningAt',
+  reminderSentAt: 'reminderSentAt',
+  marginCallAt: 'marginCallAt',
   extended: 'extended',
   originalDueDate: 'originalDueDate',
   extensionFee: 'extensionFee',

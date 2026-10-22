@@ -88,6 +88,8 @@ export type LoanMinAggregateOutputType = {
   repaidAt: Date | null
   liquidatedAt: Date | null
   liquidationWarningAt: Date | null
+  reminderSentAt: Date | null
+  marginCallAt: Date | null
   extended: boolean | null
   originalDueDate: Date | null
   extensionFee: runtime.Decimal | null
@@ -125,6 +127,8 @@ export type LoanMaxAggregateOutputType = {
   repaidAt: Date | null
   liquidatedAt: Date | null
   liquidationWarningAt: Date | null
+  reminderSentAt: Date | null
+  marginCallAt: Date | null
   extended: boolean | null
   originalDueDate: Date | null
   extensionFee: runtime.Decimal | null
@@ -162,6 +166,8 @@ export type LoanCountAggregateOutputType = {
   repaidAt: number
   liquidatedAt: number
   liquidationWarningAt: number
+  reminderSentAt: number
+  marginCallAt: number
   extended: number
   originalDueDate: number
   extensionFee: number
@@ -233,6 +239,8 @@ export type LoanMinAggregateInputType = {
   repaidAt?: true
   liquidatedAt?: true
   liquidationWarningAt?: true
+  reminderSentAt?: true
+  marginCallAt?: true
   extended?: true
   originalDueDate?: true
   extensionFee?: true
@@ -270,6 +278,8 @@ export type LoanMaxAggregateInputType = {
   repaidAt?: true
   liquidatedAt?: true
   liquidationWarningAt?: true
+  reminderSentAt?: true
+  marginCallAt?: true
   extended?: true
   originalDueDate?: true
   extensionFee?: true
@@ -307,6 +317,8 @@ export type LoanCountAggregateInputType = {
   repaidAt?: true
   liquidatedAt?: true
   liquidationWarningAt?: true
+  reminderSentAt?: true
+  marginCallAt?: true
   extended?: true
   originalDueDate?: true
   extensionFee?: true
@@ -431,6 +443,8 @@ export type LoanGroupByOutputType = {
   repaidAt: Date | null
   liquidatedAt: Date | null
   liquidationWarningAt: Date | null
+  reminderSentAt: Date | null
+  marginCallAt: Date | null
   extended: boolean
   originalDueDate: Date | null
   extensionFee: runtime.Decimal | null
@@ -491,6 +505,8 @@ export type LoanWhereInput = {
   repaidAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   liquidatedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   liquidationWarningAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  reminderSentAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  marginCallAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   extended?: Prisma.BoolFilter<"Loan"> | boolean
   originalDueDate?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   extensionFee?: Prisma.DecimalNullableFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -532,6 +548,8 @@ export type LoanOrderByWithRelationInput = {
   repaidAt?: Prisma.SortOrderInput | Prisma.SortOrder
   liquidatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   liquidationWarningAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  reminderSentAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  marginCallAt?: Prisma.SortOrderInput | Prisma.SortOrder
   extended?: Prisma.SortOrder
   originalDueDate?: Prisma.SortOrderInput | Prisma.SortOrder
   extensionFee?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -576,6 +594,8 @@ export type LoanWhereUniqueInput = Prisma.AtLeast<{
   repaidAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   liquidatedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   liquidationWarningAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  reminderSentAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  marginCallAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   extended?: Prisma.BoolFilter<"Loan"> | boolean
   originalDueDate?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   extensionFee?: Prisma.DecimalNullableFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -617,6 +637,8 @@ export type LoanOrderByWithAggregationInput = {
   repaidAt?: Prisma.SortOrderInput | Prisma.SortOrder
   liquidatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   liquidationWarningAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  reminderSentAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  marginCallAt?: Prisma.SortOrderInput | Prisma.SortOrder
   extended?: Prisma.SortOrder
   originalDueDate?: Prisma.SortOrderInput | Prisma.SortOrder
   extensionFee?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -662,6 +684,8 @@ export type LoanScalarWhereWithAggregatesInput = {
   repaidAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
   liquidatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
   liquidationWarningAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
+  reminderSentAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
+  marginCallAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
   extended?: Prisma.BoolWithAggregatesFilter<"Loan"> | boolean
   originalDueDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
   extensionFee?: Prisma.DecimalNullableWithAggregatesFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -696,6 +720,8 @@ export type LoanCreateInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -737,6 +763,8 @@ export type LoanUncheckedCreateInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -772,6 +800,8 @@ export type LoanUpdateInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -813,6 +843,8 @@ export type LoanUncheckedUpdateInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -851,6 +883,8 @@ export type LoanCreateManyInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -885,6 +919,8 @@ export type LoanUpdateManyMutationInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -922,6 +958,8 @@ export type LoanUncheckedUpdateManyInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -969,6 +1007,8 @@ export type LoanCountOrderByAggregateInput = {
   repaidAt?: Prisma.SortOrder
   liquidatedAt?: Prisma.SortOrder
   liquidationWarningAt?: Prisma.SortOrder
+  reminderSentAt?: Prisma.SortOrder
+  marginCallAt?: Prisma.SortOrder
   extended?: Prisma.SortOrder
   originalDueDate?: Prisma.SortOrder
   extensionFee?: Prisma.SortOrder
@@ -1022,6 +1062,8 @@ export type LoanMaxOrderByAggregateInput = {
   repaidAt?: Prisma.SortOrder
   liquidatedAt?: Prisma.SortOrder
   liquidationWarningAt?: Prisma.SortOrder
+  reminderSentAt?: Prisma.SortOrder
+  marginCallAt?: Prisma.SortOrder
   extended?: Prisma.SortOrder
   originalDueDate?: Prisma.SortOrder
   extensionFee?: Prisma.SortOrder
@@ -1059,6 +1101,8 @@ export type LoanMinOrderByAggregateInput = {
   repaidAt?: Prisma.SortOrder
   liquidatedAt?: Prisma.SortOrder
   liquidationWarningAt?: Prisma.SortOrder
+  reminderSentAt?: Prisma.SortOrder
+  marginCallAt?: Prisma.SortOrder
   extended?: Prisma.SortOrder
   originalDueDate?: Prisma.SortOrder
   extensionFee?: Prisma.SortOrder
@@ -1266,6 +1310,8 @@ export type LoanCreateWithoutUserInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1305,6 +1351,8 @@ export type LoanUncheckedCreateWithoutUserInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1372,6 +1420,8 @@ export type LoanScalarWhereInput = {
   repaidAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   liquidatedAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   liquidationWarningAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  reminderSentAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
+  marginCallAt?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   extended?: Prisma.BoolFilter<"Loan"> | boolean
   originalDueDate?: Prisma.DateTimeNullableFilter<"Loan"> | Date | string | null
   extensionFee?: Prisma.DecimalNullableFilter<"Loan"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1406,6 +1456,8 @@ export type LoanCreateWithoutWalletInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1445,6 +1497,8 @@ export type LoanUncheckedCreateWithoutWalletInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1506,6 +1560,8 @@ export type LoanCreateWithoutPlanInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1545,6 +1601,8 @@ export type LoanUncheckedCreateWithoutPlanInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1606,6 +1664,8 @@ export type LoanCreateWithoutTransactionsInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1646,6 +1706,8 @@ export type LoanUncheckedCreateWithoutTransactionsInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1696,6 +1758,8 @@ export type LoanUpdateWithoutTransactionsInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1736,6 +1800,8 @@ export type LoanUncheckedUpdateWithoutTransactionsInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1772,6 +1838,8 @@ export type LoanCreateManyUserInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1806,6 +1874,8 @@ export type LoanUpdateWithoutUserInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1845,6 +1915,8 @@ export type LoanUncheckedUpdateWithoutUserInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1882,6 +1954,8 @@ export type LoanUncheckedUpdateManyWithoutUserInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1918,6 +1992,8 @@ export type LoanCreateManyWalletInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1952,6 +2028,8 @@ export type LoanUpdateWithoutWalletInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -1991,6 +2069,8 @@ export type LoanUncheckedUpdateWithoutWalletInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2028,6 +2108,8 @@ export type LoanUncheckedUpdateManyWithoutWalletInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2064,6 +2146,8 @@ export type LoanCreateManyPlanInput = {
   repaidAt?: Date | string | null
   liquidatedAt?: Date | string | null
   liquidationWarningAt?: Date | string | null
+  reminderSentAt?: Date | string | null
+  marginCallAt?: Date | string | null
   extended?: boolean
   originalDueDate?: Date | string | null
   extensionFee?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2098,6 +2182,8 @@ export type LoanUpdateWithoutPlanInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2137,6 +2223,8 @@ export type LoanUncheckedUpdateWithoutPlanInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2174,6 +2262,8 @@ export type LoanUncheckedUpdateManyWithoutPlanInput = {
   repaidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   liquidationWarningAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  marginCallAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extended?: Prisma.BoolFieldUpdateOperationsInput | boolean
   originalDueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   extensionFee?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -2242,6 +2332,8 @@ export type LoanSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   repaidAt?: boolean
   liquidatedAt?: boolean
   liquidationWarningAt?: boolean
+  reminderSentAt?: boolean
+  marginCallAt?: boolean
   extended?: boolean
   originalDueDate?: boolean
   extensionFee?: boolean
@@ -2284,6 +2376,8 @@ export type LoanSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   repaidAt?: boolean
   liquidatedAt?: boolean
   liquidationWarningAt?: boolean
+  reminderSentAt?: boolean
+  marginCallAt?: boolean
   extended?: boolean
   originalDueDate?: boolean
   extensionFee?: boolean
@@ -2324,6 +2418,8 @@ export type LoanSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   repaidAt?: boolean
   liquidatedAt?: boolean
   liquidationWarningAt?: boolean
+  reminderSentAt?: boolean
+  marginCallAt?: boolean
   extended?: boolean
   originalDueDate?: boolean
   extensionFee?: boolean
@@ -2364,6 +2460,8 @@ export type LoanSelectScalar = {
   repaidAt?: boolean
   liquidatedAt?: boolean
   liquidationWarningAt?: boolean
+  reminderSentAt?: boolean
+  marginCallAt?: boolean
   extended?: boolean
   originalDueDate?: boolean
   extensionFee?: boolean
@@ -2371,7 +2469,7 @@ export type LoanSelectScalar = {
   ethPriceSnapshot?: boolean
 }
 
-export type LoanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "walletId" | "planId" | "contractAddress" | "contractLoanId" | "principal" | "purpose" | "collateralRequired" | "collateralDeposited" | "duration" | "interestRate" | "originationFee" | "principalOwed" | "interestOwed" | "feesOwed" | "status" | "approvedAt" | "approvedBy" | "rejectedAt" | "rejectedBy" | "rejectionReason" | "createdAt" | "collateralDepositedAt" | "disbursedAt" | "dueDate" | "repaidAt" | "liquidatedAt" | "liquidationWarningAt" | "extended" | "originalDueDate" | "extensionFee" | "creditScoreSnapshot" | "ethPriceSnapshot", ExtArgs["result"]["loan"]>
+export type LoanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "walletId" | "planId" | "contractAddress" | "contractLoanId" | "principal" | "purpose" | "collateralRequired" | "collateralDeposited" | "duration" | "interestRate" | "originationFee" | "principalOwed" | "interestOwed" | "feesOwed" | "status" | "approvedAt" | "approvedBy" | "rejectedAt" | "rejectedBy" | "rejectionReason" | "createdAt" | "collateralDepositedAt" | "disbursedAt" | "dueDate" | "repaidAt" | "liquidatedAt" | "liquidationWarningAt" | "reminderSentAt" | "marginCallAt" | "extended" | "originalDueDate" | "extensionFee" | "creditScoreSnapshot" | "ethPriceSnapshot", ExtArgs["result"]["loan"]>
 export type LoanInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   wallet?: boolean | Prisma.WalletDefaultArgs<ExtArgs>
@@ -2428,6 +2526,8 @@ export type $LoanPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     repaidAt: Date | null
     liquidatedAt: Date | null
     liquidationWarningAt: Date | null
+    reminderSentAt: Date | null
+    marginCallAt: Date | null
     extended: boolean
     originalDueDate: Date | null
     extensionFee: runtime.Decimal | null
@@ -2889,6 +2989,8 @@ export interface LoanFieldRefs {
   readonly repaidAt: Prisma.FieldRef<"Loan", 'DateTime'>
   readonly liquidatedAt: Prisma.FieldRef<"Loan", 'DateTime'>
   readonly liquidationWarningAt: Prisma.FieldRef<"Loan", 'DateTime'>
+  readonly reminderSentAt: Prisma.FieldRef<"Loan", 'DateTime'>
+  readonly marginCallAt: Prisma.FieldRef<"Loan", 'DateTime'>
   readonly extended: Prisma.FieldRef<"Loan", 'Boolean'>
   readonly originalDueDate: Prisma.FieldRef<"Loan", 'DateTime'>
   readonly extensionFee: Prisma.FieldRef<"Loan", 'Decimal'>

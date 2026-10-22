@@ -103,6 +103,9 @@ enum NotificationType {
   LOAN_REPAID
   LOAN_EXTENDED
   SYSTEM_ANNOUNCEMENT
+  POOL_DEPOSIT
+  POOL_WITHDRAWAL
+  POOL_YIELD_CLAIMED
 }
 
 enum InterestType {
@@ -379,6 +382,8 @@ model Loan {
   repaidAt              DateTime?
   liquidatedAt          DateTime?
   liquidationWarningAt  DateTime? // When warning was sent
+  reminderSentAt        DateTime? // Due-date reminder, sent once
+  marginCallAt          DateTime? // Last advisory price warning
 
   // Extension
   extended        Boolean   @default(false)

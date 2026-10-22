@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from '../../lib/validate.js';
 import { z } from 'zod';
 
 // Import admin sub-routes
@@ -8,13 +8,13 @@ import { adminLoansRoutes } from './loans.routes.js';
 import { adminPlansRoutes } from './plans.routes.js';
 import { adminKycRoutes } from './kyc.routes.js';
 import { adminAnalyticsRoutes } from './analytics.routes.js';
+import { adminDevRoutes } from './dev.routes.js';
 
 // Import middleware & db
 import { authMiddleware, adminMiddleware } from '../../middleware/auth.middleware.js';
 import { prisma } from '../../lib/prisma.js';
 import { blockchainService } from '../../services/blockchain.service.js';
 import { NotificationType } from '../../generated/prisma/enums.js';
-import { contractService } from '../../services/contract.service.js';
 import { poolService } from '../../services/pool.service.js';
 import { getVolatilityForecast, parseHorizon } from '../../services/volatility.service.js';
 
@@ -30,6 +30,7 @@ adminRoutes.route('/loans', adminLoansRoutes);
 adminRoutes.route('/plans', adminPlansRoutes);
 adminRoutes.route('/kyc', adminKycRoutes);
 adminRoutes.route('/analytics', adminAnalyticsRoutes);
+adminRoutes.route('/dev', adminDevRoutes);
 
 /**
  * GET /admin/transactions

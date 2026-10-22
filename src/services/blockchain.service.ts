@@ -1,4 +1,4 @@
-import { ethers, Contract, JsonRpcProvider, NonceManager, Wallet, ContractTransactionResponse } from 'ethers';
+import { ethers, Contract, JsonRpcProvider, NonceManager, Wallet } from 'ethers';
 import { BlockchainError } from '../middleware/error.middleware.js';
 import { chain } from '../config/env.js';
 

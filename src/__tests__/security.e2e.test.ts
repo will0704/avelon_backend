@@ -4,7 +4,7 @@
  * Tests validate all security measures implemented on the avelon_backend.
  * Uses Hono's built-in app.request() — no HTTP server needed.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Must import mock BEFORE app to ensure Prisma is mocked
 import './prisma.mock.js';

@@ -119,6 +119,8 @@ describe('notifications', () => {
         vi.doMock('../lib/prisma.js', () => ({
             prisma: {
                 notification: { create: vi.fn().mockResolvedValue({}) },
+                notificationPreference: { findUnique: vi.fn().mockResolvedValue(null) },
+                user: { findUnique: vi.fn().mockResolvedValue(null) },
                 deviceToken: { findMany: vi.fn().mockResolvedValue([{ token: 't1' }]), updateMany: vi.fn() },
             },
         }));

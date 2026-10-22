@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-// @ts-ignore -- bcrypt types resolved via @types/bcrypt in deps
 import bcrypt from 'bcrypt';
 import { randomBytes, randomInt } from 'crypto';
 import { env } from '../config/env.js';

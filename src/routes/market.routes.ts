@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { env, chain } from '../config/env.js';
 import { prisma } from '../lib/prisma.js';
 import { blockchainService } from '../services/blockchain.service.js';
+import { getVolatilityForecast, parseHorizon } from '../services/volatility.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const marketRoutes = new Hono();
@@ -112,6 +113,16 @@ marketRoutes.get('/price/history', async (c) => {
             total: data.length,
         },
     });
+});
+
+/**
+ * GET /market/volatility
+ * The same advisory LSTM forecast the admin page shows, for any signed-in user.
+ * Signed-in only, so nobody can drive the AI service from outside the apps.
+ */
+marketRoutes.get('/volatility', authMiddleware, async (c) => {
+    const data = await getVolatilityForecast(parseHorizon(c.req.query('horizon')));
+    return c.json({ success: true, data });
 });
 
 /**

@@ -22,6 +22,8 @@ contract AvelonLiquidityPoolTest is Harness {
     function setUp() public {
         // This contract owns the pool, standing in for the backend signer
         pool = new AvelonLiquidityPool();
+        // The accounting tests move tens of ETH at once; the limits have their own tests
+        pool.setDepositLimits(0.01 ether, 1000 ether);
         vm.deal(ALICE, 1000 ether);
         vm.deal(BOB, 1000 ether);
         // borrowers repay more than they drew, so they need their own funds
@@ -73,6 +75,69 @@ contract AvelonLiquidityPoolTest is Harness {
         vm.prank(ALICE);
         vm.expectRevert(bytes4(keccak256("EnforcedPause()")));
         pool.deposit{value: 1 ether}();
+    }
+
+    // ── deposit limits ───────────────────────────────────────────────────
+
+    function test_DefaultDepositLimits() public {
+        AvelonLiquidityPool fresh = new AvelonLiquidityPool();
+        assertEq(fresh.minDeposit(), 0.01 ether, "default minimum");
+        assertEq(fresh.maxDeposit(), 10 ether, "default maximum");
+    }
+
+    function test_DepositsExactlyAtTheLimitsSucceed() public {
+        AvelonLiquidityPool fresh = new AvelonLiquidityPool();
+        vm.prank(ALICE);
+        fresh.deposit{value: 0.01 ether}();
+        vm.prank(BOB);
+        fresh.deposit{value: 10 ether}();
+        assertEq(fresh.totalAssets(), 10.01 ether, "both deposits landed");
+    }
+
+    function test_DepositBelowMinimumReverts() public {
+        AvelonLiquidityPool fresh = new AvelonLiquidityPool();
+        vm.prank(ALICE);
+        vm.expectRevert(
+            abi.encodeWithSelector(AvelonLiquidityPool.DepositBelowMinimum.selector, 0.009 ether, 0.01 ether)
+        );
+        fresh.deposit{value: 0.009 ether}();
+    }
+
+    function test_DepositAboveMaximumReverts() public {
+        AvelonLiquidityPool fresh = new AvelonLiquidityPool();
+        vm.prank(ALICE);
+        vm.expectRevert(
+            abi.encodeWithSelector(AvelonLiquidityPool.DepositAboveMaximum.selector, 10.5 ether, 10 ether)
+        );
+        fresh.deposit{value: 10.5 ether}();
+    }
+
+    function test_OwnerCanChangeDepositLimits() public {
+        pool.setDepositLimits(0.5 ether, 2 ether);
+        assertEq(pool.minDeposit(), 0.5 ether, "new minimum");
+        assertEq(pool.maxDeposit(), 2 ether, "new maximum");
+
+        vm.prank(ALICE);
+        vm.expectRevert(
+            abi.encodeWithSelector(AvelonLiquidityPool.DepositAboveMaximum.selector, 3 ether, 2 ether)
+        );
+        pool.deposit{value: 3 ether}();
+    }
+
+    function test_OnlyOwnerCanChangeDepositLimits() public {
+        vm.prank(OUTSIDER);
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), OUTSIDER)
+        );
+        pool.setDepositLimits(1 ether, 2 ether);
+    }
+
+    function test_DepositLimitsRejectZeroMinimumAndInvertedRange() public {
+        vm.expectRevert(AvelonLiquidityPool.InvalidAmount.selector);
+        pool.setDepositLimits(0, 1 ether);
+
+        vm.expectRevert(AvelonLiquidityPool.InvalidAmount.selector);
+        pool.setDepositLimits(2 ether, 1 ether);
     }
 
     // ── funding a loan ───────────────────────────────────────────────────

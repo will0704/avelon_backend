@@ -77,6 +77,13 @@ describe('A01 — Broken Access Control', () => {
         });
     });
 
+    describe('Market Routes', () => {
+        it('should return 401 for the volatility forecast without auth', async () => {
+            const res = await jsonRequest('/api/v1/market/volatility');
+            expect(res.status).toBe(401);
+        });
+    });
+
     describe('KYC Routes', () => {
         it('should return 401 for unauthenticated KYC status', async () => {
             const res = await jsonRequest('/api/v1/kyc/status');

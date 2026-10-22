@@ -239,6 +239,39 @@ describe('suspending and restoring a user', () => {
 
 // ─── wallets ────────────────────────────────────────────────────────────
 
+describe('linking a wallet', () => {
+    const body = { address: '0x90f79bf6eb2c4f870365e785982e1f101e93b906', chainId: 31337 };
+
+    it('lets an investor with a verified email ask for the challenge', async () => {
+        currentUser = { id: 'inv1', email: 'investor@test.com', role: 'INVESTOR', status: 'VERIFIED' };
+
+        const res = await call('POST', '/api/v1/wallets/connect', body);
+
+        expect(res.status).toBe(200);
+        const json = await res.json();
+        expect(json.data.message).toContain('Avelon wallet ownership verification');
+        expect(mockPrismaClient.verificationToken.create).toHaveBeenCalled();
+    });
+
+    it('turns away an investor who has not verified their email', async () => {
+        currentUser = { id: 'inv1', email: 'investor@test.com', role: 'INVESTOR', status: 'REGISTERED' };
+
+        const res = await call('POST', '/api/v1/wallets/connect', body);
+
+        expect(res.status).toBe(403);
+        expect(mockPrismaClient.verificationToken.create).not.toHaveBeenCalled();
+    });
+
+    it('still needs KYC approval for a borrower', async () => {
+        currentUser = { id: 'b1', email: 'borrower@test.com', role: 'BORROWER', status: 'VERIFIED' };
+
+        const res = await call('POST', '/api/v1/wallets/connect', body);
+
+        expect(res.status).toBe(403);
+        expect(mockPrismaClient.verificationToken.create).not.toHaveBeenCalled();
+    });
+});
+
 describe('removing a wallet', () => {
     it('keeps a wallet that any loan points to', async () => {
         mockPrismaClient.wallet.findFirst = vi.fn().mockResolvedValue({ id: 'w1', userId: 'u1', address: '0xabc', isPrimary: false });

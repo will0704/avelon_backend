@@ -33,11 +33,13 @@ const mockPrismaClient = {
     },
     systemConfig: {
         findUnique: vi.fn().mockResolvedValue(null),
+        upsert: vi.fn().mockResolvedValue({}),
     },
     priceHistory: {
         findMany: vi.fn().mockResolvedValue([]),
         findFirst: vi.fn().mockResolvedValue(null),
         create: vi.fn().mockResolvedValue({}),
+        createMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     loanPlan: {
         findMany: vi.fn().mockResolvedValue([]),

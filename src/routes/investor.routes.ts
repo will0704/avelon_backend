@@ -94,7 +94,8 @@ investorRoutes.get('/calldata', async (c) => {
     if (action !== 'deposit' && action !== 'withdraw' && action !== 'claim') {
         throw new ValidationError('action must be one of: deposit, withdraw, claim');
     }
-    const data = await investorService.getCallData(action, c.req.query('shares'));
+    // amount (deposit only) is checked against the pool's limits before signing
+    const data = await investorService.getCallData(action, c.req.query('shares'), c.req.query('amount'));
     return c.json({ success: true, data });
 });
 

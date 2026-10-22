@@ -199,7 +199,10 @@ async function main() {
         {
             name: 'Starter',
             description: 'Entry-level loan for new borrowers with basic verification',
-            minCreditScore: 40,
+            // A borrower who completes only the required KYC — government ID and a
+            // face match — tops out around 31, so 40 made the entry plan unreachable.
+            // The 60% stake below is what prices the thinner file, not the threshold.
+            minCreditScore: 30,
             minAmount: 0.01,
             maxAmount: 0.1,
             durationOptions: [7, 14, 30],

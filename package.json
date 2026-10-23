@@ -27,6 +27,7 @@
     "chain:local": "cd contracts && npx hardhat node",
     "chain:deploy:local": "cd contracts && npx tsx scripts/deploy.ts --network hardhat",
     "demo:reset": "tsx scripts/reset-local.ts",
+    "demo:fund": "tsx scripts/fund-demo-pool.ts",
     "demo:e2e": "tsx scripts/e2e-local.ts",
     "demo:prices": "tsx scripts/seed-prices.ts",
     "gmail:token": "tsx scripts/gmail-token.ts",
